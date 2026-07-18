@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const node_path_1 = __importDefault(require("node:path"));
+const channels_1 = require("./ipc/channels");
 const main_window_1 = require("./windows/main-window");
 const handlers_1 = require("./ipc/handlers");
 const connection_1 = require("./database/connection");
@@ -14,6 +15,39 @@ let mainWindow = null;
 let handlersRegistered = false;
 let musicRepository = null;
 let providerRegistry = null;
+let isAppClosing = false;
+function requestRendererCloseFlush(windowRef) {
+    return new Promise((resolve) => {
+        if (windowRef.isDestroyed()) {
+            resolve();
+            return;
+        }
+        let settled = false;
+        let timer;
+        const acknowledge = () => {
+            finalize();
+        };
+        const finalize = () => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            clearTimeout(timer);
+            electron_1.ipcMain.removeListener(channels_1.APP_IPC_CHANNELS.prepareToCloseAck, acknowledge);
+            resolve();
+        };
+        timer = setTimeout(() => {
+            finalize();
+        }, 700);
+        electron_1.ipcMain.once(channels_1.APP_IPC_CHANNELS.prepareToCloseAck, acknowledge);
+        try {
+            windowRef.webContents.send(channels_1.APP_IPC_CHANNELS.prepareToClose);
+        }
+        catch {
+            finalize();
+        }
+    });
+}
 function bootstrap() {
     try {
         const windowRef = (0, main_window_1.createMainWindow)();
@@ -70,6 +104,21 @@ electron_1.app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         electron_1.app.quit();
     }
+});
+electron_1.app.on('before-quit', (event) => {
+    if (isAppClosing || !mainWindow || mainWindow.isDestroyed()) {
+        return;
+    }
+    event.preventDefault();
+    isAppClosing = true;
+    void (async () => {
+        try {
+            await requestRendererCloseFlush(mainWindow);
+        }
+        finally {
+            electron_1.app.exit(0);
+        }
+    })();
 });
 electron_1.app.on('will-quit', () => {
     musicRepository?.close();

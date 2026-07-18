@@ -31,9 +31,18 @@
 - Stage 6.5 Session Runtime:
   - Added listening history insert/update IPC chain from renderer to main.
   - `ListeningHistoryRecord` now writes both add and update paths.
-  - `src/renderer/audio/store.ts` accumulates played seconds by playback time delta and persists to `listening_history` on pause/finish, with each pause or switch writing an explicit `endedAt`.
+  - `src/renderer/audio/store.ts` now delegates session start/accumulate/finalize logic to `src/renderer/audio/listening-session.ts`.
+  - Session accumulation persists played seconds to `listening_history` on pause/finish, with each pause or switch writing an explicit `endedAt`.
   - `src/renderer/App.tsx` now distinguishes restored playback metadata-only state from actively playable sessions, so restored tracks do not imply resumable playback without a source.
   - Added main-to-renderer close flush handshake (`app:prepare-close`) to improve persistence reliability on application shutdown.
+  - Close flush is now idempotent in `src/renderer/audio/store.ts` under repeated close signals (`closeInFlight` guard).
+- Track Duration and Session Persistence Hardening (current goal):
+  - Stage 1/2/3/4/5 from the latest goal prompt are implemented in place.
+  - Duration and session semantics are now consistent across AudioEngine, track contracts, and SQLite writes.
+  - Closed playback sessions are finalized on pause/ended/track-switch/prepare-to-close.
+- `app:prepare-close` gives a bounded persistence flush path.
+- `docs/goal-progress.md` and `docs/smoke-contract.md` now carry explicit evidence and open limitations.
+  - Close flush duplicate handling was hardened with an in-flight promise guard to prevent double-finalization/dispose during shutdown.
 - Stage 7 Stability Gate:
   - Provider contracts are validated in smoke (`searchMusic`, `getProviderTrack`, `getProviderPlayableSource`).
   - Transition conflict behavior is tested under scripted rapid space-switch replay.
@@ -45,3 +54,11 @@
   - long-run repeatability profiling for transitions and repeated audio playback.
   - provider track playback bridge for real providers.
   - persistence-driven world continuity for provider tracks and deeper resume UX refinement.
+
+## 2026-07-18 Goal-Level Completion State (Playback Hardening)
+
+- `docs/goal-progress.md` now tracks the full Stage 1-5 hardening checklist and evidence points.
+- Remaining items are environment/feature scope constraints rather than implementation blockers:
+  - real provider playback bridge
+  - repeatability profiling under long sessions
+  - manual local-file playback verification

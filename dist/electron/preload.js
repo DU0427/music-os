@@ -6,6 +6,8 @@ const APP_IPC_CHANNELS = (() => {
         ready: 'app:ready',
         ping: 'app:ping',
         error: 'app:error',
+        prepareToClose: 'app:prepare-close',
+        prepareToCloseAck: 'app:prepare-close-ack',
         tracksList: 'music:tracks:list',
         tracksUpsert: 'music:tracks:upsert',
         historyList: 'music:history:list',
@@ -48,6 +50,18 @@ const api = {
         timestamp: new Date().toISOString(),
     }),
     reportError: (payload) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.error, payload),
+    onPrepareToClose: (handler) => {
+        const listener = async () => {
+            try {
+                await handler();
+            }
+            finally {
+                electron_1.ipcRenderer.send(APP_IPC_CHANNELS.prepareToCloseAck);
+            }
+        };
+        electron_1.ipcRenderer.on(APP_IPC_CHANNELS.prepareToClose, listener);
+        return () => electron_1.ipcRenderer.removeListener(APP_IPC_CHANNELS.prepareToClose, listener);
+    },
     listTracks: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.tracksList),
     upsertTrack: (track) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.tracksUpsert, track),
     listListeningHistory: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.historyList),

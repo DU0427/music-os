@@ -10,6 +10,65 @@
   - `C:\Users\duainan\.codex\attachments\cb278536-ac97-411f-88b8-eb23ed075eee\pasted-text-1.txt`.
   - `C:\Users\duainan\.codex\attachments\66c20d69-bb4b-47dc-bcc5-27bc2f6cf197\pasted-text-1.txt`.
   - `C:\Users\duainan\.codex\attachments\943ce9cb-7dc4-4f07-8399-cf798852a396\pasted-text-1.txt`.
+  - `C:\Users\duainan\.codex\attachments\822449ee-5f5b-433f-be06-c341b73f8005\pasted-text-1.txt`.
+
+## 2026-07-18 Playback Data Hardening Goal
+
+- **Goal name**: Track Duration and Playback Session Persistence Hardening
+- **Status**: Functionally implemented, docs aligned, with one remaining environment-constraint gap.
+
+### Stage completion check
+
+- [x] Stage 1 - Track duration sync
+  - Metadata duration now updates `AudioPlaybackState.duration`.
+  - `TrackIdentity.durationSeconds` now follows audio duration.
+  - `ensureTrackDurationPersisted()` updates sqlite only when value changes.
+  - Track duration sync state is reset on file switch.
+  - `audioEngine.restoreTrack()` explicitly marks non-playable restored metadata so resumed session is not auto-played.
+- [x] Stage 2 - Listening session state machine
+  - `src/renderer/audio/listening-session.ts` extracted.
+  - No session created on `loadFile`.
+  - session starts on playback begin.
+  - paused / track-switch / ended paths finalize with `endedAt` through `history:update`.
+  - repeated `play` does not duplicate active sessions.
+  - `switchTrack()` and `flushFinalized()` prevent leakage across tracks and during close.
+- [x] Stage 3 - Exit persistence
+  - Renderer listens to `app:prepare-close` and `beforeunload`.
+  - Main sends close flush signal and waits up to 700ms before `app.exit(0)`.
+  - `prepareToClose()` flushes pending playback debounce and finalizes active session before audio disposal.
+  - `prepareToClose()` is now idempotent within a single renderer lifecycle (`closeInFlight` guard) to avoid repeated flush/dispose under duplicated close signals.
+  - Smoke contract checks close flush listener/ack path.
+- [x] Stage 4 - Track/session boundary consistency
+  - No persistent separate `trackName` state introduced for track identity.
+  - Track UI and overlay use `track` object fields (`title`, `artist`, `durationSeconds`).
+  - Restore-only state is visibly separated and guarded from auto-entering world interactions.
+- [x] Stage 5 - Single audio sampling path
+  - Sampling remains isolated to `WorldManager` frame loop (`AudioMetricsSampler`).
+  - Components consume `metrics` from store instead of raw FFT calls.
+
+### Verification and evidence
+
+- Build / smoke commands currently recorded:
+  - `npm run build:renderer` (success)
+  - `npm run build:electron` (success)
+  - `($env:ELECTRON_RUN_AS_NODE=$null; npm run smoke:electron)` (success)
+- Recorded smoke fields relevant to this goal are now green in this log and `docs/smoke-contract.md`.
+- Known limitation (environmental): real local audio playback with user-selected files is not fully automated in this environment.
+- Known limitation (runtime): close-time persistence is best-effort (`prepare-close` has timeout) because renderer shutdown timing is bounded by Electron lifecycle.
+- Additional latest evidence (2026-07-18 03:58 UTC run, current snapshot):
+  - `npm run build:renderer` success.
+  - `npm run build:electron` success.
+  - `($env:ELECTRON_RUN_AS_NODE=$null; npm run smoke:electron)` success.
+  - `result.trackDurationMetadataRoundTrip === true`
+  - `result.hasPrepareToCloseListener === true`
+  - `result.prepareToCloseAcked === true`
+  - `result.audioSessionReadable === true`
+  - `result.audioSessionState.activeHistoryTrackId === null` at baseline and `transitionResult.repeatedTransitionHealthy === true`
+  - fallback DB path still used due missing `better-sqlite3` native binding, documented by smoke log.
+
+### Next action
+
+- Continue with provider playback bridge and long-run interaction profiling after this goal lock.
 
 ## 2026-07-18 Stage 5.5 Session Resume Follow-up
 
@@ -64,7 +123,12 @@
 
 ### 2026-07-18 Window Close Flush Reliability Evidence
 
-- [ ] Not yet re-run full `build:renderer` / `build:electron` / `smoke:electron` after this handshake change.
+- [x] Re-ran full `build:renderer` / `build:electron` / `smoke:electron` after this handshake change.
+  - `npm run build:renderer` success.
+  - `npm run build:electron` success.
+  - `($env:ELECTRON_RUN_AS_NODE=$null; npm run smoke:electron)` success.
+  - `result.hasPrepareToCloseListener === true`
+  - `result.prepareToCloseAcked === true`
 
 ## 2026-07-17 (Baseline checkpoint)
 

@@ -176,6 +176,8 @@ Read-before-continue requirements are now recorded with exact references:
   - Design direction and visual philosophy constraints were used as alignment baseline for architecture.
 - Reference input C:\Users\duainan\.codex\attachments\943ce9cb-7dc4-4f07-8399-cf798852a396\pasted-text-1.txt
   - Playback/session continuity, metadata persistence, and latest smoke completion checkpoints were extracted from this file.
+- Reference input C:\Users\duainan\.codex\attachments\822449ee-5f5b-433f-be06-c341b73f8005\pasted-text-1.txt
+  - Current Goal: Track Duration and Playback Session Persistence Hardening.
 
 Current repository evidence for the Stage 0 boundary:
 

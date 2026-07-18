@@ -7,15 +7,7 @@ import type {
   TrackWorldContext,
 } from '../../shared/ipc/music';
 import { audioEngine } from './runtime';
-
-interface ActiveHistoryState {
-  id: string;
-  trackId: string;
-  startedAt: string;
-  elapsedSeconds: number;
-  lastCurrentTime: number;
-  lastFrameMs: number;
-}
+import { ListeningSessionManager } from './listening-session';
 
 interface AudioStore extends AudioPlaybackState {
   loadFile: (file: File) => Promise<void>;
@@ -74,21 +66,21 @@ const upsertTrack = async (track: TrackRecord) => {
 let persistStateTimer: ReturnType<typeof setTimeout> | null = null;
 let lastPersistState: PlaybackStateRecord | null = null;
 let queuedPlaybackPayload: PlaybackStateRecord | null = null;
-let activeHistory: ActiveHistoryState | null = null;
 const syncTrackDurations = new Map<string, number>();
-const toActiveHistoryElapsed = () => (activeHistory ? Number(activeHistory.elapsedSeconds.toFixed(3)) : 0);
 
 const queuePlaybackPersist = (state: AudioPlaybackState) => {
   if (!window.musicOS?.savePlaybackState || !state.track) {
     queuedPlaybackPayload = null;
     return;
   }
+
   const payload: PlaybackStateRecord = {
     trackId: state.track.id,
     positionSeconds: Number.isFinite(state.currentTime) ? state.currentTime : 0,
     isPlaying: state.isPlaying,
     updatedAt: toIso(),
   };
+
   queuedPlaybackPayload = payload;
   if (persistStateTimer) {
     clearTimeout(persistStateTimer);
@@ -137,92 +129,20 @@ const addListeningHistory = async (record: ListeningHistoryRecord) => {
   }
 };
 
-const isTrackFinished = (state: AudioPlaybackState) =>
-  state.duration > 0 && state.currentTime >= state.duration * 0.98;
-
 const updateListeningHistory = async (record: ListeningHistoryRecord) => {
-  if (typeof window.musicOS?.updateListeningHistory !== 'function') {
-    return;
-  }
-  try {
-    await window.musicOS.updateListeningHistory(record);
-  } catch {
-    // keep audio flow decoupled from persistence errors
-  }
-};
-
-const startListeningHistory = (track: TrackRecord, startTimeSeconds: number) => {
-  if (activeHistory && activeHistory.trackId === track.id) {
-    return;
-  }
-
-  const id = makeTrackId();
-  activeHistory = {
-    id,
-    trackId: track.id,
-    startedAt: toIso(),
-    elapsedSeconds: 0,
-    lastCurrentTime: Number.isFinite(startTimeSeconds) ? startTimeSeconds : 0,
-    lastFrameMs: Date.now(),
-  };
-  void addListeningHistory({
-    id,
-    trackId: track.id,
-    startedAt: activeHistory.startedAt,
-    endedAt: null,
-    durationSeconds: 0,
-  });
-};
-
-const finalizeListeningHistory = async (state: AudioPlaybackState, endedAt?: string | null) => {
-  if (!activeHistory) {
-    return;
-  }
-
-  const record: ListeningHistoryRecord = {
-    id: activeHistory.id,
-    trackId: activeHistory.trackId,
-    startedAt: activeHistory.startedAt,
-    endedAt: endedAt === undefined ? (isTrackFinished(state) ? toIso() : null) : endedAt,
-    durationSeconds: Math.max(0, toActiveHistoryElapsed()),
-  };
-
-  await updateListeningHistory(record);
-  activeHistory = null;
-};
-
-const finishFrameHistory = (nextState: AudioPlaybackState, previousPlaying: boolean) => {
-  if (!activeHistory) {
-    return;
-  }
-
-  if (!Number.isFinite(nextState.currentTime)) {
-    return;
-  }
-
-  if (!nextState.track || nextState.track.id !== activeHistory.trackId) {
-    void finalizeListeningHistory(nextState, toIso());
-    return;
-  }
-
-  if (!nextState.isPlaying) {
-    if (previousPlaying) {
-      void finalizeListeningHistory(nextState, toIso());
+  if (typeof window.musicOS?.updateListeningHistory === 'function') {
+    try {
+      await window.musicOS.updateListeningHistory(record);
+    } catch {
+      // keep audio flow decoupled from persistence errors
     }
-    return;
   }
-
-  const now = Date.now();
-  const currentTime = nextState.currentTime;
-  const posDelta = currentTime - activeHistory.lastCurrentTime;
-  const timeDelta = Math.max(0, (now - activeHistory.lastFrameMs) / 1000);
-  const delta = Number.isFinite(posDelta) ? Math.max(0, Math.min(posDelta, timeDelta + 0.2)) : 0;
-  if (delta > 0.015) {
-    activeHistory.elapsedSeconds += delta;
-  }
-  activeHistory.lastCurrentTime = currentTime;
-  activeHistory.lastFrameMs = now;
 };
+
+const sessionManager = new ListeningSessionManager({
+  onAddHistory: (record) => addListeningHistory(record),
+  onUpdateHistory: (record) => updateListeningHistory(record),
+});
 
 const ensureTrackDurationPersisted = (track: TrackRecord) => {
   const latest = syncTrackDurations.get(track.id);
@@ -241,48 +161,45 @@ const ensureTrackDurationPersisted = (track: TrackRecord) => {
 export const useAudioStore = create<AudioStore>()((set) => {
   let previousIsPlaying = false;
   let previousTrackId: string | null = null;
-  let lastKnownTrackId: string | null = null;
+  let previousSyncTrackId: string | null = null;
+  let closeInFlight: Promise<void> | null = null;
 
   audioEngine.subscribe((state) => {
-    set({
-      ...state,
-      activeHistoryId: activeHistory?.id ?? null,
-      activeHistoryTrackId: activeHistory?.trackId ?? null,
-      activeHistoryStartedAt: activeHistory?.startedAt ?? null,
-      activeHistoryElapsedSeconds: toActiveHistoryElapsed(),
-    });
-    queuePlaybackPersist(state);
-
     const currentTrack = state.track;
     const currentTrackId = currentTrack?.id ?? null;
+
     if (currentTrack && currentTrack.durationSeconds !== syncTrackDurations.get(currentTrack.id)) {
       ensureTrackDurationPersisted(currentTrack);
     }
 
     if (currentTrackId && currentTrackId !== previousTrackId) {
-      void finalizeListeningHistory(state, toIso());
+      void sessionManager.switchTrack(state);
     }
+
+    if (state.isPlaying && !previousIsPlaying && currentTrack) {
+      sessionManager.start(currentTrack, state.currentTime);
+    }
+
     if (!currentTrack) {
-      void finalizeListeningHistory(state, toIso());
+      void sessionManager.flushFinalized(state, toIso());
       previousIsPlaying = false;
       previousTrackId = null;
-      return;
+    } else {
+      sessionManager.accumulate(state, previousIsPlaying);
+      previousIsPlaying = state.isPlaying;
+      previousTrackId = currentTrackId;
     }
 
-    if (state.isPlaying && !previousIsPlaying) {
-      if (activeHistory && activeHistory.trackId !== currentTrackId) {
-        void finalizeListeningHistory(state, toIso());
-      }
-      startListeningHistory(currentTrack, state.currentTime);
-    }
+    const sessionSnapshot = sessionManager.getSnapshot();
+    set({
+      ...state,
+      activeHistoryId: sessionSnapshot.id,
+      activeHistoryTrackId: sessionSnapshot.trackId,
+      activeHistoryStartedAt: sessionSnapshot.startedAt,
+      activeHistoryElapsedSeconds: sessionSnapshot.elapsedSeconds,
+    });
 
-    if (currentTrackId === lastKnownTrackId && activeHistory) {
-      finishFrameHistory(state, previousIsPlaying);
-    }
-    lastKnownTrackId = currentTrackId;
-
-    previousIsPlaying = state.isPlaying;
-    previousTrackId = currentTrackId;
+    queuePlaybackPersist(state);
   });
 
   return {
@@ -303,8 +220,12 @@ export const useAudioStore = create<AudioStore>()((set) => {
     },
     loadFile: async (file) => {
       const track = buildLocalTrack(file);
+      if (previousSyncTrackId) {
+        syncTrackDurations.delete(previousSyncTrackId);
+      }
       syncTrackDurations.delete(track.id);
       syncTrackDurations.set(track.id, 0);
+      previousSyncTrackId = track.id;
       await upsertTrack(track);
       await audioEngine.loadTrackFromFile(file, track);
       void savePlaybackState({
@@ -318,15 +239,27 @@ export const useAudioStore = create<AudioStore>()((set) => {
       audioEngine.restoreTrack(track, positionSeconds);
     },
     prepareToClose: async () => {
-      const state = audioEngine.getState();
-      if (!state.track) {
-        queuedPlaybackPayload = null;
+      if (closeInFlight) {
+        return closeInFlight;
       }
 
-      audioEngine.pause();
-      await finalizeListeningHistory(state, toIso());
-      await flushPlaybackPersist();
-      audioEngine.dispose();
+      closeInFlight = (async () => {
+        const state = audioEngine.getState();
+        if (!state.track) {
+          queuedPlaybackPayload = null;
+        }
+
+        audioEngine.pause();
+        await sessionManager.flushFinalized(state, toIso());
+        await flushPlaybackPersist();
+        audioEngine.dispose();
+      })();
+
+      try {
+        await closeInFlight;
+      } finally {
+        closeInFlight = null;
+      }
     },
     restorePlaybackSession: async () => {
       if (typeof window.musicOS?.getPlaybackState !== 'function' || typeof window.musicOS?.listTracks !== 'function') {

@@ -36,6 +36,8 @@ conditions are satisfied in the JSON payload printed by the harness:
 - `result.providerSearchContracts === true`
 - `result.shellVisible === true`
 - `result.homeState === true`
+- `result.hasPrepareToCloseListener === true`
+- `result.prepareToCloseAcked === true`
 - `result.ping.message === 'ack:electron-smoke'`
 - no `preloadError`
 - no `failedLoad`
@@ -215,7 +217,43 @@ The UI text checks are intentionally simple and resilient to rendering drift:
 
 ## Current Evidence Snapshot
 
-- `2026-07-18 11:17 UTC` snapshot recorded in [`docs/goal-progress.md`](/d:/code/music-os/docs/goal-progress.md)
+- `2026-07-18 03:58 UTC` snapshot recorded in [`docs/goal-progress.md`](/d:/code/music-os/docs/goal-progress.md)
+  - `npm run build:renderer` success.
+  - `npm run build:electron` success.
+  - `($env:ELECTRON_RUN_AS_NODE=$null; npm run smoke:electron)` success with `prepareToClose` idempotency path.
+  - `result.apiType === 'object'`
+  - `result.canvas === true`
+  - `result.audioInput === true`
+  - `result.trackListReadable === true`
+  - `result.trackDurationMetadataRoundTrip === true`
+  - `result.playbackStateReadable === true`
+  - `result.playbackStateWritable === true`
+  - `result.hasHistoryAdd === true`
+  - `result.hasHistoryUpdate === true`
+  - `result.hasHistoryList === true`
+  - `result.listeningHistoryRoundTrip === true`
+  - `result.listeningHistoryApiAvailable === true`
+  - `result.audioSessionReadable === true`
+  - `result.providerSearchContracts === true`
+  - `result.shellVisible === true`
+  - `result.homeState === true`
+  - `result.ping.message === 'ack:electron-smoke'`
+  - `result.reportErrorAcknowledged?.acknowledged === true`
+  - `result.hasPrepareToCloseListener === true`
+  - `result.prepareToCloseAcked === true`
+  - `transitionResult.beforeDetected === true`
+  - `transitionResult.afterDetected === true`
+  - `transitionResult.conflictIgnored === true`
+  - `transitionResult.afterReturnDetected === true`
+  - `transitionResult.songWorldOverlayVisible === true`
+  - `transitionResult.repeatedTransitionHealthy === true`
+  - no `preloadError`
+  - no `failedLoad`
+  - no `renderProcessGone`
+  - no CSP warning text in `consoleMessages`
+  - fallback IPC handler path was used because `better-sqlite3` binding was unavailable in this environment; smoke gates still passed.
+
+- `2026-07-18 03:50 UTC` snapshot recorded in [`docs/goal-progress.md`](/d:/code/music-os/docs/goal-progress.md)
   - `npm run build:renderer` success.
   - `npm run build:electron` success.
   - `($env:ELECTRON_RUN_AS_NODE=$null; npm run smoke:electron)` success with Stage 5.5 follow-up code.
@@ -236,6 +274,8 @@ The UI text checks are intentionally simple and resilient to rendering drift:
   - `result.hasHistoryAdd === true`
   - `result.hasHistoryUpdate === true`
   - `result.hasHistoryList === true`
+  - `result.hasPrepareToCloseListener === true`
+  - `result.prepareToCloseAcked === true`
   - `transitionResult.beforeDetected === true`
   - `transitionResult.afterDetected === true`
   - `transitionResult.conflictIgnored === true`
@@ -319,6 +359,7 @@ Stage 0 requires no work to proceed until these input files are acknowledged and
 - `C:\Users\duainan\.codex\attachments\67ea7f5d-7b63-4409-b8c0-32d2accfcc22\pasted-text.txt`
 - `C:\Users\duainan\.codex\attachments\cb278536-ac97-411f-88b8-eb23ed075eee\pasted-text-1.txt`
 - `C:\Users\duainan\.codex\attachments\943ce9cb-7dc4-4f07-8399-cf798852a396\pasted-text-1.txt`
+- `C:\Users\duainan\.codex\attachments\822449ee-5f5b-433f-be06-c341b73f8005\pasted-text-1.txt`
 
 Operational interpretation:
 

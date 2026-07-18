@@ -5,6 +5,8 @@ exports.APP_IPC_CHANNELS = {
     ready: 'app:ready',
     ping: 'app:ping',
     error: 'app:error',
+    prepareToClose: 'app:prepare-close',
+    prepareToCloseAck: 'app:prepare-close-ack',
     tracksList: 'music:tracks:list',
     tracksUpsert: 'music:tracks:upsert',
     historyList: 'music:history:list',

@@ -17,6 +17,8 @@ const smokeChannels = (() => {
       ready: 'app:ready',
       ping: 'app:ping',
       error: 'app:error',
+      prepareToClose: 'app:prepare-close',
+      prepareToCloseAck: 'app:prepare-close-ack',
       tracksList: 'music:tracks:list',
       tracksUpsert: 'music:tracks:upsert',
       historyList: 'music:history:list',
@@ -147,6 +149,10 @@ app.whenReady().then(async () => {
   let consoleMessages = [];
   let failedLoad = null;
   let renderProcessGone = null;
+  let prepareToCloseAcked = false;
+  const closeFlushRequested =
+    typeof smokeChannels?.prepareToClose === 'string' &&
+    typeof smokeChannels?.prepareToCloseAck === 'string';
 
   smokeWindow = new BrowserWindow({
     show: false,
@@ -240,6 +246,9 @@ app.whenReady().then(async () => {
         const hasProviderPlayableSource = Boolean(
           window.musicOS && typeof window.musicOS.getProviderPlayableSource === 'function',
         );
+        const hasPrepareToCloseListener = Boolean(
+          window.musicOS && typeof window.musicOS.onPrepareToClose === 'function',
+        );
         const readAudioSessionDebug = () => {
           const sessionNode = document.getElementById('audio-session-debug');
           if (!sessionNode) {
@@ -260,6 +269,7 @@ app.whenReady().then(async () => {
             bodyText: bodyText.slice(0, 220),
             canvas: hasCanvas,
             audioInput,
+            hasPrepareToCloseListener,
             reportErrorAvailable,
             title,
             homeState,
@@ -289,6 +299,7 @@ app.whenReady().then(async () => {
             readyError: error?.message || String(error),
             canvas: hasCanvas,
             audioInput,
+            hasPrepareToCloseListener,
             title,
             homeState,
             shellVisible,
@@ -506,6 +517,7 @@ app.whenReady().then(async () => {
           playbackStateWritable,
           listeningHistoryApiAvailable: hasListeningHistory,
           providerSearchContracts,
+          hasPrepareToCloseListener,
           ready,
           ping,
 
@@ -518,6 +530,29 @@ app.whenReady().then(async () => {
         };
       })()
     `);
+
+    if (closeFlushRequested && result?.apiType === 'object' && result?.hasPrepareToCloseListener) {
+      prepareToCloseAcked = await new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve(false);
+        }, 1200);
+
+        ipcMain.once(smokeChannels.prepareToCloseAck, () => {
+          clearTimeout(timeout);
+          resolve(true);
+        });
+
+        try {
+          smokeWindow.webContents.send(smokeChannels.prepareToClose);
+        } catch {
+          clearTimeout(timeout);
+          resolve(false);
+        }
+      });
+      result.prepareToCloseAcked = prepareToCloseAcked;
+    } else {
+      result.prepareToCloseAcked = false;
+    }
 
     const transitionResult = await smokeWindow.webContents.executeJavaScript(`
       (async () => {
@@ -686,6 +721,8 @@ app.whenReady().then(async () => {
         result?.playbackStateWritable &&
         result?.listeningHistoryApiAvailable &&
         result?.listeningHistoryRoundTrip &&
+        result?.hasPrepareToCloseListener &&
+        result?.prepareToCloseAcked &&
         result?.hasHistoryUpdate &&
         result?.hasHistoryAdd &&
         result?.hasHistoryList &&
