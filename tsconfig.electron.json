@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "rootDir": ".",
+    "outDir": "dist",
+    "noEmit": false,
+    "noEmitOnError": true,
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "esModuleInterop": true
+  },
+  "include": [
+    "electron/**/*.ts",
+    "src/shared/ipc/**/*.ts"
+  ],
+  "exclude": ["node_modules", "src/app/**", "src/components/**", "out/**"]
+}
