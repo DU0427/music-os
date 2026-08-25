@@ -31,6 +31,7 @@ export default function AppShell() {
   const [status, setStatus] = useState<string>('booting...');
   const [isSearching, setIsSearching] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const currentSpace = useRuntimeStore((s) => s.currentSpace);
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const isTransitioning = useRuntimeStore((s) => s.isTransitioning);
@@ -117,8 +118,31 @@ export default function AppShell() {
     return () => window.removeEventListener('music-os-set-space', h);
   }, [requestSpace]);
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isDragging) setIsDragging(true);
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('audio/')) {
+      const loadFile = useAudioStore.getState().loadFile;
+      try {
+        await loadFile(file);
+      } catch {}
+    }
+  };
+
   return (
     <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       style={{
         position: 'fixed',
         inset: 0,
@@ -143,6 +167,16 @@ export default function AppShell() {
             'radial-gradient(ellipse at 40% 60%, rgba(110,168,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 30%, rgba(181,140,255,0.10) 0%, transparent 40%)',
         }}
       />
+
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
+          <div className="rounded-2xl border border-white/15 bg-white/5 backdrop-blur-xl px-8 py-6 text-center">
+            <div className="text-white/80 font-sans text-[13px] tracking-wide">drop audio to load</div>
+            <div className="text-white/30 font-sans text-[11px] mt-1">mp3 · wav · flac · ogg</div>
+          </div>
+        </div>
+      )}
 
       {/* Top navigation — prototype style */}
       <TopBar onSearch={() => setIsSearching(true)} />
