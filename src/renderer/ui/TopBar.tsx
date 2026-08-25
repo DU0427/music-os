@@ -3,6 +3,8 @@ import { Search, AudioLines, User } from 'lucide-react';
 import { useState } from 'react';
 import { useRuntimeStore } from '../store/runtime';
 import { useAudioStore } from '../audio/store';
+import { useMoodStore } from '../store/mood';
+import { useEffect } from 'react';
 
 function NavIcon({ icon: Icon, label, onClick }: { icon: typeof Search; label: string; onClick?: () => void }) {
   const [hovered, setHovered] = useState(false);
@@ -38,7 +40,13 @@ export default function TopBar() {
   const currentSpace = useRuntimeStore((s) => s.currentSpace);
   const canEnterMidnight = useAudioStore((s) => Boolean(s.canPlay && s.track));
   const track = useAudioStore((s) => s.track);
+  const activeMood = useMoodStore((s) => s.activeMood);
+  const loadMood = useMoodStore((s) => s.load);
   const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    void loadMood();
+  }, [loadMood]);
 
   const spaceTitle =
     currentSpace === 'home' ? 'home' : currentSpace === 'midnight' ? 'midnight city' : currentSpace;
@@ -78,7 +86,7 @@ export default function TopBar() {
             className="flex flex-col items-center"
           >
             <div className="font-sans text-[13px] font-medium text-white/80 tracking-wide lowercase">
-              {spaceTitle}
+              {spaceTitle} {activeMood ? `· ${activeMood}` : ''}
             </div>
             <motion.div
               className="mt-3 w-1.5 h-1.5 rounded-full bg-[var(--mo-accent)] shadow-[0_0_12px_rgba(110,168,255,0.8)]"

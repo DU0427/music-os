@@ -7,6 +7,7 @@ import TopBar from './ui/TopBar';
 import HomeOrbital from './ui/HomeOrbital';
 import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
 import MemoryFieldWorld from './worlds/MemoryFieldWorld';
+import MoodSpaceWorld from './worlds/MoodSpaceWorld';
 import type { AppReadyPayload } from '../shared/ipc/channels';
 import { useAudioStore } from './audio/store';
 
@@ -138,9 +139,10 @@ export default function AppShell() {
       {/* Home orbital DOM — only in home space */}
       {currentSpace === 'home' && <HomeOrbital />}
 
-      {/* Library / Memory DOM worlds */}
+      {/* Library / Memory / Mood DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
       {currentSpace === 'memory' && <MemoryFieldWorld />}
+      {currentSpace === 'mood' && <MoodSpaceWorld />}
 
       {/* Midnight overlay */}
       <SongWorldOverlay />

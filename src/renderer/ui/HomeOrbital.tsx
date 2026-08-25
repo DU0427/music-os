@@ -183,7 +183,8 @@ export default function HomeOrbital() {
   const handlePlanetClick = (id: string) => {
     if (id === 'library') requestSpace('library');
     else if (id === 'memory') requestSpace('memory');
-    else if (id === 'visualizer' || id === 'mood') handleEnter();
+    else if (id === 'mood') requestSpace('mood');
+    else if (id === 'visualizer') handleEnter();
   };
 
   return (
