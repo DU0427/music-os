@@ -6,16 +6,16 @@ import { useRuntimeStore } from '../store/runtime';
 import CoreVisualDom from './CoreVisualDom';
 import { useState, useEffect } from 'react';
 
-function OrbitRing({ size, opacity = 0.1, speed = 20, reverse = false, tilt = 60 }: { size: number; opacity?: number; speed?: number; reverse?: boolean; tilt?: number }) {
+function OrbitRing({ size, opacity = 0.12, speed = 20, reverse = false, tilt = 60 }: { size: number; opacity?: number; speed?: number; reverse?: boolean; tilt?: number }) {
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const actualSpeed = isPlaying ? speed : speed * 3;
   return (
     <motion.div
-      className="absolute top-1/2 left-1/2 pointer-events-none rounded-full border border-white/5"
+      className="absolute top-1/2 left-1/2 pointer-events-none rounded-full"
       initial={{ width: 0, height: 0, opacity: 0, x: '-50%', y: '-50%', rotateX: tilt }}
-      animate={{ width: size, height: size, opacity: opacity * 0.5, x: '-50%', y: '-50%', rotateX: tilt }}
+      animate={{ width: size, height: size, opacity: 1, x: '-50%', y: '-50%', rotateX: tilt }}
       transition={{ duration: 2, ease: 'easeOut', delay: 0.5 }}
-      style={{ borderColor: `rgba(255,255,255,${opacity * 0.5})` }}
+      style={{ border: `1px solid rgba(255,255,255,${opacity})` }}
     >
       <motion.div
         className="w-full h-full rounded-full"
@@ -134,15 +134,15 @@ function Planet({
           )}
         </div>
 
-        {/* label */}
-        <div className="absolute top-[120%] whitespace-nowrap opacity-60 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-30">
+        {/* label — higher contrast, tighter tracking */}
+        <div className="absolute top-[122%] whitespace-nowrap opacity-90 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-30">
           <div className="flex flex-col items-center">
             {!hovered ? (
-              <span className="font-sans text-[13px] text-white/70 drop-shadow-sm font-medium">{title}</span>
+              <span className="font-sans text-[12.5px] text-white/85 drop-shadow-sm font-medium tracking-wide">{title}</span>
             ) : (
               <motion.div className="flex flex-col items-center text-center" initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <span className="font-sans text-[11px] text-white/50 mb-1 tracking-wide">{subtitle}</span>
-                <span className="font-sans text-[13px] font-medium text-white/90 drop-shadow-sm">{title}</span>
+                <span className="font-sans text-[10px] text-white/55 mb-1 tracking-[0.12em] uppercase">{subtitle}</span>
+                <span className="font-sans text-[12.5px] font-medium text-white drop-shadow-sm tracking-wide">{title}</span>
               </motion.div>
             )}
           </div>
@@ -194,18 +194,17 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
 
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10">
-      {/* Central core */}
+      {/* Central core — scaled down for breathing room */}
       <div className="relative z-20 pointer-events-auto">
-        <CoreVisualDom size={isMobile ? 180 : 260} onClick={handleCoreClick} />
-        {/* floating control pill on hover is handled inside CoreVisualDom+HomeOrbital interaction below */}
-        <div className="absolute left-1/2 -translate-x-1/2 -bottom-14 flex items-center justify-center pointer-events-none">
+        <CoreVisualDom size={isMobile ? 170 : 220} onClick={handleCoreClick} />
+        <div className="absolute left-1/2 -translate-x-1/2 -bottom-11 flex items-center justify-center pointer-events-none">
           <motion.div
-            className="px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md pointer-events-auto cursor-pointer"
-            whileHover={{ scale: 1.05 }}
+            className="px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-md pointer-events-auto cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.2)]"
+            whileHover={{ scale: 1.04 }}
             onClick={() => (isPlaying ? useAudioStore.getState().pause() : void useAudioStore.getState().play())}
           >
-            <span className="text-[10px] tracking-[0.14em] uppercase text-white/60 font-sans">
-              {canEnterMidnight ? (isPlaying ? 'playing — click core to enter' : 'click core to enter') : 'load a song to enter'}
+            <span className="text-[10px] tracking-[0.14em] uppercase text-white/70 font-sans font-medium">
+              {canEnterMidnight ? (isPlaying ? 'playing · click core to enter' : 'click core to enter') : 'load a song to enter'}
             </span>
           </motion.div>
         </div>
@@ -218,27 +217,16 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
         transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
       >
-        <OrbitRing size={getDist(500)} opacity={0.15} speed={40} tilt={TILT} />
-        <OrbitRing size={getDist(700)} opacity={0.08} speed={60} tilt={TILT} />
-        <OrbitRing size={getDist(900)} opacity={0.04} speed={80} reverse tilt={TILT} />
+        <OrbitRing size={getDist(420)} opacity={0.18} speed={40} tilt={TILT} />
+        <OrbitRing size={getDist(580)} opacity={0.10} speed={60} tilt={TILT} />
+        <OrbitRing size={getDist(740)} opacity={0.06} speed={80} reverse tilt={TILT} />
 
         <div className="absolute inset-0 pointer-events-auto flex items-center justify-center">
-          <Planet id="visualizer" title="visualizer" subtitle="enter" {...getPos(380, -145)} color="#6EA8FF" size={getSize(70)} onClick={() => handlePlanetClick('visualizer')} />
-          <Planet id="library" title="library" subtitle="explore" {...getPos(320, -35)} color="#B58CFF" size={getSize(60)} onClick={() => handlePlanetClick('library')} />
-          <Planet id="memory" title="memory" subtitle="revisit" {...getPos(360, 135)} color="#FFD27A" size={getSize(50)} onClick={() => handlePlanetClick('memory')} />
-          <Planet id="mood" title="mood space" subtitle="shift" {...getPos(420, 45)} color="#B58CFF" size={getSize(80)} onClick={() => handlePlanetClick('mood')} />
+          <Planet id="visualizer" title="visualizer" subtitle="enter" {...getPos(300, -145)} color="#6EA8FF" size={getSize(68)} onClick={() => handlePlanetClick('visualizer')} />
+          <Planet id="library" title="library" subtitle="explore" {...getPos(260, -35)} color="#B58CFF" size={getSize(58)} onClick={() => handlePlanetClick('library')} />
+          <Planet id="memory" title="memory" subtitle="revisit" {...getPos(290, 135)} color="#FFD27A" size={getSize(48)} onClick={() => handlePlanetClick('memory')} />
+          <Planet id="mood" title="mood space" subtitle="shift" {...getPos(340, 45)} color="#B58CFF" size={getSize(74)} onClick={() => handlePlanetClick('mood')} />
         </div>
-
-        <motion.div
-          className="absolute top-8 left-8 text-white/30 font-sans tracking-widest text-[9px] font-medium pointer-events-none uppercase"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.5, duration: 2 }}
-        >
-          booting your universe.
-          <br />
-          <span className="text-white/20">music os v0.1</span>
-        </motion.div>
       </motion.div>
     </div>
   );

@@ -60,7 +60,7 @@ export default function TopBar({ onSearch }: { onSearch?: () => void }) {
 
   return (
     <motion.header
-      className="fixed top-0 left-0 w-full px-10 py-8 flex items-start justify-between pointer-events-none z-20"
+      className="fixed top-0 left-0 w-full px-8 py-6 flex items-start justify-between pointer-events-none z-20"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
@@ -102,11 +102,9 @@ export default function TopBar({ onSearch }: { onSearch?: () => void }) {
             <div className="mt-1 text-[10px] tracking-[0.12em] uppercase text-white/30 font-sans">{statusHint}</div>
           </motion.div>
         </AnimatePresence>
-        {/* track hint below center */}
-        {track ? (
-          <div className="mt-2 text-[10px] text-white/25 font-sans tracking-wide max-w-[260px] truncate">
-            {track.title} — {track.artist}
-          </div>
+        {/* mood/space hint — single source, no track duplication */}
+        {activeMood && currentSpace === 'home' ? (
+          <div className="mt-1.5 text-[10px] tracking-[0.14em] uppercase text-white/30 font-sans">{activeMood}</div>
         ) : null}
       </div>
 
