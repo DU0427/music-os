@@ -152,7 +152,7 @@ function Planet({
   );
 }
 
-export default function HomeOrbital() {
+export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void }) {
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const canEnterMidnight = useAudioStore((s) => Boolean(s.canPlay && s.track));
   const isPlaying = useAudioStore((s) => s.isPlaying);
@@ -180,6 +180,11 @@ export default function HomeOrbital() {
     if (canEnterMidnight) requestSpace('midnight');
   };
 
+  const handleCoreClick = () => {
+    if (onCoreClick && canEnterMidnight) onCoreClick();
+    else handleEnter();
+  };
+
   const handlePlanetClick = (id: string) => {
     if (id === 'library') requestSpace('library');
     else if (id === 'memory') requestSpace('memory');
@@ -191,7 +196,7 @@ export default function HomeOrbital() {
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10">
       {/* Central core */}
       <div className="relative z-20 pointer-events-auto">
-        <CoreVisualDom size={isMobile ? 180 : 260} onClick={handleEnter} />
+        <CoreVisualDom size={isMobile ? 180 : 260} onClick={handleCoreClick} />
         {/* floating control pill on hover is handled inside CoreVisualDom+HomeOrbital interaction below */}
         <div className="absolute left-1/2 -translate-x-1/2 -bottom-14 flex items-center justify-center pointer-events-none">
           <motion.div

@@ -36,7 +36,7 @@ function NavIcon({ icon: Icon, label, onClick }: { icon: typeof Search; label: s
   );
 }
 
-export default function TopBar() {
+export default function TopBar({ onSearch }: { onSearch?: () => void }) {
   const currentSpace = useRuntimeStore((s) => s.currentSpace);
   const canEnterMidnight = useAudioStore((s) => Boolean(s.canPlay && s.track));
   const track = useAudioStore((s) => s.track);
@@ -106,7 +106,7 @@ export default function TopBar() {
 
       {/* Right controls */}
       <div className="flex items-center gap-1 relative">
-        <NavIcon icon={Search} label="search" />
+        <NavIcon icon={Search} label="search" onClick={onSearch} />
         <div className="relative">
           <NavIcon icon={AudioLines} label="audio" onClick={() => setShowHistory((v) => !v)} />
           {showHistory && (

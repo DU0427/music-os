@@ -8,6 +8,8 @@ import HomeOrbital from './ui/HomeOrbital';
 import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
 import MemoryFieldWorld from './worlds/MemoryFieldWorld';
 import MoodSpaceWorld from './worlds/MoodSpaceWorld';
+import SearchOrbital from './ui/SearchOrbital';
+import DetailOrbital from './ui/DetailOrbital';
 import type { AppReadyPayload } from '../shared/ipc/channels';
 import { useAudioStore } from './audio/store';
 
@@ -26,6 +28,8 @@ const showDeveloperControls = showDiagnostics || import.meta.env.VITE_MUSIC_OS_S
 
 export default function AppShell() {
   const [status, setStatus] = useState<string>('booting...');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const currentSpace = useRuntimeStore((s) => s.currentSpace);
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const isTransitioning = useRuntimeStore((s) => s.isTransitioning);
@@ -45,10 +49,16 @@ export default function AppShell() {
   const duration = useAudioStore((s) => s.duration);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') requestSpace('home'); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isDetailOpen) setIsDetailOpen(false);
+        else if (isSearching) setIsSearching(false);
+        else requestSpace('home');
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [requestSpace]);
+  }, [requestSpace, isDetailOpen, isSearching]);
 
   useEffect(() => {
     const handler = (e: ErrorEvent | PromiseRejectionEvent) => {
@@ -134,10 +144,10 @@ export default function AppShell() {
       />
 
       {/* Top navigation — prototype style */}
-      <TopBar />
+      <TopBar onSearch={() => setIsSearching(true)} />
 
       {/* Home orbital DOM — only in home space */}
-      {currentSpace === 'home' && <HomeOrbital />}
+      {currentSpace === 'home' && <HomeOrbital onCoreClick={() => setIsDetailOpen(true)} />}
 
       {/* Library / Memory / Mood DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
@@ -146,6 +156,10 @@ export default function AppShell() {
 
       {/* Midnight overlay */}
       <SongWorldOverlay />
+
+      {/* Search / Detail orbitals — top-level modals */}
+      <SearchOrbital isOpen={isSearching} onClose={() => setIsSearching(false)} />
+      <DetailOrbital isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} />
 
       {/* Audio dock — mini */}
       <AudioDock mode={showDeveloperControls ? 'developer' : 'experience'} />
