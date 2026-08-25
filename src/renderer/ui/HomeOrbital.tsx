@@ -189,7 +189,7 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
     if (id === 'library') requestSpace('library');
     else if (id === 'memory') requestSpace('memory');
     else if (id === 'mood') requestSpace('mood');
-    else if (id === 'visualizer') handleEnter();
+    else if (id === 'visualizer') requestSpace('visualizer');
   };
 
   return (

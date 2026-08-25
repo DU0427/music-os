@@ -132,7 +132,7 @@ export default function DetailOrbital({ isOpen, onClose }: { isOpen: boolean; on
                     className="flex-[1.6] flex items-center justify-between border border-[#7DE7E2]/25 bg-[#7DE7E2]/5 hover:bg-[#7DE7E2]/10 hover:border-[#7DE7E2]/40 text-[#7DE7E2] py-3 px-5 rounded-full transition-all"
                     onClick={() => {
                       onClose();
-                      requestSpace('midnight');
+                      requestSpace('visualizer');
                     }}
                   >
                     <span className="font-mono tracking-wide text-[11px]">open visualizer</span>

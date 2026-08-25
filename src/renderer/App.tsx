@@ -8,6 +8,7 @@ import HomeOrbital from './ui/HomeOrbital';
 import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
 import MemoryFieldWorld from './worlds/MemoryFieldWorld';
 import MoodSpaceWorld from './worlds/MoodSpaceWorld';
+import VisualizerWorld from './worlds/VisualizerWorld';
 import SearchOrbital from './ui/SearchOrbital';
 import DetailOrbital from './ui/DetailOrbital';
 import type { AppReadyPayload } from '../shared/ipc/channels';
@@ -149,10 +150,11 @@ export default function AppShell() {
       {/* Home orbital DOM — only in home space */}
       {currentSpace === 'home' && <HomeOrbital onCoreClick={() => setIsDetailOpen(true)} />}
 
-      {/* Library / Memory / Mood DOM worlds */}
+      {/* Library / Memory / Mood / Visualizer DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
       {currentSpace === 'memory' && <MemoryFieldWorld />}
       {currentSpace === 'mood' && <MoodSpaceWorld />}
+      {currentSpace === 'visualizer' && <VisualizerWorld />}
 
       {/* Midnight overlay */}
       <SongWorldOverlay />
