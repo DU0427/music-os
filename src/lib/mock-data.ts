@@ -1,4 +1,4 @@
-export type Song = {
+﻿export type Song = {
   id: string;
   title: string;
   artist: string;
@@ -16,12 +16,12 @@ export type Song = {
 export const MOCK_SONGS: Song[] = [
   {
     id: '1',
-    title: 'Midnight City',
+    title: '午夜之城',
     artist: 'M83',
-    album: 'Hurry Up, We’re Dreaming',
+    album: '快醒来，我们在做梦',
     bpm: 105,
     energy: 82,
-    mood: 'Dream',
+    mood: '梦境',
     valence: 68,
     firstPlayed: '2019.06.13',
     playCount: 231,
@@ -30,12 +30,12 @@ export const MOCK_SONGS: Song[] = [
   },
   {
     id: '2',
-    title: 'Yellow',
+    title: '黄昏',
     artist: 'Coldplay',
-    album: 'Parachutes',
+    album: '降落伞',
     bpm: 87,
     energy: 60,
-    mood: 'Nostalgia',
+    mood: '怀旧',
     valence: 45,
     firstPlayed: '2019.06.13',
     playCount: 231,
@@ -44,12 +44,12 @@ export const MOCK_SONGS: Song[] = [
   },
   {
     id: '3',
-    title: 'Intro',
+    title: '序曲',
     artist: 'The xx',
     album: 'xx',
     bpm: 100,
     energy: 40,
-    mood: 'Night',
+    mood: '夜晚',
     valence: 30,
     firstPlayed: '2018.01.20',
     playCount: 450,
@@ -58,12 +58,12 @@ export const MOCK_SONGS: Song[] = [
   },
   {
     id: '4',
-    title: 'Space Song',
+    title: '星空之歌',
     artist: 'Beach House',
-    album: 'Depression Cherry',
+    album: '忧郁樱桃',
     bpm: 147,
     energy: 65,
-    mood: 'Dream',
+    mood: '梦境',
     valence: 50,
     firstPlayed: '2020.11.05',
     playCount: 189,
@@ -72,12 +72,12 @@ export const MOCK_SONGS: Song[] = [
   },
   {
     id: '5',
-    title: 'Nights',
+    title: '夜色',
     artist: 'Frank Ocean',
-    album: 'Blonde',
+    album: '金发',
     bpm: 90,
     energy: 55,
-    mood: 'Vibe',
+    mood: '氛围',
     valence: 40,
     firstPlayed: '2017.08.10',
     playCount: 342,
@@ -87,11 +87,31 @@ export const MOCK_SONGS: Song[] = [
 ];
 
 export const MOCK_SPACES = [
-  { id: 'home', title: 'HOME SPACE', description: 'Your music universe is waking up.' },
-  { id: 'library', title: 'LIBRARY GALAXY', description: 'A small galaxy of familiar nights.' },
-  { id: 'mood', title: 'MOOD SPACE', description: 'Choose a state, not a playlist.' },
-  { id: 'memory', title: 'MEMORY FIELD', description: 'Some songs do not end. They stay somewhere in you.' },
-  { id: 'visualizer', title: 'VISUALIZER WORLD', description: 'Let the sound build the world.' }
+  {
+    id: 'home',
+    title: '主空间',
+    description: '你的空间地图将在这里重塑。',
+  },
+  {
+    id: 'library',
+    title: '图书馆',
+    description: '浏览按风格整理的收藏与音景。',
+  },
+  {
+    id: 'mood',
+    title: '情绪空间',
+    description: '在这里选择情绪轨迹，让世界随之变换。',
+  },
+  {
+    id: 'memory',
+    title: '记忆空间',
+    description: '从第一站的闪回开始，追踪你最近走过的节奏。',
+  },
+  {
+    id: 'visualizer',
+    title: '可视化世界',
+    description: '把声音转化成可探索的天体景观。',
+  },
 ];
 
 export type SpaceType = 'home' | 'library' | 'mood' | 'memory' | 'visualizer';

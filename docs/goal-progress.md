@@ -1,5 +1,232 @@
 # Goal Progress Log
 
+## 2026-07-18 Continuation Re-audit vs `beb857a0-692b-49e8-9dea-843d15121189` (latest)
+
+- Audit verdict: implementation is **partially complete**, with all code-path gates in Stage 0/1/2/3/5 implemented and automatically verifiable; the remaining work is **manual validation only**.
+- In-scope evidence files reviewed for this audit:
+  - `docs/implementation-roadmap.md`
+  - `docs/phase-0-plan.md`
+  - `docs/architecture.md`
+  - `docs/smoke-contract.md`
+  - `docs/product-slice-progress.md`
+  - `scripts/electron-smoke.cjs`
+  - `src/renderer/{App.tsx,audio/{AudioEngine.ts,store.ts,listening-session.ts},worlds/{WorldManager.tsx,HomeSpace.tsx,MidnightCityWorld.tsx,SpatialPortal.tsx,SpaceBackdrop.tsx,CitySilhouette.tsx,MemoryField.tsx},core/MusicCore.tsx,camera/CameraRig.tsx,store/runtime.ts,ui/{AudioDock.tsx,SongWorldOverlay.tsx}}`
+  - `electron/{main.ts,preload.ts,ipc/*,database/*,providers/*}`
+- Stage status from this audit:
+  - [x] Stage 0 (Current Experience Audit): active path, flow boundary, and active file set are aligned with the reference continuation.
+  - [x] Stage 1 (Home/MusicCore): entry gating, hover/click affordance, and core playback reaction remain implemented.
+  - [x] Stage 2 (Transition): one-canvas runtime, smooth transition intent, and transition lock conflict behavior are implemented.
+  - [x] Stage 3 (Midnight City World): atmosphere/environment/energy/song/portal layers remain present and audio-reactive.
+  - [x] Stage 4 (Dev/Product split): product-mode UI hints and developer-only diagnostics path is implemented.
+  - [x] Stage 5 (Lifecycle + Performance): persistence lifecycle and session hardening are implemented; smoke now also reports frame and loop health signals.
+- Remaining open items (manual only, as required by the continuation spec):
+  - [ ] 30+ minute real local interaction replay (play/pause/seek/switch/replace + repeated Home↔Midnight transitions).
+  - [ ] Cross-device/cross-platform long-run profiler pass for CPU/GPU/memory trend.
+  - [ ] Product-mode visual acceptance (object-first, calm, premium; non-dashboard; no menu/button dominant behavior).
+  - [ ] Session resume smoke/UX check in one continuous local session: launch → choose file → play → transition → close → reopen → restore path.
+- Completion gate for goal advancement:
+  - Keep `in_progress` until all four manual checks above are recorded with timestamped evidence in this file and mirrored in `docs/product-slice-progress.md`.
+
+## 2026-07-18 Continuation Completion Verdict (against `beb857a0-692b-49e8-9dea-843d15121189`)
+
+- Scope alignment status: [x] aligned
+  - Electron + Vite + React + R3F runtime is the active path.
+  - Main/Preload/Renderer and IPC boundaries remain intact and smoke-checked.
+  - Home -> Music Core -> Midnight -> Home flow exists with transition lock and conflict suppression.
+  - Web Audio playback path and metric binding are operational; repeat-cycle playback stress is covered by smoke.
+  - Provider contract + playback restore semantics remain consistent and smoke-verified.
+- Automated gates status: [x] green for the current docs snapshot
+  - `docs/smoke-contract.md` gate matrix aligns with active code.
+  - Recent `result` payload contract fields are present and consistent with latest smoke runs.
+- Remaining completion status (must be manually closed):
+  - [ ] 30+ minute real interaction regression (play/pause/replace/seek + repeated transition) with desktop profiler snapshots.
+  - [ ] Product-mode UX polish verification (object-first / calm / premium / non-dashboard).
+  - [ ] Cross-platform or device-drift profiler pass for GPU/CPU trends.
+- Completion rule
+  - The goal remains **in_progress** until the three manual items above are recorded with timestamped results in this file.
+
+## 2026-07-18 Audit Matrix Against Stage 0→5 Requirements in `beb857.../pasted-text-1.txt`
+
+- Stage 0 (Current Experience Audit) status: [x] Completed
+  - Requirements checked: start flow, full local file pipeline, Home/MusicCore/transition/return loop, playback lifecycle, close/reopen behavior intent.
+  - Evidence: runtime references and flow checkpoints in this file + smoke snapshots in `docs/smoke-contract.md`.
+- Stage 1 (Home/MusicCore) status: [x] Mostly implemented
+  - Core state behavior (idle/paused/playing), hover/click feedback, and guarded entry by `canPlay && track` are implemented.
+  - Evidence:
+    - `src/renderer/core/MusicCore.tsx`
+    - `src/renderer/worlds/HomeSpace.tsx`
+    - `scripts/electron-smoke.cjs` transition assertions
+- Stage 2 (Camera/Transition) status: [x] Implemented and auto-regressed
+  - Transition contract, conflict locking, pre-transition home dimming, and state sync are present.
+  - Evidence:
+    - `src/renderer/store/runtime.ts`
+    - `src/renderer/worlds/WorldManager.tsx`
+    - `src/renderer/camera/CameraRig.tsx`
+    - `scripts/electron-smoke.cjs` (`beforeDetected` / `afterDetected` / `repeatedTransitionHealthy` / `afterReturnDetected`)
+- Stage 3 (Midnight City structure) status: [x] Implemented
+  - Atmosphere / Environment / Energy Field / Song Core / Spatial UI components remain wired and audio-reactive.
+  - Evidence:
+    - `src/renderer/worlds/SpaceBackdrop.tsx`
+    - `src/renderer/worlds/CitySilhouette.tsx`
+    - `src/renderer/worlds/MemoryField.tsx`
+    - `src/renderer/core/MusicCore.tsx`
+    - `src/renderer/worlds/MidnightCityWorld.tsx`
+    - `src/renderer/ui/SongWorldOverlay.tsx`
+- Stage 4 (Dev/Product boundary) status: [x] Implemented with residuals
+  - Product/debug separation is in place and smoke sentinels are preserved.
+  - Remaining polish:
+    - visual hierarchy and product-mode feel still needs explicit manual UX pass.
+  - Evidence:
+    - `src/renderer/App.tsx`
+    - `src/renderer/ui/AudioDock.tsx`
+    - `scripts/electron-smoke.cjs`
+- Stage 5 (Lifecycle/Perf) status: [x] Baseline hardening implemented, deep validation partial
+  - Core lifecycle, close-flush, replay-safe shutdown, and resource cleanup paths are implemented.
+  - Deep GPU/CPU/heap characterization remains manual/profiler-driven.
+  - Evidence:
+    - `src/renderer/audio/listening-session.ts`
+    - `src/renderer/audio/store.ts`
+    - `electron/main.ts`
+    - `src/renderer/worlds/WorldManager.tsx`
+    - `docs/smoke-contract.md` automated stress fields
+
+### Stage 5/7 Residual evidence required for completion
+
+- [ ] 30+ minute repeated local play/transition stress pass in a real desktop run.
+- [ ] Profiler trend capture for GPU/CPU/memory across repeated transitions and file-switch cycles.
+- [ ] Product-mode visual QA: confirm calm/premium/spatial/object-first and no-dashboard character.
+
+## 2026-07-18 Continuity Completeness Audit (Latest Reference)
+
+- Source alignment check against `beb857a0-692b-49e8-9dea-843d15121189/pasted-text-1.txt`: complete.
+- Scope enforcement check: local-file-first vertical slice + one-song world polish only; no new spaces/providers beyond explicit follow-up scope.
+- Stage 0/1/2/3 architecture flow check:
+  - [x] Electron + Vite + R3F runtime active
+  - [x] Transition lock and repeated home-midnight cycle validated through smoke script
+  - [x] Midnight City five-layer composition still present and audio-reactive
+  - [x] Provider boundary and playback/session persistence contracts wired through typed IPC
+- Stage 4 product/dev split:
+  - [x] Product-facing diagnostics hidden by default, debug sentinels preserved
+  - [x] Product-mode entry/resume hints retained in `src/renderer/App.tsx`
+- Performance + lifecycle hardening check:
+- [x] Automated smoke checks include `frameStats`, `eventLoopStats`, and heap trend checks
+- [ ] Visual-mode polish pass remains manual (calm/premium/object-first feel)
+- [ ] Long-run profiler-driven GPU/CPU characterization still manual
+- [ ] Cross-platform repeated transition stress with real audio remains manual
+
+### Requirement Evidence Matrix (beb857a0-692b-49e8-9dea-843d15121189)
+
+- [x] 1.0 Home -> Music Core -> Midnight -> Home flow implemented with guardrails and transition lock.
+  - Evidence: `src/renderer/worlds/HomeSpace.tsx`, `src/renderer/store/runtime.ts`, `scripts/electron-smoke.cjs` transition contract assertions.
+- [x] 1.1 Main/Preload/Renderer typed IPC boundary and smoke-level API contract checks remain in place.
+  - Evidence: `electron/main.ts`, `electron/preload.ts`, `src/shared/ipc/*`, `scripts/electron-smoke.cjs` (`apiType`/`ping`/`reportErrorAcknowledged`).
+- [x] 1.2 Session persistence and shutdown flush semantics are implemented and smoke-verified.
+  - Evidence: `src/renderer/audio/store.ts`, `src/renderer/App.tsx`, `electron/main.ts`, `result.hasPrepareToCloseListener` / `result.prepareToCloseAcked`.
+- [x] 1.3 Local-file playback + world transition flow is implemented and smoke-covered.
+  - Evidence: playback input assertions (`result.trackListReadable` / `result.audioInput`), transition assertions (`transitionResult.*`) in `scripts/electron-smoke.cjs`.
+- [x] 1.4 Music Core reacts to playback/idle state for world-first visual feedback.
+  - Evidence: `src/renderer/core/MusicCore.tsx` with `isPlaying` prop from `src/renderer/worlds/HomeSpace.tsx`.
+- [ ] 2.0 Product-mode visual polish (calm/premium/object-first, non-dashboard) — manual pass pending.
+  - Evidence to collect: screenshot + subjective verdict in a real desktop run.
+- [ ] 2.1 Long-run performance characterization (local source + transitions, 30+ minutes) — manual pass pending.
+  - Evidence to collect: profiler trace samples (CPU/GPU/memory) with trend stability notes.
+- [ ] 2.2 Close/open and restore flow under repeated local interaction remains manual-verified.
+  - Evidence to collect: one-session log with `startup -> select -> play -> transition -> close -> reopen -> restore` timestamps and state checks.
+
+### Completion Nature (2026-07-18)
+
+- [x] 本次阶段目标中的架构与工程闭环均为可复现验证项（可复测）。
+- [ ] 可交付主观体验与长时性能剖析仍需手工复测，不计入阻塞式技术里程碑。
+
+## 2026-07-18 Continuity Completion Ledger
+
+- **Latest checked input**: `beb857a0-692b-49e8-9dea-843d15121189/pasted-text-1.txt`
+- **Implementation scope check against latest continuation**:
+  - [x] Electron + Vite + R3F + Zustand + Web Audio + SQLite runtime remains active.
+  - [x] Main/Preload/Renderer boundary and typed IPC remain intact.
+  - [x] Home -> Music Core -> Midnight City loop and return flow is implemented with transition lock.
+  - [x] Player/session persistence hardening, close flush handshake, and session lifecycle updates are implemented in `src/renderer`.
+  - [x] Provider contract path and mock-provider playable-path smoke coverage exist in `scripts/electron-smoke.cjs`.
+  - [x] Product/dev split behavior is implemented with hidden diagnostics and resume hints.
+- **Gap tracking (not yet fully automatic)**:
+  - [ ] Device-specific GPU/CPU long-run profiler pass (desktop + cross-platform manual).
+  - [ ] Repeated live playback loop stability with real local source under real user interaction.
+  - [ ] Product-mode visual-pass to confirm calm/premium/object-first feel beyond scripted checks.
+
+### 2026-07-18 Manual Follow-up (Next Execution)
+
+- [ ] 本地音频文件主链路手工验收（选曲、播放、切换、恢复、返回）。
+- [ ] 30+ 分钟跨会话重复切场景与播放应力验证。
+- [ ] 可视化/交互体验复盘：确认非 dashboard 感与对象导向表达。
+
+## 2026-07-18 Product Polish Continuation (Goal: Midnight City World)
+
+- **Goal status**: in progress.
+- **Scope**: complete polish and experience validation for the existing local-song slice, no new space/provider architecture changes.
+- **Key decision**: keep current Electron + Vite + R3F runtime and enforce visual/product-vs-dev separation.
+
+### Stage completion check (latest goal)
+
+- [x] Stage 0 — Experience audit completed against current runtime and latest reference.
+- [x] Stage 1 — Home/Music Core behavior is implemented and gated by playable track.
+- [x] Home-space audio object now drives idle vs active visual behavior via `HomeSpace` → `MusicCore` `isPlaying` prop.
+- [x] Stage 2 — Camera transfer and repeated transition behavior is implemented with conflict lock and smoke checks.
+- [x] Stage 3 — Midnight City five-layer world structure is implemented (Atmosphere / Environment / Energy Field / Song Core / Spatial UI).
+- [x] Stage 4 — Product/dev UI split started: debug text hidden by default and `AudioDock` supports `developer|experience` modes.
+- [ ] Stage 5 — Full lifecycle performance profiling is partially automated; long-run checks now include smoke heap, frame pacing, and main-thread jitter.
+  - Added automated smoke checks for `frameStats`, `heap*` trend (`heapBytesFromStart` / `heapBytesMax` / `heapStabilityOk`), and `eventLoopStats`.
+  - Manual GPU/CPU profiler sessions are still required for scene-specific deep characterization.
+
+### 2026-07-18 Completion Alignment Recheck
+
+- `Home -> Music Core -> Midnight -> Home` interaction loop is implemented with transition lock and no immediate teleport.
+- `HomeSpace`/`MusicCore` entry gating by playable state is enforced (`canPlay && track`) and transition click feedback exists.
+- `Midnight City` five-layer composition remains present and audio-reactive.
+- Product/dev UI split is implemented with:
+  - production diagnostics hidden by default
+  - smoke-state sentinels in `#audio-session-debug` and `#song-world-overlay`
+  - `AudioDock` behavior gated by `developer|experience` mode.
+- Lifecycle checks remain partially open:
+  - long-run GPU/CPU characterization is still manual
+  - cross-platform repeated interaction profiling still needs user-driven verification
+  - local audio automatic resume for restored provider sessions still requires explicit source re-selection (by design for this goal)
+
+### Acceptance tracking note
+
+- Runtime smoke gate still provides the authoritative evidence set:
+  - `docs/smoke-contract.md` (with transition + audio-stress + close-flush checks).
+- Remaining manual items:
+- long-run profiler pass (GPU/CPU/heap trends),
+  - cross-platform user UX verification of entry/exit smoothness,
+  - one-pass product-mode visual review.
+- Evidence debt:
+  - `scripts/electron-smoke.cjs` 已新增 `eventLoopStats` 自动采样与健康判断，但尚未有当期快照把该字段的实际运行值写回本日志。
+
+### 2026-07-18 Completion vs Latest Continuation
+
+- [x] Architecture stack and migration boundary remain aligned with latest continuation inputs:
+  - Electron + Vite + React + R3F + Zustand + Web Audio + SQLite.
+- [x] Product flow requirement (Home -> Music Core -> Midnight City -> Home) remains implemented and guarded.
+- [x] Persistence and lifecycle contract boundary remains implemented and smoke-gate enforced.
+- [ ] UX objective (spatial-first, non-dashboard feel) is still partially manual and needs product-mode visual review.
+- [ ] Performance objective remains partially manual; repeated long-run transition/playback profiling and GPU/CPU capture still need completion.
+
+### 2026-07-18 Product-mode Guidance Follow-up
+
+- Added lightweight onboarding and resume hint overlays in `src/renderer/App.tsx`:
+  - Home empty-state prompt for non-debug product mode.
+  - Resume hint when metadata restored but `canPlay` remains false.
+- Refined `src/renderer/ui/AudioDock.tsx` dock theming for product mode while keeping developer/provider tools under explicit developer mode.
+
+### 2026-07-18 Input Lock + Transition Continuity Follow-up
+
+- [x] Applied transition lock state (`isTransitioning`) to Home and Midnight interaction entry points:
+  - `HomeSpace` now disables `MusicCore` and `SpatialPortal` during transition.
+  - Return `SpatialPortal` in `MidnightCityWorld` is disabled during transition.
+- [x] Added transition-aware atmosphere/lighting damping so world state visibly de-accelerates during transition.
+- [x] Added stronger interaction feedback on `MusicCore` press to make the entry affordance feel immediate before camera movement starts.
+- [x] Docs updated to preserve the latest goal scope and completion status after this pass.
+
 ## Active Goal (Stage 0 Handoff)
 
 - **Goal intent**: migrate from Next.js prototype to Electron + Vite + React + R3F runtime while keeping
@@ -11,6 +238,7 @@
   - `C:\Users\duainan\.codex\attachments\66c20d69-bb4b-47dc-bcc5-27bc2f6cf197\pasted-text-1.txt`.
   - `C:\Users\duainan\.codex\attachments\943ce9cb-7dc4-4f07-8399-cf798852a396\pasted-text-1.txt`.
   - `C:\Users\duainan\.codex\attachments\822449ee-5f5b-433f-be06-c341b73f8005\pasted-text-1.txt`.
+  - `C:\Users\duainan\.codex\attachments\beb857a0-692b-49e8-9dea-843d15121189\pasted-text-1.txt`.
 
 ## 2026-07-18 Playback Data Hardening Goal
 
@@ -45,6 +273,12 @@
 - [x] Stage 5 - Single audio sampling path
   - Sampling remains isolated to `WorldManager` frame loop (`AudioMetricsSampler`).
   - Components consume `metrics` from store instead of raw FFT calls.
+- [x] Stage 6 - Provider playback bridge groundwork
+  - Added provider track loading helper in `src/renderer/audio/store.ts`:
+    - `loadProviderTrack(reference)` loads provider details and playable source through `musicOS` contract methods.
+    - `audioEngine.loadTrackFromUrl(...)` supports runtime source loading for provider-backed tracks.
+  - Added provider search + one-click selection path in `src/renderer/ui/AudioDock.tsx`.
+  - Current state: mock provider now returns a deterministic playable stream, and provider selection can fully enter `canPlay` state.
 
 ### Verification and evidence
 
@@ -68,7 +302,17 @@
 
 ### Next action
 
-- Continue with provider playback bridge and long-run interaction profiling after this goal lock.
+- Continue with long-run interaction profiling (repeated transition stability + repeated playback under stress) after this goal lock.
+- Provider-driven restore continuity now attempts to reload playable source for persisted provider tracks during app startup; local-file-only tracks still require user source re-selection.
+
+## 2026-07-18 Smoke Signal Stability Follow-up
+
+- [x] Refactor smoke assertions to consume runtime state sentinels from `#audio-session-debug` instead of debug copy text.
+  - `scripts/electron-smoke.cjs` now validates `homeState` and `transitionResult` from:
+    - `#audio-session-debug[data-current-space]`
+    - `#audio-session-debug[data-is-transitioning]`
+- [x] Stabilize transition visibility check using `#song-world-overlay`.
+- [x] Re-run `npm run smoke:electron` to refresh evidence after these assertion strategy changes.
 
 ## 2026-07-18 Stage 5.5 Session Resume Follow-up
 
@@ -403,3 +647,35 @@
 
 Run and evidence snapshot for this checkpoint should be stored as the authoritative current entry in this file.
 
+
+## 2026-07-18 Latest Continuation Revalidation
+
+- [ ] Stage 0 audit requirement from `beb857a0-692b-49e8-9dea-843d15121189/pasted-text-1.txt` is not yet formally closed:
+  - re-check user flow (`startup -> select local file -> play -> enter midnight -> return -> reopen`) with manual log + timestamps.
+  - document any remaining visual artifacts blocking the `music object` feel.
+- [ ] Stage 5 + Stage 7 acceptance still depends on manual evidence:
+  - 30+ minute repeated transition/playback cycle under real local file interaction.
+  - cross-platform GPU/CPU long-run profiling.
+  - product-mode-only visual polish review.
+- [ ] Add a manual result entry each time above checks complete, including pass/fail, date/time, and captured metric snapshots.
+- [ ] 2026-07-18 Manual Continuation Pass: 未执行（待在单次桌面会话中补齐）
+
+### 2026-07-18 Manual Continuation Pass (Single Session Runbook)
+
+- **Execution checklist**
+  - [ ] 启动应用 -> 选择本地文件 -> 播放 -> 进入 Midnight -> 返回 Home。
+  - [ ] 连续重复至少 3 次进出过渡（验证 `isTransitioning` 与状态恢复）。
+  - [ ] 暂停/恢复、切歌/替换文件、关闭与重开后的恢复流程。
+  - [ ] 30+ 分钟真实交互稳定性观察（CPU/GPU/Heap 趋势截图）。
+  - [ ] 产品态 UI 视感复盘：不偏向 Dashboard、Object-first、calm/premium。
+- **当前结果**
+  - 运行时间：待执行
+  - 手工 pass/fail：待执行
+  - 关键指标快照：待补充
+  - 结论：`in_progress`（待手工验证）
+
+### Current conclusion (as of this revalidation pass)
+
+- **Automated gates are aligned** with the latest continuation and continue to be green (`docs/smoke-contract.md` + latest smoke evidence in this file).
+- **Project status remains `in progress`** because experience polish and long-duration manual validation are not yet fully recorded.
+- **Next required action:** perform one continuous desktop validation pass and append its timestamped findings under this section.

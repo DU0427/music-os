@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useAppStore } from '@/lib/store';
 import { motion } from 'motion/react';
@@ -9,11 +9,11 @@ export default function LibraryGalaxy() {
   const { setCurrentSpace } = useAppStore();
 
   const categories = [
-    { name: 'Indie', angle: -20, radius: 150, size: 80, color: '#78AFFF' },
-    { name: 'Electronic', angle: 45, radius: 200, size: 100, color: '#7DE7E2' },
-    { name: 'Jazz', angle: 120, radius: 180, size: 60, color: '#F0B56A' },
-    { name: 'Rock', angle: 180, radius: 250, size: 70, color: '#EA8E83' },
-    { name: 'Ambient', angle: 250, radius: 160, size: 90, color: '#B6A8D8' },
+    { name: '电子', angle: -20, radius: 150, size: 80, color: '#78AFFF' },
+    { name: '氛围', angle: 45, radius: 200, size: 100, color: '#7DE7E2' },
+    { name: '怀旧', angle: 120, radius: 180, size: 60, color: '#F0B56A' },
+    { name: '爵士', angle: 180, radius: 250, size: 70, color: '#EA8E83' },
+    { name: '电影', angle: 250, radius: 160, size: 90, color: '#B6A8D8' },
   ];
 
   const TILT = 45;
@@ -35,7 +35,7 @@ export default function LibraryGalaxy() {
         className="absolute top-8 left-8 z-50 flex items-center gap-2 text-white/50 hover:text-white transition-colors"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span className="font-display tracking-[0.2em] text-sm">BACK TO CORE</span>
+        <span className="font-display tracking-[0.2em] text-sm">返回</span>
       </button>
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -59,8 +59,8 @@ export default function LibraryGalaxy() {
       
       {/* Legend */}
       <div className="absolute bottom-32 right-12 z-50 text-right">
-        <h3 className="font-display text-white/80 tracking-widest text-sm mb-2">LIBRARY GALAXY</h3>
-        <p className="font-body text-white/40 text-xs">5 Clusters Found</p>
+        <h3 className="font-display text-white/80 tracking-widest text-sm mb-2">图书馆星云</h3>
+        <p className="font-body text-white/40 text-xs">横跨五大类型，探索更多收藏。</p>
       </div>
     </div>
   );

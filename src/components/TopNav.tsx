@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useAppStore } from '@/lib/store';
 import { MOCK_SPACES } from '@/lib/mock-data';
@@ -63,7 +63,7 @@ export default function TopNav() {
               <div className="w-1.5 h-1.5 rounded-full bg-white/70" />
             </div>
             <div className="font-sans font-medium text-[13px] text-white/80 group-hover:text-white transition-colors">
-              Music OS
+              音乐宇宙 OS
             </div>
           </div>
 
@@ -79,7 +79,7 @@ export default function TopNav() {
                 className="flex flex-col items-center"
               >
                 <div className="font-sans text-[13px] font-medium text-white/80 tracking-wide">
-                  {spaceInfo?.title}{activeMood ? ` — ${activeMood}` : ''}
+                  {spaceInfo?.title}{activeMood ? ` · ${activeMood}` : ''}
                 </div>
                 {/* Soft breathing status light */}
                 <motion.div 
@@ -94,13 +94,14 @@ export default function TopNav() {
           {/* Right Controls */}
           <div className="flex items-center gap-1">
             <div className="pointer-events-auto" onClick={() => setIsSearching(true)}>
-               <NavIcon icon={Search} label="Search" />
+               <NavIcon icon={Search} label="搜索" />
             </div>
-            <NavIcon icon={AudioLines} label="Devices" />
-            <NavIcon icon={User} label="Profile" />
+            <NavIcon icon={AudioLines} label="设备" />
+            <NavIcon icon={User} label="用户" />
           </div>
         </motion.header>
       )}
     </AnimatePresence>
   );
 }
+

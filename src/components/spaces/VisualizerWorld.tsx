@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useAppStore } from '@/lib/store';
 import { motion } from 'motion/react';
@@ -14,7 +14,7 @@ export default function VisualizerWorld() {
         className="absolute top-8 left-8 z-50 flex items-center gap-2 text-white/50 hover:text-white transition-colors"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span className="font-display tracking-[0.2em] text-sm">EXIT WORLD</span>
+        <span className="font-display tracking-[0.2em] text-sm">返回</span>
       </button>
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
@@ -38,7 +38,7 @@ export default function VisualizerWorld() {
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Abstract Geometry to simulate a "world" */}
+        {/* Abstract Geometry to simulate a world */}
         <div className="absolute bottom-0 w-full h-[40%] bg-gradient-to-t from-[#0B1621] to-transparent pointer-events-none" />
         <div className="absolute bottom-0 w-full h-px bg-electric-cyan/20 shadow-[0_0_20px_#7DE7E2]" />
         
@@ -55,11 +55,11 @@ export default function VisualizerWorld() {
 
       <div className="absolute bottom-32 left-12 z-50 pointer-events-auto">
         <h2 className="font-display text-4xl text-white/90 tracking-widest mb-2 drop-shadow-lg">
-          NEON METROPOLIS
+          午夜星域
         </h2>
         <div className="flex gap-2 text-xs font-mono text-electric-cyan">
-          <span className="border border-electric-cyan/30 px-2 py-1 rounded">DREAMY</span>
-          <span className="border border-electric-cyan/30 px-2 py-1 rounded">URBAN</span>
+          <span className="border border-electric-cyan/30 px-2 py-1 rounded">梦境</span>
+          <span className="border border-electric-cyan/30 px-2 py-1 rounded">城市</span>
         </div>
       </div>
     </div>

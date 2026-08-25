@@ -1,4 +1,4 @@
-import type { TrackIdentity } from '../../shared/ipc/music';
+﻿import type { TrackIdentity } from '../../shared/ipc/music';
 
 export interface AudioPlaybackState {
   track: TrackIdentity | null;
@@ -93,7 +93,7 @@ export class AudioEngine {
   private readonly handleError = () => {
     this.state.isPlaying = false;
     this.state.canPlay = false;
-    this.state.error = 'The selected audio source could not be played.';
+    this.state.error = '所选音频源无法播放。';
     this.emitState();
   };
 
@@ -161,6 +161,32 @@ export class AudioEngine {
     this.emitState();
   }
 
+  loadTrackFromUrl(sourceUrl: string, track: TrackIdentity) {
+    if (!sourceUrl || typeof sourceUrl !== 'string') {
+      this.state.error = '无效的播放源地址。';
+      this.state.isPlaying = false;
+      this.state.canPlay = false;
+      this.emitState();
+      return;
+    }
+
+    this.resetWithTrack(track);
+    this.ensureGraph();
+    const audio = this.ensureAudio();
+    audio.pause();
+
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
+    }
+
+    audio.src = sourceUrl;
+    audio.load();
+    this.state.canPlay = true;
+    this.resetMetrics();
+    this.emitState();
+  }
+
   restoreTrack(track: TrackIdentity, positionSeconds: number) {
     if (this.audio && this.audio.src && !this.audio.src.startsWith('blob:')) {
       this.audio.pause();
@@ -178,14 +204,15 @@ export class AudioEngine {
     this.state.currentTime = Number.isFinite(positionSeconds)
       ? Math.max(0, positionSeconds)
       : 0;
-    this.state.error = 'Saved playback needs a valid source to resume. Choose a local source or provider stream.';
+    const sourceHint = track.providerId === 'local-file' ? 'local file' : 'provider source';
+    this.state.error = `恢复播放需要有效的${sourceHint}。`;
     this.resetMetrics();
     this.emitState();
   }
 
   async play() {
     if (!this.state.canPlay || !this.audio?.src) {
-      this.state.error = 'No playable source is loaded for the current track.';
+      this.state.error = '当前曲目未加载可播放源。';
       this.state.isPlaying = false;
       this.emitState();
       return;
@@ -198,7 +225,7 @@ export class AudioEngine {
     try {
       await this.audio.play();
     } catch {
-      this.state.error = 'Playback needs a valid local audio source.';
+      this.state.error = '请先加载有效的本地音频源后再播放。';
       this.emitState();
     }
   }
@@ -333,3 +360,4 @@ export class AudioEngine {
     }
   }
 }
+

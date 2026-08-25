@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import type {
   AudioPlaybackState,
   ListeningHistoryRecord,
@@ -6,6 +6,7 @@ import type {
   TrackRecord,
   TrackWorldContext,
 } from '../../shared/ipc/music';
+import type { ProviderTrackReference } from '../../shared/music/providers';
 import { audioEngine } from './runtime';
 import { ListeningSessionManager } from './listening-session';
 
@@ -13,6 +14,7 @@ interface AudioStore extends AudioPlaybackState {
   loadFile: (file: File) => Promise<void>;
   restoreTrack: (track: TrackRecord, positionSeconds: number) => void;
   restorePlaybackSession: () => Promise<void>;
+  loadProviderTrack: (reference: ProviderTrackReference) => Promise<boolean>;
   prepareToClose: () => Promise<void>;
   sampleMetrics: (frameTime: number) => void;
   play: () => Promise<void>;
@@ -26,22 +28,118 @@ interface AudioStore extends AudioPlaybackState {
 
 const DEFAULT_WORLD_CONTEXT: TrackWorldContext = {
   scene: 'midnight',
-  moodTags: ['Night', 'Dream', 'City'],
+  moodTags: ['夜晚', '梦境', '城市'],
   energyTarget: 'uplift',
   mapPreset: 'midnight-city',
-  worldLabel: 'Midnight City',
+  worldLabel: '午夜城市',
 };
 
 const toIso = () => new Date().toISOString();
+const buildProviderTrackId = (reference: ProviderTrackReference) =>
+  `${reference.providerId}::${reference.platformTrackId}`;
 const makeTrackId = () =>
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+const mapProviderTrackToRecord = (
+  providerTrack: {
+    id: string;
+    reference: ProviderTrackReference;
+    title: string;
+    artist: { name: string };
+    album: { title: string } | null;
+    durationSeconds: number;
+    artworkUrl: string | null;
+  },
+) => ({
+  id: providerTrack.id,
+  title: providerTrack.title,
+  artist: providerTrack.artist.name,
+  album: providerTrack.album?.title ?? null,
+  source: providerTrack.reference.providerId,
+  durationSeconds: providerTrack.durationSeconds,
+  artworkUrl: providerTrack.artworkUrl ?? null,
+  providerId: providerTrack.reference.providerId,
+  providerTrackId: providerTrack.reference.platformTrackId,
+  worldContext: DEFAULT_WORLD_CONTEXT,
+  createdAt: toIso(),
+});
+
+const setProviderPlaybackSource = async (reference: ProviderTrackReference): Promise<TrackRecord | null> => {
+  if (
+    typeof window.musicOS?.getProviderTrack !== 'function' ||
+    typeof window.musicOS?.getProviderPlayableSource !== 'function'
+  ) {
+    return null;
+  }
+
+  try {
+    const [trackResult, playableResult] = await Promise.all([
+      window.musicOS.getProviderTrack(reference),
+      window.musicOS.getProviderPlayableSource(reference),
+    ]);
+
+    if (trackResult.error || !trackResult.track) {
+      return null;
+    }
+
+    const track = mapProviderTrackToRecord({
+      id: buildProviderTrackId(trackResult.reference),
+      reference: trackResult.reference,
+      title: trackResult.track.title,
+      artist: trackResult.track.artist,
+      album: trackResult.track.album,
+      durationSeconds: trackResult.track.durationSeconds,
+      artworkUrl: trackResult.track.artworkUrl,
+    });
+
+    await upsertTrack(track);
+
+    if (playableResult.error || !playableResult.playableSource?.url) {
+      audioEngine.restoreTrack(track, 0);
+      return track;
+    }
+
+    audioEngine.loadTrackFromUrl(playableResult.playableSource.url, track);
+    return track;
+  } catch {
+    return null;
+  }
+};
+
+const restoreProviderPlaybackTrack = async (track: TrackRecord, positionSeconds: number): Promise<boolean> => {
+  if (
+    track.providerId === 'local-file' ||
+    !track.providerTrackId ||
+    typeof window.musicOS?.getProviderPlayableSource !== 'function'
+  ) {
+    return false;
+  }
+
+  try {
+    const playableResult = await window.musicOS.getProviderPlayableSource({
+      providerId: track.providerId,
+      platformTrackId: track.providerTrackId,
+    });
+    if (playableResult.error || !playableResult.playableSource?.url) {
+      return false;
+    }
+
+    audioEngine.loadTrackFromUrl(playableResult.playableSource.url, track);
+    if (Number.isFinite(positionSeconds) && positionSeconds > 0) {
+      audioEngine.seek(positionSeconds);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const buildLocalTrack = (file: File): TrackRecord => ({
   id: makeTrackId(),
   title: file.name.replace(/\.[^/.]+$/, ''),
-  artist: 'Local Import',
+  artist: '本地导入',
   album: null,
   source: 'local-file',
   durationSeconds: 0,
@@ -279,7 +377,11 @@ export const useAudioStore = create<AudioStore>()((set) => {
         return;
       }
 
-      audioEngine.restoreTrack(track, playbackState.positionSeconds);
+      const isProviderTrackRestored = await restoreProviderPlaybackTrack(track, playbackState.positionSeconds);
+      if (!isProviderTrackRestored) {
+        audioEngine.restoreTrack(track, playbackState.positionSeconds);
+      }
+
       if (playbackState.isPlaying && lastPersistState?.trackId !== playbackState.trackId) {
         void savePlaybackState({
           trackId: playbackState.trackId,
@@ -289,5 +391,10 @@ export const useAudioStore = create<AudioStore>()((set) => {
         });
       }
     },
+    loadProviderTrack: async (reference) => {
+      const loadedTrack = await setProviderPlaybackSource(reference);
+      return loadedTrack !== null;
+    },
   };
 });
+

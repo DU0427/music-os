@@ -18,7 +18,7 @@
   the legacy `src/server/music/*` contracts and adapters remain migration references only.
   - `src/shared/music/providers.ts` defines normalized provider contracts.
   - `electron/providers/registry.ts` owns adapter selection and error mapping.
-  - `electron/providers/mock/index.ts` is the explicit metadata-only fallback adapter.
+  - `electron/providers/mock/index.ts` provides a deterministic mock playable stream for provider contract validation.
 - Electron shell and minimal typed IPC now exist:
   - `app:ready` and `app:ping` are handled in Electron Main.
   - Renderer access is limited to the `musicOS` preload API.
@@ -72,8 +72,8 @@ Non-goal in this phase:
   memory particles, spatial song labeling, audio response, and a spatial return object.
 - Phase 5 baseline status: SQLite migrations and repositories run in Electron Main, with typed
   CRUD IPC contracts for tracks, history, memories, world settings, and playback state.
-- Phase 6 baseline status: provider contracts and a Main-process registry exist; only the
-  explicitly labeled metadata-only mock adapter is active.
+- Phase 6 baseline status: provider contracts and a Main-process registry exist; a deterministic
+  mock stream adapter is active while NetEase/QQ adapters remain unimplemented.
 
 ## 6) Runtime Verification Contract
 
@@ -92,3 +92,4 @@ Non-goal in this phase:
 - Vision/interaction baseline: `C:\Users\duainan\.codex\attachments\67ea7f5d-7b63-4409-b8c0-32d2accfcc22\pasted-text.txt`.
 - Active product-slice continuation: `C:\Users\duainan\.codex\attachments\cb278536-ac97-411f-88b8-eb23ed075eee\pasted-text-1.txt`.
 - Playback/session continuity spec extension: `C:\Users\duainan\.codex\attachments\943ce9cb-7dc4-4f07-8399-cf798852a396\pasted-text-1.txt`.
+- Latest playback continuity + product polish continuation: `C:\Users\duainan\.codex\attachments\beb857a0-692b-49e8-9dea-843d15121189\pasted-text-1.txt`.

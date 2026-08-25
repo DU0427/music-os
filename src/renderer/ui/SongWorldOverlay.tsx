@@ -1,56 +1,75 @@
-import { useAudioStore } from '../audio/store';
+﻿import { useAudioStore } from '../audio/store';
 import { useRuntimeStore } from '../store/runtime';
 
-function formatTime(seconds: number) {
-  if (!Number.isFinite(seconds) || seconds <= 0) {
-    return '0:00';
-  }
-  return `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
-}
-
 export default function SongWorldOverlay() {
-  const currentSpace = useRuntimeStore((state) => state.currentSpace);
-  const track = useAudioStore((state) => state.track);
-  const currentTime = useAudioStore((state) => state.currentTime);
-  const duration = useAudioStore((state) => state.duration);
-  const canPlay = useAudioStore((state) => state.canPlay);
+  const currentSpace = useRuntimeStore((s) => s.currentSpace);
+  const track = useAudioStore((s) => s.track);
+  const canPlay = useAudioStore((s) => s.canPlay);
 
-  const worldLabel = track?.worldContext?.worldLabel ?? 'Midnight City';
-  const trackArtist = track?.artist ?? 'Local audio';
-  const moodLine = track?.worldContext?.moodTags?.join(' / ') ?? 'Night / Dream';
+  const worldLabel = track?.worldContext?.worldLabel ?? '午夜城市';
+  const trackArtist = track?.artist ?? '本地音频';
+  const moodLine = track?.worldContext?.moodTags?.join(' / ') ?? '夜晚 / 梦境';
 
-  if (currentSpace !== 'midnight') {
-    return null;
-  }
+  if (currentSpace !== 'midnight') return null;
 
   return (
     <div
+      id="song-world-overlay"
       style={{
         position: 'absolute',
-        top: 28,
-        right: 28,
+        top: 76,
+        right: 20,
         zIndex: 5,
-        maxWidth: 'min(320px, calc(100vw - 56px))',
-        color: 'rgba(255,255,255,0.86)',
+        maxWidth: 'min(300px, calc(100vw - 40px))',
         textAlign: 'right',
         pointerEvents: 'none',
-        textShadow: '0 2px 20px rgba(0,0,0,0.55)',
+        opacity: 0.92,
+        animation: 'mo-fade-in var(--mo-duration) var(--mo-ease)',
       }}
     >
-      <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#9fc3ff' }}>Song World</div>
-      <div style={{ marginTop: 8, fontSize: 24, fontWeight: 500, letterSpacing: '-0.03em' }}>{worldLabel}</div>
-      <div style={{ marginTop: 4, color: 'rgba(255,255,255,0.52)', fontSize: 13 }}>
-        {track?.title ?? 'Track pending'} - {trackArtist} - {moodLine}
+      <div
+        style={{
+          fontSize: 10,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: 'var(--mo-text-muted)',
+          lineHeight: 1,
+        }}
+      >
+        歌曲世界
       </div>
-      <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.42)', fontSize: 12 }}>
-        {formatTime(currentTime)} / {formatTime(duration)}
+      <div
+        style={{
+          marginTop: 6,
+          fontSize: 14,
+          fontWeight: 500,
+          letterSpacing: '-0.02em',
+          color: 'var(--mo-text)',
+          textShadow: '0 1px 16px rgba(0,0,0,0.45)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {worldLabel}
+      </div>
+      <div
+        style={{
+          marginTop: 4,
+          color: 'var(--mo-text-faint)',
+          fontSize: 11,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {track?.title ?? '曲目待加载'} — {trackArtist} · {moodLine}
       </div>
       {!canPlay && track ? (
-        <div style={{ marginTop: 8, color: '#7f93b8', fontSize: 11 }}>
-          Session restored from history. Select a local file to resume playback.
+        <div style={{ marginTop: 6, color: 'var(--mo-portal-soft)', fontSize: 10, opacity: 0.9 }}>
+          {track.providerId === 'local-file' ? '已恢复会话，请选择本地文件继续' : '已恢复会话，请重选来源继续'}
         </div>
       ) : null}
     </div>
   );
 }
-

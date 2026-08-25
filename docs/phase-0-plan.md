@@ -119,7 +119,7 @@ Audited files used for evidence:
 - Baseline implemented:
   - `src/shared/music/providers.ts` defines normalized references, search, detail, playable-source, capability, and error contracts.
   - `electron/providers/registry.ts` owns adapter selection and error mapping in Main.
-  - `electron/providers/mock/index.ts` is an explicitly labeled metadata-only contract adapter.
+  - `electron/providers/mock/index.ts` now returns deterministic playable streams and tracks through the playable-source contract.
   - NetEase and QQ remain unimplemented until authorized API access is available.
 
 ### Stage 7 - Quality
@@ -178,6 +178,8 @@ Read-before-continue requirements are now recorded with exact references:
   - Playback/session continuity, metadata persistence, and latest smoke completion checkpoints were extracted from this file.
 - Reference input C:\Users\duainan\.codex\attachments\822449ee-5f5b-433f-be06-c341b73f8005\pasted-text-1.txt
   - Current Goal: Track Duration and Playback Session Persistence Hardening.
+- Reference input C:\Users\duainan\.codex\attachments\beb857a0-692b-49e8-9dea-843d15121189\pasted-text-1.txt
+  - Latest specification continuation that includes the Midnight City product polish continuation direction and remaining completion checkpoints.
 
 Current repository evidence for the Stage 0 boundary:
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { motion } from 'motion/react';
 import { useState } from 'react';
@@ -141,16 +141,16 @@ export default function MusicPlanet({ id = '', title, x, y, color, size, onClick
                 transition={{ duration: 0.3 }}
               >
                 <span className="font-sans text-[11px] text-white/50 mb-1 tracking-wide">
-                  {id === 'visualizer' && "Enter"}
-                  {id === 'library' && "Explore"}
-                  {id === 'memory' && "Return to a moment"}
-                  {id === 'mood' && "Set the state"}
+                  {id === 'visualizer' && '进入'}
+                  {id === 'library' && '探索'}
+                  {id === 'memory' && '回到记忆'}
+                  {id === 'mood' && '切换情绪'}
                 </span>
                 <span className="font-sans text-[13px] font-medium text-white/90 drop-shadow-sm">
-                  {id === 'visualizer' && "Visualizer World"}
-                  {id === 'library' && "Library"}
-                  {id === 'memory' && "Yellow · 2019"}
-                  {id === 'mood' && "Dream, Night, Calm"}
+                  {id === 'visualizer' && '可视化世界'}
+                  {id === 'library' && '图书馆'}
+                  {id === 'memory' && '记忆 2019'}
+                  {id === 'mood' && '梦境、夜晚、宁静'}
                 </span>
               </motion.div>
             )}

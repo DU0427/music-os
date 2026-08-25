@@ -38,13 +38,13 @@ export default function MusicCore() {
               <div className="font-sans text-2xl text-white/90 font-medium tracking-tight drop-shadow-md">{currentSong.title}</div>
               <div className="font-sans text-[14px] text-white/50 mt-1">{currentSong.artist}</div>
               
-              <div className="flex items-center gap-3 mt-4">
+                <div className="flex items-center gap-3 mt-4">
                 <div className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
                   <span className="font-sans text-[10px] text-white/50 tracking-widest uppercase">{currentSong.mood}</span>
                 </div>
                 <div className="w-1 h-1 rounded-full bg-white/20" />
                 <div className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-                  <span className="font-sans text-[10px] text-white/50 tracking-widest uppercase">{currentSong.energy}% Energy</span>
+                  <span className="font-sans text-[10px] text-white/50 tracking-widest uppercase">{currentSong.energy}% 能量</span>
                 </div>
               </div>
             </div>
@@ -152,7 +152,7 @@ export default function MusicCore() {
                 className="group flex items-center text-white/50 hover:text-white transition-colors"
                 onClick={() => setIsImmersive(true)}
               >
-                <span className="font-sans text-[11px] font-medium tracking-wide">Enter</span>
+                <span className="font-sans text-[11px] font-medium tracking-wide">进入</span>
               </button>
             </div>
           </motion.div>

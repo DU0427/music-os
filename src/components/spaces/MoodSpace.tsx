@@ -1,9 +1,16 @@
-'use client';
+﻿'use client';
 
 import { useAppStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 import MusicPlanet from '../MusicPlanet';
+
+const MOOD_LABELS: Record<string, string> = {
+  Night: '夜',
+  Energy: '动力',
+  Calm: '宁静',
+  Nostalgia: '怀旧',
+};
 
 export default function MoodSpace() {
   const { setCurrentSpace, activeMood, setActiveMood } = useAppStore();
@@ -34,7 +41,7 @@ export default function MoodSpace() {
         className="absolute top-8 left-8 z-50 flex items-center gap-2 text-white/50 hover:text-white transition-colors"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span className="font-display tracking-[0.2em] text-sm">BACK TO CORE</span>
+        <span className="font-display tracking-[0.2em] text-sm">返回</span>
       </button>
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -55,7 +62,7 @@ export default function MoodSpace() {
           {moods.map((m) => (
             <MusicPlanet
               key={m.name}
-              title={m.name}
+              title={MOOD_LABELS[m.name] ?? m.name}
               {...getPos(m.radius, m.angle)}
               size={m.size}
               color={m.color}
@@ -74,12 +81,12 @@ export default function MoodSpace() {
             exit={{ opacity: 0, y: 20 }}
             className="absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none text-center z-40"
           >
-            <div className="font-mono text-[10px] tracking-[0.4em] text-white/50 mb-2">CURRENT ENVIRONMENT</div>
-            <h2 className="font-display text-4xl text-white/90 tracking-[0.2em] mb-4">{activeMood.toUpperCase()}</h2>
+            <div className="font-mono text-[10px] tracking-[0.4em] text-white/50 mb-2">当前情绪</div>
+            <h2 className="font-display text-4xl text-white/90 tracking-[0.2em] mb-4">{MOOD_LABELS[activeMood] ?? activeMood}</h2>
             <button className="px-8 py-3 rounded-full border border-white/20 bg-white/5 backdrop-blur-md text-white/90 font-display tracking-widest text-xs hover:bg-white/10 hover:border-white/40 transition-all pointer-events-auto shadow-2xl shadow-[var(--mood-color)]"
               style={{ '--mood-color': moods.find(m => m.name === activeMood)?.color + '40' } as any}
             >
-              ENTER THIS SPACE
+              进入这个情绪
             </button>
           </motion.div>
         )}

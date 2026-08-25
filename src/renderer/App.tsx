@@ -1,156 +1,200 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useRuntimeStore } from './store/runtime';
 import AudioDock from './ui/AudioDock';
 import SongWorldOverlay from './ui/SongWorldOverlay';
 import WorldManager from './worlds/WorldManager';
+import TopBar from './ui/TopBar';
+import HomeOrbital from './ui/HomeOrbital';
+import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
+import MemoryFieldWorld from './worlds/MemoryFieldWorld';
 import type { AppReadyPayload } from '../shared/ipc/channels';
 import { useAudioStore } from './audio/store';
 
 const reportStartupError = async (code: string, detail: string) => {
   if (typeof window.musicOS?.reportError === 'function') {
     try {
-      await window.musicOS.reportError({
-        code,
-        detail,
-      });
+      await window.musicOS.reportError({ code, detail });
     } catch {
-      // main process diagnostics are best-effort during bootstrap
+      // best effort
     }
   }
 };
 
+const showDiagnostics = import.meta.env.DEV || import.meta.env.VITE_MUSIC_OS_SHOW_DIAGNOSTICS === 'true';
+const showDeveloperControls = showDiagnostics || import.meta.env.VITE_MUSIC_OS_SHOW_DEVELOPER_CONTROLS === 'true';
+
 export default function AppShell() {
-  const [status, setStatus] = useState<string>('Booting...');
-  const currentSpace = useRuntimeStore((state) => state.currentSpace);
-  const requestSpace = useRuntimeStore((state) => state.requestSpace);
-  const isTransitioning = useRuntimeStore((state) => state.isTransitioning);
-  const currentTrack = useAudioStore((state) => state.track ?? null);
+  const [status, setStatus] = useState<string>('booting...');
+  const currentSpace = useRuntimeStore((s) => s.currentSpace);
+  const requestSpace = useRuntimeStore((s) => s.requestSpace);
+  const isTransitioning = useRuntimeStore((s) => s.isTransitioning);
+  const currentTrack = useAudioStore((s) => s.track ?? null);
   const currentTrackName = currentTrack?.title ?? null;
-  const canEnterMidnight = useAudioStore((state) => Boolean(state.canPlay && state.track));
-  const canPlay = useAudioStore((state) => state.canPlay);
-  const playbackError = useAudioStore((state) => state.error);
-  const restorePlaybackSession = useAudioStore((state) => state.restorePlaybackSession);
-  const prepareToClose = useAudioStore((state) => state.prepareToClose);
-  const activeHistoryId = useAudioStore((state) => state.activeHistoryId);
-  const activeHistoryTrackId = useAudioStore((state) => state.activeHistoryTrackId);
-  const activeHistoryStartedAt = useAudioStore((state) => state.activeHistoryStartedAt);
-  const activeHistoryElapsedSeconds = useAudioStore((state) => state.activeHistoryElapsedSeconds);
+  const canPlay = useAudioStore((s) => s.canPlay);
+  const canEnterMidnight = useAudioStore((s) => Boolean(s.canPlay && s.track));
+  const playbackError = useAudioStore((s) => s.error);
+  const restorePlaybackSession = useAudioStore((s) => s.restorePlaybackSession);
+  const prepareToClose = useAudioStore((s) => s.prepareToClose);
+  const activeHistoryId = useAudioStore((s) => s.activeHistoryId);
+  const activeHistoryTrackId = useAudioStore((s) => s.activeHistoryTrackId);
+  const activeHistoryStartedAt = useAudioStore((s) => s.activeHistoryStartedAt);
+  const activeHistoryElapsedSeconds = useAudioStore((s) => s.activeHistoryElapsedSeconds);
+  const isPlaying = useAudioStore((s) => s.isPlaying);
+  const currentTime = useAudioStore((s) => s.currentTime);
+  const duration = useAudioStore((s) => s.duration);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        requestSpace('home');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') requestSpace('home'); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [requestSpace]);
 
   useEffect(() => {
-    const handleError = (event: ErrorEvent | PromiseRejectionEvent) => {
-      const detail = 'error' in event ? (event.error?.message || String(event.error)) : String(event.reason);
+    const handler = (e: ErrorEvent | PromiseRejectionEvent) => {
+      const detail = 'error' in e ? (e.error?.message || String(e.error)) : String((e as PromiseRejectionEvent).reason);
       void reportStartupError('renderer_error', detail);
     };
-
-    window.addEventListener('error', handleError);
-    window.addEventListener('unhandledrejection', handleError as (event: PromiseRejectionEvent) => void);
-
+    window.addEventListener('error', handler);
+    window.addEventListener('unhandledrejection', handler as (e: PromiseRejectionEvent) => void);
     return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleError as (event: PromiseRejectionEvent) => void);
+      window.removeEventListener('error', handler);
+      window.removeEventListener('unhandledrejection', handler as (e: PromiseRejectionEvent) => void);
     };
   }, []);
 
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      void prepareToClose();
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    const h = () => void prepareToClose();
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
   }, [prepareToClose]);
 
   useEffect(() => {
-    if (typeof window.musicOS?.onPrepareToClose !== 'function') {
-      return undefined;
-    }
-
-    const unsubscribe = window.musicOS.onPrepareToClose(async () => {
-      await prepareToClose();
-    });
-
-    return unsubscribe;
+    if (typeof window.musicOS?.onPrepareToClose !== 'function') return undefined;
+    const unsub = window.musicOS.onPrepareToClose(async () => { await prepareToClose(); });
+    return unsub;
   }, [prepareToClose]);
 
   useEffect(() => {
     const ready = async () => {
       if (typeof window.musicOS?.ready !== 'function') {
-        await reportStartupError('missing_bridge', 'musicOS.ready is not available during shell boot.');
-        setStatus('IPC bridge unavailable.');
+        await reportStartupError('missing_bridge', 'musicOS.ready unavailable');
+        setStatus('ipc bridge unavailable');
         return;
       }
       try {
         const result: AppReadyPayload = await window.musicOS.ready();
-        setStatus(`Ready: ${result.appName} @ ${new Date(result.startedAt).toLocaleTimeString()}`);
+        setStatus(`ready: ${result.appName} @ ${new Date(result.startedAt).toLocaleTimeString()}`);
         await restorePlaybackSession();
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
         await reportStartupError('ipc_ready_failed', detail);
-        setStatus('IPC not yet attached.');
+        setStatus('ipc not ready');
       }
     };
-    ready().catch(() => setStatus('IPC not yet attached.'));
+    ready().catch(() => setStatus('ipc not ready'));
   }, [restorePlaybackSession]);
 
   useEffect(() => {
-    const handleSpaceChange = (event: Event) => {
-      const nextSpace = (event as CustomEvent<string>).detail;
-      if (nextSpace === 'home' || nextSpace === 'midnight') {
-        requestSpace(nextSpace);
+    const h = (e: Event) => {
+      const next = (e as CustomEvent<string>).detail;
+      if (next === 'home' || next === 'midnight' || next === 'library' || next === 'memory' || next === 'mood' || next === 'visualizer') {
+        requestSpace(next as any);
       }
     };
-    window.addEventListener('music-os-set-space', handleSpaceChange);
-    return () => window.removeEventListener('music-os-set-space', handleSpaceChange);
+    window.addEventListener('music-os-set-space', h);
+    return () => window.removeEventListener('music-os-set-space', h);
   }, [requestSpace]);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        background: 'var(--mo-bg)',
+        color: 'var(--mo-text-soft)',
+        fontFamily: 'var(--mo-font-sans)',
+        userSelect: 'none',
+      }}
+    >
+      {/* Background R3F canvas — persistent spatial layer */}
       <WorldManager />
-      <AudioDock />
+
+      {/* Nebula overlay — prototype's soft fog layers */}
+      <div
+        aria-hidden
+        className="absolute inset-[-20%] mix-blend-screen opacity-20 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse at 40% 60%, rgba(110,168,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 30%, rgba(181,140,255,0.10) 0%, transparent 40%)',
+        }}
+      />
+
+      {/* Top navigation — prototype style */}
+      <TopBar />
+
+      {/* Home orbital DOM — only in home space */}
+      {currentSpace === 'home' && <HomeOrbital />}
+
+      {/* Library / Memory DOM worlds */}
+      {currentSpace === 'library' && <LibraryGalaxyWorld />}
+      {currentSpace === 'memory' && <MemoryFieldWorld />}
+
+      {/* Midnight overlay */}
       <SongWorldOverlay />
 
-      <div
-        style={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          color: '#9aa7bf',
-          fontFamily: 'sans-serif',
-          textShadow: '0 1px 8px rgba(0,0,0,0.45)',
-          pointerEvents: 'none',
-        }}
-      >
-        <div style={{ color: '#fff', fontSize: 18, marginBottom: 4 }}>Music OS Desktop Shell</div>
-        <div>{currentTrackName ? `Current Track: ${currentTrackName}` : 'No track loaded'}</div>
-        <div>{currentTrack ? `${currentTrack.artist}${currentTrack.album ? ` - ${currentTrack.album}` : ''}` : null}</div>
-        <div>{currentTrack ? `Duration: ${Math.round(currentTrack.durationSeconds)}s` : null}</div>
-        {currentTrackName && !canPlay ? (
-          <div>Recovered metadata only. Select a local source to continue this playback state.</div>
-        ) : null}
-        {playbackError ? <div style={{ color: '#ffb68c' }}>{playbackError}</div> : null}
-        {!canEnterMidnight ? <div>Choose a local song to enter Midnight City.</div> : null}
-        <div>{status}</div>
-        {isTransitioning ? <div>Transitioning...</div> : null}
-        <div>Current Space: {currentSpace}</div>
-      </div>
+      {/* Audio dock — mini */}
+      <AudioDock mode={showDeveloperControls ? 'developer' : 'experience'} />
+
+      {/* Diagnostics */}
+      {showDiagnostics && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 96,
+            left: 16,
+            color: 'var(--mo-text-muted)',
+            textShadow: '0 1px 8px rgba(0,0,0,0.45)',
+            pointerEvents: 'none',
+            zIndex: 30,
+            fontSize: 11,
+            lineHeight: 1.6,
+            maxWidth: 320,
+          }}
+        >
+          <div style={{ color: '#fff', fontSize: 13, marginBottom: 6, fontWeight: 600 }}>music os — diagnostics</div>
+          <div>{currentTrackName ? `track: ${currentTrackName}` : 'no track'}</div>
+          <div>{currentTrack ? `${currentTrack.artist}${currentTrack.album ? ` — ${currentTrack.album}` : ''}` : null}</div>
+          <div>{currentTrack ? `duration: ${Math.round(currentTrack.durationSeconds)}s` : null}</div>
+          {playbackError ? <div style={{ color: '#ffb68c' }}>{playbackError}</div> : null}
+          <div>{status}</div>
+          <div>space: {currentSpace} {isTransitioning ? '(transitioning)' : ''}</div>
+          <div style={{ marginTop: 4, fontSize: 10, color: 'var(--mo-text-faint)' }}>audio: {isPlaying ? 'playing' : 'paused'} · {Math.floor(currentTime)} / {Math.floor(duration)}s</div>
+        </div>
+      )}
+
       <div
         id="audio-session-debug"
+        data-current-space={currentSpace}
+        data-current-track-id={currentTrack?.id ?? ''}
+        data-can-enter-midnight={canEnterMidnight ? '1' : '0'}
+        data-has-track={currentTrack ? '1' : '0'}
+        data-is-transitioning={isTransitioning ? '1' : '0'}
+        data-status={status}
         data-active-history-id={activeHistoryId ?? ''}
         data-active-history-track-id={activeHistoryTrackId ?? ''}
         data-active-history-started-at={activeHistoryStartedAt ?? ''}
         data-active-history-elapsed-seconds={activeHistoryElapsedSeconds}
+        data-track-id={currentTrack?.id ?? ''}
+        data-track-provider-id={currentTrack?.providerId ?? ''}
+        data-can-play={canPlay ? '1' : '0'}
+        data-is-playing={isPlaying ? '1' : '0'}
+        data-current-time={currentTime.toFixed ? currentTime.toFixed(3) : String(currentTime)}
+        data-duration={duration.toFixed ? duration.toFixed(3) : String(duration)}
         style={{ display: 'none' }}
       />
-
     </div>
   );
 }

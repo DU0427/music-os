@@ -8,6 +8,10 @@ import { useRuntimeStore } from '../store/runtime';
 const CAMERA_PRESETS: Record<SpaceType, { position: [number, number, number]; lookAt: [number, number, number]; fov: number }> = {
   home: { position: [0, 1.2, 6], lookAt: [0, 0.2, 0], fov: 60 },
   midnight: { position: [0, 1.8, 11], lookAt: [0, 1, 0], fov: 55 },
+  library: { position: [0, 1.4, 7], lookAt: [0, 0.4, 0], fov: 58 },
+  memory: { position: [0, 1.2, 6.5], lookAt: [0, 0.3, 0], fov: 60 },
+  mood: { position: [0, 1.2, 6], lookAt: [0, 0.2, 0], fov: 60 },
+  visualizer: { position: [0, 1.6, 9], lookAt: [0, 0.8, 0], fov: 56 },
 };
 
 export default function CameraRig({ currentSpace }: { currentSpace: SpaceType }) {

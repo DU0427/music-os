@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useAppStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'motion/react';
@@ -57,7 +57,7 @@ export default function HomeSpace() {
               {/* Visualizer World Node (Top-Left) */}
               <MusicPlanet 
                 id="visualizer"
-                title="Visualizer World" 
+                title="可视化世界"
                 {...getPos(380, -145)}
                 color="#6EA8FF" 
                 size={getSize(70)}
@@ -67,7 +67,7 @@ export default function HomeSpace() {
               {/* Library Galaxy Node (Top-Right) */}
               <MusicPlanet 
                 id="library"
-                title="Library Galaxy" 
+                title="图书馆"
                 {...getPos(320, -35)}
                 color="#B58CFF" 
                 size={getSize(60)}
@@ -77,7 +77,7 @@ export default function HomeSpace() {
               {/* Memory Field Node (Bottom-Left) */}
               <MusicPlanet 
                 id="memory"
-                title="Music Memory" 
+                title="记忆场" 
                 {...getPos(360, 135)}
                 color="#FFD27A" 
                 size={getSize(50)}
@@ -87,7 +87,7 @@ export default function HomeSpace() {
               {/* Mood Space Node (Bottom-Right) */}
               <MusicPlanet 
                 id="mood"
-                title="Mood Space" 
+                title="情绪空间" 
                 {...getPos(420, 45)}
                 color="#B58CFF" 
                 size={getSize(80)}
@@ -103,8 +103,9 @@ export default function HomeSpace() {
               animate={{ opacity: 1 }}
               transition={{ delay: 2.5, duration: 2 }}
             >
-              Environment Active <br />
-              <span className="text-white/20">Music Universe OS v2</span>
+              正在你的宇宙中启动。
+              <br />
+              <span className="text-white/20">记忆宇宙 v2</span>
             </motion.div>
           </motion.div>
         )}

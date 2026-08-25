@@ -132,3 +132,4 @@ Keep reference code untouched and route active experience through renderer modul
 - Active Stage 3-7 contract continuation: `C:\Users\duainan\.codex\attachments\66c20d69-bb4b-47dc-bcc5-27bc2f6cf197\pasted-text-1.txt`.
 - Active Playback/Session continuation: `C:\Users\duainan\.codex\attachments\943ce9cb-7dc4-4f07-8399-cf798852a396\pasted-text-1.txt`.
 - Active Playback Data Hardening continuation: `C:\Users\duainan\.codex\attachments\822449ee-5f5b-433f-be06-c341b73f8005\pasted-text-1.txt`.
+- Latest Stage 7 product-polish continuation: `C:\Users\duainan\.codex\attachments\beb857a0-692b-49e8-9dea-843d15121189\pasted-text-1.txt`.

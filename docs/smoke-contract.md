@@ -33,6 +33,7 @@ conditions are satisfied in the JSON payload printed by the harness:
 - `result.trackDurationMetadataRoundTrip === true`
 - `result.listeningHistoryApiAvailable === true`
 - `result.audioSessionReadable === true`
+- `result.audioSessionState?.canPlay === true`
 - `result.providerSearchContracts === true`
 - `result.shellVisible === true`
 - `result.homeState === true`
@@ -47,9 +48,18 @@ conditions are satisfied in the JSON payload printed by the harness:
   - `transitionResult.beforeDetected === true`
   - `transitionResult.afterDetected === true`
   - `transitionResult.songWorldOverlayVisible === true`
-  - `transitionResult.conflictIgnored === true`
-  - `transitionResult.afterReturnDetected === true`
-  - `transitionResult.repeatedTransitionHealthy === true`
+- `transitionResult.conflictIgnored === true`
+- `transitionResult.afterReturnDetected === true`
+- `transitionResult.repeatedTransitionHealthy === true`
+- `playbackStressResult?.ok === true`
+- `playbackStressResult?.frameStats?.frameProfilerSupported === false || playbackStressResult?.frameStats?.frameStabilityOk === true`
+- `playbackStressResult?.cycleCount >= 6`
+- `playbackStressResult?.allCyclesAdvanced === true`
+- `playbackStressResult?.heapSupported === false || playbackStressResult?.heapStabilityOk === true`
+- `playbackStressResult?.heapBytesMax - playbackStressResult?.heapBytesFromStart <= 64 * 1024 * 1024` (when `heapSupported`)
+- `playbackStressResult?.frameStats?.sampleCount` can be used for trend diagnosis (non-fatal when not supported).
+- `playbackStressResult?.eventLoopStats?.supported === false || playbackStressResult?.eventLoopStats?.loopHealthOk === true`
+- `playbackStressResult?.eventLoopStats` can be used for main-thread jitter trend diagnosis.
 
 ## Stage Gates
 
@@ -82,9 +92,8 @@ Must validate:
 - Provider search/track/playable contracts are reachable through `window.musicOS`.
 - Search query returns normalized provider references and track records.
 - Track detail call returns a structured `providerId/reference` envelope.
-- Playable source call is either:
-  - successful (with `playableSource`), or
-  - explicit `error` with `code === 'NOT_IMPLEMENTED'` for metadata-only providers.
+- Playable source call should be successful when the provider declares `playableSource` capability.
+- For providers that still only expose metadata, `playableSource` should be explicit `NOT_IMPLEMENTED`.
 
 Evidence:
 
@@ -109,9 +118,10 @@ Evidence:
   - `transitionResult.afterReturnDetected === true`
 - `result.shellVisible === true`
 - `result.homeState === true`
-- visible HUD includes both:
-  - `Current Space: home`
-  - `Current Space: midnight` (after scripted transition)
+- state checks are resolved from hidden diagnostics attributes:
+  - `#audio-session-debug[data-current-space="home"]` at baseline
+  - `#audio-session-debug[data-current-space="midnight"]` after transition
+  - `#audio-session-debug[data-is-transitioning="0"]` for settle checks
 
 ### Stage 3 Gate - Audio Reactive Layer
 
@@ -125,6 +135,12 @@ Evidence:
 
 - `src/renderer/audio/*` present and wired to analyzer graph
 - smoke still passes `audioInput === true`
+- smoke passes repeated local playback cycle with long-run health:
+  - `playbackStressResult?.ok === true`
+  - `playbackStressResult?.cycleCount >= 6`
+  - `playbackStressResult?.allCyclesAdvanced === true`
+  - `playbackStressResult?.frameStats?.frameProfilerSupported === false || playbackStressResult?.frameStats?.frameStabilityOk === true`
+  - `playbackStressResult?.eventLoopStats?.supported === false || playbackStressResult?.eventLoopStats?.loopHealthOk === true`
 - manual pass: change track energy and observe:
   - `src/renderer/core/MusicCore.tsx` motion/amplitude changes
   - `src/renderer/worlds/SpaceBackdrop.tsx` star size/opacity modulation
@@ -140,8 +156,8 @@ Must validate:
 
 Evidence:
 
-- `Current Space` transitions home -> midnight via scene object interaction
-- `Song World` overlay visible only in midnight space
+ - `#audio-session-debug[data-current-space]` transitions home -> midnight via scene object interaction
+ - `#song-world-overlay` exists only in midnight space
 - scene includes `MidnightCityWorld.tsx` components and `CitySilhouette`/`MemoryField`.
 
 ### Stage 5 Gate - Data Boundary
@@ -191,14 +207,15 @@ Evidence:
 
 ## Expected DOM Sentinels
 
-The UI text checks are intentionally simple and resilient to rendering drift:
+The UI state checks are intentionally resilient to rendering drift:
 
-- startup shell includes:
-  - `Music OS Desktop Shell`
-  - `Current Space: home`
-- transition result includes:
-  - `Current Space: midnight`
-  - `song world`
+- startup shell confirms:
+  - `#root` exists
+  - `#audio-session-debug[data-current-space="home"]`
+- transition result confirms:
+  - `#audio-session-debug[data-current-space="midnight"]`
+  - `#audio-session-debug[data-is-transitioning="0"]`
+  - `#song-world-overlay` exists
 
 ## Failure Classes and Next Actions
 
@@ -360,6 +377,7 @@ Stage 0 requires no work to proceed until these input files are acknowledged and
 - `C:\Users\duainan\.codex\attachments\cb278536-ac97-411f-88b8-eb23ed075eee\pasted-text-1.txt`
 - `C:\Users\duainan\.codex\attachments\943ce9cb-7dc4-4f07-8399-cf798852a396\pasted-text-1.txt`
 - `C:\Users\duainan\.codex\attachments\822449ee-5f5b-433f-be06-c341b73f8005\pasted-text-1.txt`
+- `C:\Users\duainan\.codex\attachments\beb857a0-692b-49e8-9dea-843d15121189\pasted-text-1.txt`
 
 Operational interpretation:
 

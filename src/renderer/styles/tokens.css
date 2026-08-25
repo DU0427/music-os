@@ -1,0 +1,80 @@
+/* Music OS — Design Tokens
+   单一真相源：所有 2D UI 共享这套变量。3D 场景色仍由 Three 侧管理，但雾/背景与此处对齐。
+*/
+
+:root {
+  /* ——— 背景 ——— */
+  --mo-bg: #050a14;
+  --mo-bg-soft: #0a1220;
+  --mo-bg-elevated: rgba(10, 18, 32, 0.58);
+  --mo-bg-elevated-strong: rgba(10, 18, 32, 0.72);
+
+  /* ——— 文字 ——— */
+  --mo-text: #edf2ff;
+  --mo-text-soft: #dce8ff;
+  --mo-text-muted: #9aa7bf;
+  --mo-text-faint: #6b7a94;
+  --mo-text-dim: #4f5d78;
+
+  /* ——— 线条/边框 ——— */
+  --mo-line: rgba(164, 190, 231, 0.1);
+  --mo-line-strong: rgba(164, 190, 231, 0.16);
+  --mo-line-subtle: rgba(164, 190, 231, 0.06);
+
+  /* ——— 强调 ——— */
+  --mo-accent: #8dbbff;
+  --mo-accent-strong: #6ea8ff;
+  --mo-accent-ghost: rgba(110, 168, 255, 0.14);
+  --mo-portal: #e8c28a;
+  --mo-portal-soft: #f0c58e;
+  --mo-success: #82d3a9;
+  --mo-success-glow: rgba(130, 211, 169, 0.42);
+  --mo-warn: #e1a95e;
+
+  /* ——— 圆角 ——— */
+  --mo-radius-sm: 10px;
+  --mo-radius-md: 14px;
+  --mo-radius-lg: 18px;
+  --mo-radius-xl: 22px;
+  --mo-radius-pill: 999px;
+
+  /* ——— 间距刻度 ——— */
+  --mo-space-xs: 4px;
+  --mo-space-sm: 8px;
+  --mo-space-md: 12px;
+  --mo-space-lg: 16px;
+  --mo-space-xl: 20px;
+  --mo-space-2xl: 24px;
+
+  /* ——— 毛玻璃 ——— */
+  --mo-blur: 16px;
+  --mo-blur-soft: 12px;
+
+  /* ——— 阴影 ——— */
+  --mo-shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.32);
+  --mo-shadow-medium: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --mo-shadow-hairline: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  /* ——— 字体 ——— */
+  --mo-font-sans: "Inter", "SF Pro Display", "Noto Sans SC", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mo-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* ——— 字阶 ——— */
+  --mo-text-xs: 10px;
+  --mo-text-sm: 11px;
+  --mo-text-base: 12px;
+  --mo-text-md: 13px;
+  --mo-text-lg: 15px;
+  --mo-text-xl: 19px;
+  --mo-text-2xl: 23px;
+
+  /* ——— 动效 ——— */
+  --mo-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --mo-ease-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --mo-duration: 420ms;
+  --mo-duration-fast: 180ms;
+
+  /* ——— 布局 ——— */
+  --mo-topbar-height: 44px;
+  --mo-dock-width: 420px;
+}

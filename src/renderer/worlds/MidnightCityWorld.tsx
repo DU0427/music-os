@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+﻿import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { BackSide, DoubleSide } from 'three';
 import type { Mesh, MeshStandardMaterial } from 'three';
@@ -7,6 +7,7 @@ import CitySilhouette from './CitySilhouette';
 import MemoryField from './MemoryField';
 import SpatialPortal from './SpatialPortal';
 import { useAudioStore } from '../audio/store';
+import WorldLabel from './WorldLabel';
 
 function FloatingNode({ position }: { position: [number, number, number] }) {
   return (
@@ -19,6 +20,7 @@ function FloatingNode({ position }: { position: [number, number, number] }) {
 
 export default function MidnightCityWorld() {
   const requestSpace = useRuntimeStore((state) => state.requestSpace);
+  const isTransitioning = useRuntimeStore((state) => state.isTransitioning);
   const worldContext = useAudioStore((state) => state.track?.worldContext ?? null);
   const worldTone = worldContext?.energyTarget === 'calm' ? '#7de7e2' : '#b58cff';
   const energyRef = useRef<Mesh>(null);
@@ -67,7 +69,7 @@ export default function MidnightCityWorld() {
           emissive={worldTone}
           emissiveIntensity={0.2}
           transparent
-          opacity={0.25}
+          opacity={0.20}
         />
       </mesh>
 
@@ -82,7 +84,15 @@ export default function MidnightCityWorld() {
         onActivate={() => requestSpace('home')}
         mode="return"
         size={0.85}
+        disabled={isTransitioning}
+      />
+      <WorldLabel
+        text="返回门户"
+        position={[0, 2.1, 0.6]}
+        color="#ffe4ad"
+        background="rgba(50,34,8,0.68)"
       />
     </group>
   );
 }
+

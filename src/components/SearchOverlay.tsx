@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useAppStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'motion/react';
@@ -39,7 +39,7 @@ export default function SearchOverlay() {
               <input 
                 ref={inputRef}
                 type="text" 
-                placeholder="Search your universe..."
+                placeholder="搜索你的播放世界..."
                 className="w-full bg-glass-light border border-white/10 rounded-full py-5 pl-16 pr-12 text-white/90 placeholder:text-white/30 outline-none focus:border-electric-cyan/50 focus:shadow-[0_0_30px_rgba(125,231,226,0.15)] transition-all font-display tracking-wide text-lg"
               />
               <button 
@@ -51,7 +51,7 @@ export default function SearchOverlay() {
             </div>
 
             <div className="mt-12 flex justify-center gap-4">
-              {['Songs', 'Artists', 'Albums', 'Moods', 'Memories'].map(tag => (
+              {['热门', '轻音', '人声', '氛围', '夜景'].map((tag) => (
                 <button 
                   key={tag}
                   className="px-4 py-2 rounded-full border border-white/10 text-white/50 text-xs font-mono hover:bg-white/5 hover:text-white/90 transition-colors"
@@ -63,7 +63,7 @@ export default function SearchOverlay() {
             
             {/* Mock search results visualization hint */}
             <div className="mt-16 text-center text-white/30 font-display text-sm tracking-widest">
-              AWAITING INPUT
+              正在输入
             </div>
           </motion.div>
         </motion.div>
