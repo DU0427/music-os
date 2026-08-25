@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRuntimeStore } from '../store/runtime';
 import { useAudioStore } from '../audio/store';
 import { useMoodStore } from '../store/mood';
+import { useLibraryStore } from '../store/library';
 import { useEffect } from 'react';
 
 function NavIcon({ icon: Icon, label, onClick }: { icon: typeof Search; label: string; onClick?: () => void }) {
@@ -42,11 +43,16 @@ export default function TopBar({ onSearch }: { onSearch?: () => void }) {
   const track = useAudioStore((s) => s.track);
   const activeMood = useMoodStore((s) => s.activeMood);
   const loadMood = useMoodStore((s) => s.load);
+  const tracks = useLibraryStore((s) => s.tracks);
+  const history = useLibraryStore((s) => s.history);
+  const refreshLib = useLibraryStore((s) => s.refresh);
   const [showHistory, setShowHistory] = useState(false);
+  const [showUser, setShowUser] = useState(false);
 
   useEffect(() => {
     void loadMood();
-  }, [loadMood]);
+    void refreshLib();
+  }, [loadMood, refreshLib]);
 
   const spaceTitle =
     currentSpace === 'home' ? 'home' : currentSpace === 'midnight' ? 'midnight city' : currentSpace;
@@ -110,22 +116,59 @@ export default function TopBar({ onSearch }: { onSearch?: () => void }) {
         <div className="relative">
           <NavIcon icon={AudioLines} label="audio" onClick={() => setShowHistory((v) => !v)} />
           {showHistory && (
-            <div className="absolute right-0 top-12 w-64 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl p-3 pointer-events-auto shadow-xl">
-              <div className="text-[10px] tracking-[0.12em] uppercase text-white/30 mb-2">recent plays</div>
-              <div className="text-[11px] text-white/50">open memory field for full history →</div>
+            <div className="absolute right-0 top-12 w-72 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl p-3 pointer-events-auto shadow-xl">
+              <div className="text-[10px] tracking-[0.12em] uppercase text-white/30 mb-2">audio · recent plays</div>
+              {history.length === 0 ? (
+                <div className="text-[11px] text-white/40 py-2">no history yet</div>
+              ) : (
+                <div className="grid gap-1.5">
+                  {history.slice(0, 3).map((h) => {
+                    const t = tracks.find((tr) => tr.id === h.trackId);
+                    return (
+                      <div key={h.id} className="flex items-center gap-2 text-[11px] text-white/60 truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#7DE7E2] flex-shrink-0" />
+                        <span className="truncate">{t?.title ?? h.trackId.slice(0, 8)}</span>
+                        <span className="text-white/25 ml-auto">{Math.round(h.durationSeconds)}s</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <button
                 onClick={() => {
                   setShowHistory(false);
                   useRuntimeStore.getState().requestSpace('memory');
                 }}
-                className="mt-2 w-full py-2 rounded-full bg-white/10 hover:bg-white/15 text-white/80 text-[11px] transition-colors"
+                className="mt-2.5 w-full py-2 rounded-full bg-white/10 hover:bg-white/15 text-white/80 text-[11px] transition-colors"
               >
-                go to memory
+                open memory field →
               </button>
             </div>
           )}
         </div>
-        <NavIcon icon={User} label="profile" />
+        <div className="relative">
+          <NavIcon icon={User} label="profile" onClick={() => setShowUser((v) => !v)} />
+          {showUser && (
+            <div className="absolute right-0 top-12 w-64 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl p-3 pointer-events-auto shadow-xl">
+              <div className="text-[10px] tracking-[0.12em] uppercase text-white/30 mb-2">profile</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl bg-white/5 py-2">
+                  <div className="text-[14px] font-medium text-white/80">{tracks.length}</div>
+                  <div className="text-[9px] tracking-wide text-white/30 uppercase">tracks</div>
+                </div>
+                <div className="rounded-xl bg-white/5 py-2">
+                  <div className="text-[14px] font-medium text-white/80">{history.length}</div>
+                  <div className="text-[9px] tracking-wide text-white/30 uppercase">plays</div>
+                </div>
+                <div className="rounded-xl bg-white/5 py-2">
+                  <div className="text-[14px] font-medium text-white/80">{activeMood ?? '—'}</div>
+                  <div className="text-[9px] tracking-wide text-white/30 uppercase">mood</div>
+                </div>
+              </div>
+              <div className="mt-2 text-[10px] text-white/25 text-center">music os v0.1 · local-first</div>
+            </div>
+          )}
+        </div>
       </div>
     </motion.header>
   );

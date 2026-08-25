@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { Color, type AmbientLight, type DirectionalLight } from 'three';
 import { useRuntimeStore } from '../store/runtime';
 import { useAudioStore } from '../audio/store';
+import { useMoodStore } from '../store/mood';
 import CameraRig from '../camera/CameraRig';
 import HomeSpace from './HomeSpace';
 import MidnightCityWorld from './MidnightCityWorld';
@@ -50,10 +51,19 @@ function AudioAtmosphere({ isTransitioning }: { isTransitioning: boolean }) {
     }
 
     const pulse = 0.45 + metrics.energy * 0.35 + metrics.beatPulse * 0.12;
+    // mood tint
+    const mood = useMoodStore.getState().activeMood;
+    let moodR = 0, moodG = 0, moodB = 0;
+    if (mood === 'Calm') { moodR = -0.01; moodG = 0.02; moodB = 0.04; }
+    else if (mood === 'Energy') { moodR = 0.04; moodG = 0.015; moodB = -0.02; }
+    else if (mood === 'Night') { moodR = -0.008; moodG = -0.01; moodB = 0.03; }
+    else if (mood === 'Nostalgia') { moodR = 0.03; moodG = 0.01; moodB = -0.01; }
     scene.fog?.color?.set(
-      new Color(0.020 + metrics.mid * 0.5, 0.07 + bassInfluence * 0.2, 0.15 + metrics.treble * 0.35).multiplyScalar(
-        pulse * transitionInfluence,
-      ),
+      new Color(
+        0.020 + metrics.mid * 0.5 + moodR,
+        0.07 + bassInfluence * 0.2 + moodG,
+        0.15 + metrics.treble * 0.35 + moodB,
+      ).multiplyScalar(pulse * transitionInfluence),
     );
   });
 
