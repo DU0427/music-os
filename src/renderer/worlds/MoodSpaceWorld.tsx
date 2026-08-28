@@ -6,11 +6,18 @@ import { useRuntimeStore } from '../store/runtime';
 import { useMoodStore } from '../store/mood';
 
 const MOODS = [
-  { id: 'Night', label: 'night', color: '#1A2980', angle: -90, radius: 230, size: 90 },
-  { id: 'Energy', label: 'energy', angle: 0, radius: 230, size: 100, color: '#F0B56A' },
-  { id: 'Calm', label: 'calm', angle: 90, radius: 230, size: 80, color: '#78AFFF' },
-  { id: 'Nostalgia', label: 'nostalgia', angle: 180, radius: 230, size: 85, color: '#EA8E83' },
+  { id: 'Night', label: '夜晚', color: '#1A2980', angle: -90, radius: 230, size: 90 },
+  { id: 'Energy', label: '能量', angle: 0, radius: 230, size: 100, color: '#F0B56A' },
+  { id: 'Calm', label: '平静', angle: 90, radius: 230, size: 80, color: '#78AFFF' },
+  { id: 'Nostalgia', label: '怀旧', angle: 180, radius: 230, size: 85, color: '#EA8E83' },
 ];
+
+const MOOD_LABEL: Record<string, string> = {
+  Night: '夜晚',
+  Energy: '能量',
+  Calm: '平静',
+  Nostalgia: '怀旧',
+};
 
 export default function MoodSpaceWorld() {
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
@@ -34,7 +41,7 @@ export default function MoodSpaceWorld() {
         className="absolute top-24 left-10 z-20 flex items-center gap-2 text-white/50 hover:text-white transition-colors pointer-events-auto"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span className="font-sans tracking-[0.14em] text-[11px] uppercase">back</span>
+        <span className="font-sans tracking-[0.14em] text-[11px] uppercase">返回</span>
       </button>
 
       {/* atmospheric tint */}
@@ -97,13 +104,13 @@ export default function MoodSpaceWorld() {
             exit={{ opacity: 0, y: 14 }}
             className="absolute bottom-28 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none text-center z-20"
           >
-            <div className="font-mono text-[10px] tracking-[0.32em] text-white/40 mb-2 uppercase">current mood</div>
-            <h2 className="font-sans text-3xl text-white/90 tracking-wide mb-4 lowercase">{activeMood}</h2>
+            <div className="font-mono text-[10px] tracking-[0.32em] text-white/40 mb-2 uppercase">当前情绪</div>
+            <h2 className="font-sans text-3xl text-white/90 tracking-wide mb-4">{MOOD_LABEL[activeMood] ?? activeMood}</h2>
             <button
               className="px-7 py-2.5 rounded-full border border-white/15 bg-white/5 backdrop-blur-md text-white/85 font-sans tracking-wide text-[11px] hover:bg-white/10 hover:border-white/30 transition-all pointer-events-auto"
               onClick={() => requestSpace('midnight')}
             >
-              enter with this mood →
+              带着此情绪进入 →
             </button>
           </motion.div>
         )}
@@ -111,8 +118,8 @@ export default function MoodSpaceWorld() {
 
       {!activeMood && (
         <div className="absolute bottom-28 right-12 text-right pointer-events-none hidden md:block">
-          <h3 className="font-sans text-white/60 tracking-[0.14em] text-[11px] uppercase">mood space</h3>
-          <p className="font-sans text-white/25 text-[11px] mt-1">pick a mood — let the world tint</p>
+          <h3 className="font-sans text-white/60 tracking-[0.14em] text-[11px] uppercase">情绪空间</h3>
+          <p className="font-sans text-white/25 text-[11px] mt-1">选择一个情绪 — 让世界随之染色</p>
         </div>
       )}
 

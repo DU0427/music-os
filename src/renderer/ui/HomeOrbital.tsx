@@ -204,7 +204,7 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
             onClick={() => (isPlaying ? useAudioStore.getState().pause() : void useAudioStore.getState().play())}
           >
             <span className="text-[10px] tracking-[0.14em] uppercase text-white/70 font-sans font-medium">
-              {canEnterMidnight ? (isPlaying ? 'playing · click core to enter' : 'click core to enter') : 'load a song to enter'}
+              {canEnterMidnight ? (isPlaying ? '播放中 · 点击核心进入' : '点击核心进入') : '载入歌曲以进入'}
             </span>
           </motion.div>
         </div>

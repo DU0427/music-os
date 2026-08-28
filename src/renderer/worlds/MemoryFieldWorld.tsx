@@ -97,7 +97,7 @@ export default function MemoryFieldWorld() {
         className="absolute top-24 left-10 z-20 flex items-center gap-2 text-white/50 hover:text-white transition-colors pointer-events-auto"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span className="font-sans tracking-[0.14em] text-[11px] uppercase">back</span>
+        <span className="font-sans tracking-[0.14em] text-[11px] uppercase">返回</span>
       </button>
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -138,14 +138,14 @@ export default function MemoryFieldWorld() {
 
         {history.length === 0 && (
           <div className="absolute bottom-28 left-1/2 -translate-x-1/2 text-center pointer-events-none">
-            <p className="text-[11px] tracking-wide text-white/25">no history yet — play a track to seed your memory field</p>
+            <p className="text-[11px] tracking-wide text-white/25">暂无播放记录 — 播放一首歌来点亮记忆田野</p>
           </div>
         )}
       </div>
 
       <div className="absolute bottom-28 right-12 text-right pointer-events-none hidden md:block">
-        <h3 className="font-sans text-white/60 tracking-[0.14em] text-[11px] uppercase">memory field</h3>
-        <p className="font-sans text-white/25 text-[11px] mt-1">trace your listening timeline</p>
+        <h3 className="font-sans text-white/60 tracking-[0.14em] text-[11px] uppercase">记忆田野</h3>
+        <p className="font-sans text-white/25 text-[11px] mt-1">回溯你的聆听轨迹</p>
       </div>
 
       <div id="memory-field-world" data-testid="memory-world" style={{ display: 'none' }} />

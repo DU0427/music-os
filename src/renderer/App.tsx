@@ -172,7 +172,7 @@ export default function AppShell() {
       {isDragging && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
           <div className="rounded-2xl border border-white/15 bg-white/5 backdrop-blur-xl px-8 py-6 text-center">
-            <div className="text-white/80 font-sans text-[13px] tracking-wide">drop audio to load</div>
+            <div className="text-white/80 font-sans text-[13px] tracking-wide">拖入音频以载入</div>
             <div className="text-white/30 font-sans text-[11px] mt-1">mp3 · wav · flac · ogg</div>
           </div>
         </div>

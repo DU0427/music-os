@@ -48,7 +48,7 @@ export default function VisualizerWorld() {
         className="absolute top-24 left-10 z-20 flex items-center gap-2 text-white/50 hover:text-white transition-colors pointer-events-auto"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span className="font-sans tracking-[0.14em] text-[11px] uppercase">back</span>
+        <span className="font-sans tracking-[0.14em] text-[11px] uppercase">返回</span>
       </button>
 
       {/* Dome gradients */}
@@ -92,17 +92,17 @@ export default function VisualizerWorld() {
       </div>
 
       <div className="absolute bottom-28 left-10 z-20 pointer-events-auto">
-        <h2 className="font-sans text-2xl text-white/85 tracking-wide mb-2 drop-shadow-lg">visualizer — midnight dome</h2>
+        <h2 className="font-sans text-2xl text-white/85 tracking-wide mb-2 drop-shadow-lg">可视化世界 — 午夜穹顶</h2>
         <div className="flex gap-2 text-[10px] font-mono text-[#7DE7E2]">
-          <span className="border border-[#7DE7E2]/25 px-2 py-1 rounded bg-[#7DE7E2]/5">dream</span>
-          <span className="border border-[#7DE7E2]/25 px-2 py-1 rounded bg-[#7DE7E2]/5">city</span>
+          <span className="border border-[#7DE7E2]/25 px-2 py-1 rounded bg-[#7DE7E2]/5">梦境</span>
+          <span className="border border-[#7DE7E2]/25 px-2 py-1 rounded bg-[#7DE7E2]/5">城市</span>
           {track && <span className="border border-white/10 px-2 py-1 rounded text-white/30">{track.title.slice(0, 18)}</span>}
         </div>
       </div>
 
       <div className="absolute bottom-28 right-10 text-right pointer-events-none hidden md:block">
-        <p className="text-[10px] tracking-[0.12em] uppercase text-white/20">audio-reactive</p>
-        <p className="text-[11px] text-white/30 mt-1">bass → dome · treble → grid · beat → horizon</p>
+        <p className="text-[10px] tracking-[0.12em] uppercase text-white/20">随音频律动</p>
+        <p className="text-[11px] text-white/30 mt-1">低音 → 穹顶 · 高音 → 网格 · 节拍 → 地平线</p>
       </div>
 
       <div id="visualizer-world" data-testid="visualizer-world" style={{ display: 'none' }} />

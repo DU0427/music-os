@@ -87,7 +87,7 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="search your universe..."
+                placeholder="搜索你的音乐宇宙…"
                 className="w-full bg-white/[0.06] border border-white/10 rounded-full py-4 pl-12 pr-12 text-white/90 placeholder:text-white/25 outline-none focus:border-[rgba(110,168,255,0.35)] focus:shadow-[0_0_24px_rgba(110,168,255,0.12)] transition-all font-sans tracking-wide text-[14px]"
               />
               <button className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/80 p-1" onClick={onClose}>
@@ -121,7 +121,7 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
                       <div className="text-[13px] text-white/85 truncate">{t.title}</div>
                       <div className="text-[11px] text-white/35 truncate">{t.artist} {t.album ? `· ${t.album}` : ''}</div>
                     </div>
-                    <span className="text-[10px] text-white/25">local</span>
+                    <span className="text-[10px] text-white/25">本地</span>
                   </button>
                 ))}
                 {providerResults.map((p, i) => (
@@ -135,18 +135,18 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
                       <div className="text-[13px] text-white/85 truncate">{p.title}</div>
                       <div className="text-[11px] text-white/35 truncate">{p.artist}</div>
                     </div>
-                    <span className="text-[10px] text-white/25">mock</span>
+                    <span className="text-[10px] text-white/25">示例</span>
                   </button>
                 ))}
               </div>
             )}
 
             {query && localResults.length === 0 && providerResults.length === 0 && !isSearching && (
-              <div className="mt-10 text-center text-white/30 font-sans text-[12px] tracking-wide">no orbit found for “{query}”</div>
+              <div className="mt-10 text-center text-white/30 font-sans text-[12px] tracking-wide">未找到与“{query}”相关的轨道</div>
             )}
-            {isSearching && <div className="mt-6 text-center text-white/25 text-[11px] tracking-wide">searching...</div>}
+            {isSearching && <div className="mt-6 text-center text-white/25 text-[11px] tracking-wide">搜索中…</div>}
             {!query && (
-              <div className="mt-10 text-center text-white/25 font-sans text-[11px] tracking-[0.14em] uppercase">type to orbit</div>
+              <div className="mt-10 text-center text-white/25 font-sans text-[11px] tracking-[0.14em] uppercase">输入以开始探索</div>
             )}
           </motion.div>
         </motion.div>

@@ -1,6 +1,7 @@
 ﻿import { useRef, useState } from 'react';
 import { useAudioStore } from '../audio/store';
 import type { ProviderTrack } from '../../shared/music/providers';
+import { Play, Pause, Upload } from 'lucide-react';
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0:00';
@@ -35,7 +36,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
   const [isLoadingProviderTrack, setIsLoadingProviderTrack] = useState(false);
   const [localLoadMessage, setLocalLoadMessage] = useState<string | null>(null);
 
-  const statusText = track ? (isPlaying ? '播放中' : canPlay ? '已加载' : '元数据已加载') : '未加载曲目';
+  const statusText = track ? (isPlaying ? '播放中' : canPlay ? '已就绪' : '仅元数据') : '未加载曲目';
 
   const searchProviderTracks = async () => {
     if (typeof window.musicOS?.searchMusic !== 'function') {
@@ -71,109 +72,149 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
   const isLoaded = Boolean(track);
   const progressPct = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
 
-  // ——— experience: premium mini-pill ———
+  // ——— experience: floating capsule ———
   if (!isDeveloperMode) {
     return (
       <div
         style={{
           position: 'absolute',
-          left: '50%', bottom: 20, zIndex: 11,
+          left: '50%', bottom: 24, zIndex: 11,
           transform: 'translateX(-50%)',
           width: 'min(var(--mo-dock-width), calc(100vw - 32px))',
-          background: 'var(--mo-bg-elevated)',
-          border: '1px solid var(--mo-line)',
-          borderRadius: 'var(--mo-radius-lg)',
-          backdropFilter: 'blur(var(--mo-blur))',
-          WebkitBackdropFilter: 'blur(var(--mo-blur))',
-          boxShadow: 'var(--mo-shadow-soft), var(--mo-shadow-hairline)',
-          color: 'var(--mo-text)',
-          display: 'grid', gap: 8,
-          padding: '10px 12px 10px',
           pointerEvents: 'auto',
+          animation: 'mo-fade-in var(--mo-duration) var(--mo-ease)',
         }}
       >
-        {/* row 1: play + meta + time */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: 'var(--mo-radius-pill)',
+            background: 'var(--mo-bg-elevated)',
+            border: '1px solid var(--mo-line)',
+            backdropFilter: 'blur(var(--mo-blur))',
+            WebkitBackdropFilter: 'blur(var(--mo-blur))',
+            boxShadow: 'var(--mo-shadow-soft), var(--mo-shadow-hairline)',
+            color: 'var(--mo-text)',
+            padding: '10px 14px',
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}
+        >
+          {/* play / pause — object-first */}
           <button
             type="button"
             disabled={!isLoaded || !canPlay}
             onClick={() => (isPlaying ? pause() : void play())}
+            aria-label={isPlaying ? '暂停' : '播放'}
             style={{
-              width: 36, height: 36, flexShrink: 0,
+              width: 38, height: 38, flexShrink: 0,
               border: 0, borderRadius: '50%',
-              background: isLoaded && canPlay ? 'var(--mo-accent-strong)' : 'rgba(255,255,255,0.08)',
-              color: isLoaded && canPlay ? '#07111f' : 'rgba(255,255,255,0.42)',
+              background: isLoaded && canPlay
+                ? 'linear-gradient(135deg, var(--mo-accent), var(--mo-accent-strong))'
+                : 'rgba(255,255,255,0.06)',
+              color: isLoaded && canPlay ? '#07111f' : 'rgba(255,255,255,0.32)',
               cursor: isLoaded && canPlay ? 'pointer' : 'default',
               display: 'grid', placeItems: 'center',
-              fontSize: 13, fontWeight: 700, lineHeight: 1,
-              transition: 'background var(--mo-duration-fast) var(--mo-ease-soft)',
+              boxShadow: isLoaded && canPlay ? '0 0 24px rgba(110,168,255,0.28)' : 'none',
+              transition: 'transform var(--mo-duration-fast) var(--mo-ease-soft), background var(--mo-duration-fast) var(--mo-ease-soft)',
             }}
-            aria-label={isPlaying ? '暂停' : '播放'}
+            onMouseEnter={(e) => { if (isLoaded && canPlay) e.currentTarget.style.transform = 'scale(1.06)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            {isPlaying ? '‖' : '▶'}
+            {isPlaying ? <Pause className="w-4 h-4" fill="currentColor" strokeWidth={0} /> : <Play className="w-4 h-4 ml-0.5" fill="currentColor" strokeWidth={0} />}
           </button>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, color: canPlay ? 'var(--mo-success)' : 'var(--mo-text-faint)', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 1 }}>{statusText}</div>
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              title="选择本地文件"
+          {/* track meta — click to load */}
+          <div
+            style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+            onClick={() => inputRef.current?.click()}
+            title="选择本地音频"
+          >
+            <div
               style={{
-                width: '100%', border: 0, background: 'transparent', padding: 0, marginTop: 2,
-                color: 'var(--mo-text)', textAlign: 'left', cursor: 'pointer',
-                fontSize: 13, fontWeight: 600, lineHeight: 1.25,
+                fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1,
+                color: canPlay ? 'var(--mo-success)' : track ? 'var(--mo-warn)' : 'var(--mo-text-faint)',
+              }}
+            >
+              {statusText}
+            </div>
+            <div
+              style={{
+                fontSize: 13, fontWeight: 600, lineHeight: 1.3, marginTop: 3,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}
             >
               {trackLabel ?? '选择本地歌曲'}
-            </button>
-          </div>
-
-          <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 72 }}>
-            <div style={{ fontSize: 11, color: 'var(--mo-text-muted)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.3 }}>
-              {formatTime(currentTime)} / {formatTime(duration)}
             </div>
           </div>
-        </div>
 
-        {/* row 2: progress */}
-        <div style={{ position: 'relative', padding: '2px 0' }}>
-          <input ref={inputRef} type="file" accept="audio/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) await loadLocalFile(f); e.target.value=''; }} />
-          {/* visual track */}
-          <div style={{ position: 'relative', height: 2, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', inset: 0, width: `${progressPct}%`, background: 'var(--mo-accent-strong)', borderRadius: 999, transition: 'width 120ms linear' }} />
+          {/* time — tabular */}
+          <div
+            style={{
+              textAlign: 'right', flexShrink: 0,
+              fontSize: 11, color: 'var(--mo-text-muted)',
+              fontVariantNumeric: 'tabular-nums', lineHeight: 1.3,
+            }}
+          >
+            {formatTime(currentTime)} / {formatTime(duration)}
           </div>
-          {/* invisible range for interaction */}
+
+          {/* upload affordance — appears on hover */}
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            aria-label="加载本地歌曲"
+            title="加载本地歌曲"
+            style={{
+              width: 28, height: 28, flexShrink: 0,
+              border: 0, borderRadius: '50%',
+              background: 'transparent',
+              color: 'rgba(255,255,255,0.35)',
+              cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+              opacity: 0,
+              transition: 'opacity var(--mo-duration-fast) var(--mo-ease), color var(--mo-duration-fast) var(--mo-ease), background var(--mo-duration-fast) var(--mo-ease)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.background = 'transparent'; }}
+          >
+            <Upload className="w-3.5 h-3.5" />
+          </button>
+
+          <input ref={inputRef} type="file" accept="audio/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) await loadLocalFile(f); e.target.value=''; }} />
+
+          {/* progress — hairline along bottom */}
+          <div
+            style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0, height: 2,
+              background: 'rgba(255,255,255,0.06)',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${progressPct}%`,
+                background: 'linear-gradient(90deg, var(--mo-accent-strong), var(--mo-portal-soft))',
+                transition: 'width 120ms linear',
+              }}
+            />
+          </div>
+          {/* invisible seek surface */}
           <input
             type="range" min={0} max={duration || 0.01} step={0.01}
             value={Math.min(currentTime, duration || 0.01)} disabled={!duration}
             onChange={(e) => seek(Number(e.target.value))} aria-label="播放进度"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: duration ? 'pointer' : 'default', margin: 0 }}
+            style={{
+              position: 'absolute', left: 0, right: 0, bottom: -4, height: 12,
+              width: '100%', opacity: 0, cursor: duration ? 'pointer' : 'default', margin: 0,
+            }}
           />
         </div>
 
-        {/* row 3: actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            type="button" onClick={() => inputRef.current?.click()}
-            style={{
-              border: '1px solid var(--mo-line)', borderRadius: 'var(--mo-radius-pill)',
-              background: 'transparent', color: 'var(--mo-text-muted)',
-              padding: '5px 11px', fontSize: 11, fontWeight: 500, cursor: 'pointer',
-              letterSpacing: '0.02em',
-            }}
-          >
-            加载本地歌曲
-          </button>
-          <span style={{ marginLeft: 'auto', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: canPlay ? 'var(--mo-text-faint)' : 'var(--mo-portal-soft)', fontVariantNumeric: 'tabular-nums' }}>
-            {canPlay ? '● 音频就绪' : '○ 等待音频'}
-          </span>
-        </div>
-
-        {localLoadMessage ? <div style={{ fontSize: 11, color: 'var(--mo-text-faint)', lineHeight: 1.3 }}>{localLoadMessage}</div> : null}
-        {error ? <div style={{ fontSize: 11, color: 'var(--mo-portal-soft)' }}>{error}</div> : null}
-        {!canPlay && track ? <div style={{ fontSize: 11, color: 'var(--mo-text-faint)' }}>元数据已加载，请选择可播放来源。</div> : null}
+        {/* transient messages below the capsule */}
+        {localLoadMessage ? <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--mo-text-faint)' }}>{localLoadMessage}</div> : null}
+        {error ? <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--mo-portal-soft)' }}>{error}</div> : null}
+        {!canPlay && track ? <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--mo-text-faint)' }}>元数据已加载，请选择可播放来源。</div> : null}
       </div>
     );
   }

@@ -66,7 +66,7 @@ export default function LibraryGalaxyWorld() {
         className="absolute top-24 left-10 z-20 flex items-center gap-2 text-white/50 hover:text-white transition-colors pointer-events-auto"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span className="font-sans tracking-[0.14em] text-[11px] uppercase">back</span>
+        <span className="font-sans tracking-[0.14em] text-[11px] uppercase">返回</span>
       </button>
 
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -116,16 +116,16 @@ export default function LibraryGalaxyWorld() {
           <div className="rounded-[16px] border border-white/10 bg-black/40 backdrop-blur-xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] tracking-[0.12em] uppercase text-white/40">
-                {selected} — {showTracks.length} tracks
+                {selected} — {showTracks.length} 首
               </span>
               <button onClick={() => setSelected(null)} className="text-[11px] text-white/30 hover:text-white/70">
-                clear
+                清除
               </button>
             </div>
             {tracks.length === 0 ? (
-              <div className="text-[12px] text-white/30 py-6 text-center">no tracks yet — load a local song to populate</div>
+              <div className="text-[12px] text-white/30 py-6 text-center">暂无曲目 — 载入本地歌曲以点亮星云</div>
             ) : showTracks.length === 0 ? (
-              <div className="text-[12px] text-white/30 py-6 text-center">no match in this filter</div>
+              <div className="text-[12px] text-white/30 py-6 text-center">该筛选下暂无匹配</div>
             ) : (
               <div className="grid gap-2 max-h-[180px] overflow-y-auto pr-1">
                 {showTracks.slice(0, 12).map((t) => (
@@ -148,8 +148,8 @@ export default function LibraryGalaxyWorld() {
         )}
         {!selected && (
           <div className="text-center pointer-events-none">
-            <h3 className="font-sans text-white/70 tracking-[0.14em] text-[11px] uppercase">library nebula</h3>
-            <p className="font-sans text-white/25 text-[11px] mt-1">five genres — tap a planet to explore your collection</p>
+            <h3 className="font-sans text-white/70 tracking-[0.14em] text-[11px] uppercase">曲库星云</h3>
+            <p className="font-sans text-white/25 text-[11px] mt-1">五种风格 — 轻触星球探索你的收藏</p>
           </div>
         )}
       </div>
