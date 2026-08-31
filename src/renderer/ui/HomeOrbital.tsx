@@ -138,18 +138,20 @@ function Planet({
           )}
         </div>
 
-        {/* label — higher contrast, tighter tracking */}
-        <div className="absolute top-[122%] whitespace-nowrap opacity-90 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-30">
-          <div className="flex flex-col items-center">
-            {!hovered ? (
-              <span className="font-sans text-[12.5px] text-white/85 drop-shadow-sm font-medium tracking-wide">{title}</span>
-            ) : (
-              <motion.div className="flex flex-col items-center text-center" initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <span className="font-sans text-[10px] text-white/55 mb-1 tracking-[0.12em] uppercase">{subtitle}</span>
-                <span className="font-sans text-[12.5px] font-medium text-white drop-shadow-sm tracking-wide">{title}</span>
-              </motion.div>
-            )}
-            {hint ? <span className="font-sans text-[10px] text-white/40 tracking-wide mt-0.5">{hint}</span> : null}
+        {/* label — Mineradio-style glass tag, layered title → subtitle → hint */}
+        <div className="absolute top-[122%] whitespace-nowrap pointer-events-none z-30">
+          <div className="flex flex-col items-center rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-md px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_14px_rgba(0,0,0,0.22)] transition-all duration-500 group-hover:bg-white/[0.07] group-hover:border-white/20">
+            <div className="flex flex-col items-center">
+              {!hovered ? (
+                <span className="font-sans text-[12.5px] text-white/90 drop-shadow-sm font-semibold tracking-wide">{title}</span>
+              ) : (
+                <motion.div className="flex flex-col items-center text-center" initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                  <span className="font-sans text-[10px] text-white/50 mb-1 tracking-[0.12em] uppercase">{subtitle}</span>
+                  <span className="font-sans text-[12.5px] font-semibold text-white drop-shadow-sm tracking-wide">{title}</span>
+                </motion.div>
+              )}
+              {hint ? <span className="font-sans text-[10px] tracking-wide mt-0.5" style={{ color: 'var(--mo-home-accent, #8DBBFF)' }}>{hint}</span> : null}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -214,8 +216,18 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
         ? '#EA8E83'
         : '#1A2980';
 
+  const accent =
+    track?.worldContext?.energyTarget === 'calm'
+      ? '#78AFFF'
+      : track?.worldContext?.energyTarget === 'electric'
+        ? '#EA8E83'
+        : '#8DBBFF';
+
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10">
+    <div
+      className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10"
+      style={{ ['--mo-home-accent' as any]: accent }}
+    >
       {track && canPlay && (
         <div
           aria-hidden
@@ -232,7 +244,7 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
         <CoreVisualDom size={isMobile ? 170 : 220} onClick={handleCoreClick} />
         <div className="absolute left-1/2 -translate-x-1/2 -bottom-11 flex items-center justify-center pointer-events-none">
           <motion.div
-            className="px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-md pointer-events-auto cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.2)]"
+            className="px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-lg pointer-events-auto cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:bg-white/[0.09] transition-colors duration-300"
             whileHover={{ scale: 1.04 }}
             onClick={() => {
               if (track && canPlay) {
@@ -243,7 +255,10 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
               }
             }}
           >
-            <span className="text-[10px] tracking-[0.14em] text-white/70 font-sans font-medium">
+            <span
+              className="text-[10px] tracking-[0.14em] font-sans font-semibold"
+              style={{ color: 'var(--mo-home-accent, rgba(255,255,255,0.7))' }}
+            >
               {track && canPlay
                 ? isPlaying
                   ? `‖ ${track.title}`

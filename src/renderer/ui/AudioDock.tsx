@@ -92,14 +92,27 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
             borderRadius: 'var(--mo-radius-pill)',
             background: 'var(--mo-bg-elevated)',
             border: '1px solid var(--mo-line)',
-            backdropFilter: 'blur(var(--mo-blur))',
-            WebkitBackdropFilter: 'blur(var(--mo-blur))',
-            boxShadow: 'var(--mo-shadow-soft), var(--mo-shadow-hairline)',
+            backdropFilter: 'blur(18px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(18px) saturate(1.6)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 2px rgba(255,255,255,0.06)',
             color: 'var(--mo-text)',
             padding: '10px 14px',
             display: 'flex', alignItems: 'center', gap: 12,
           }}
         >
+          {/* cover — artwork or vinyl fallback */}
+          <div
+            style={{
+              width: 44, height: 44, flexShrink: 0,
+              borderRadius: 12,
+              background: track?.artworkUrl
+                ? `url(${track.artworkUrl}) center / cover no-repeat`
+                : 'conic-gradient(from 210deg at 50% 50%, var(--mo-accent), transparent 32%, #070d18 56%, var(--mo-accent-strong) 80%, var(--mo-accent))',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              transition: 'background var(--mo-duration) var(--mo-ease)',
+            }}
+          />
           {/* play / pause — object-first */}
           <button
             type="button"
@@ -183,7 +196,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
 
           <input ref={inputRef} type="file" accept="audio/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) await loadLocalFile(f); e.target.value=''; }} />
 
-          {/* progress — hairline along bottom */}
+          {/* progress — glowing hairline along bottom */}
           <div
             style={{
               position: 'absolute', left: 0, right: 0, bottom: 0, height: 2,
@@ -195,9 +208,22 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
                 height: '100%',
                 width: `${progressPct}%`,
                 background: 'linear-gradient(90deg, var(--mo-accent-strong), var(--mo-portal-soft))',
+                boxShadow: '0 0 16px var(--mo-accent)',
                 transition: 'width 120ms linear',
               }}
             />
+            {isPlaying && duration > 0 ? (
+              <div
+                style={{
+                  position: 'absolute', top: '50%', transform: 'translateY(-50%)',
+                  left: `calc(${progressPct}% - 3px)`,
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: '#fff',
+                  boxShadow: '0 0 12px rgba(255,255,255,0.85), 0 0 6px var(--mo-accent)',
+                  transition: 'left 120ms linear',
+                }}
+              />
+            ) : null}
           </div>
           {/* invisible seek surface */}
           <input
