@@ -3,8 +3,10 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useAudioStore } from '../audio/store';
 import { useRuntimeStore } from '../store/runtime';
+import { useLibraryStore } from '../store/library';
+import { useMoodStore } from '../store/mood';
 import CoreVisualDom from './CoreVisualDom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function OrbitRing({ size, opacity = 0.12, speed = 20, reverse = false, tilt = 60 }: { size: number; opacity?: number; speed?: number; reverse?: boolean; tilt?: number }) {
   const isPlaying = useAudioStore((s) => s.isPlaying);
@@ -35,6 +37,7 @@ function OrbitRing({ size, opacity = 0.12, speed = 20, reverse = false, tilt = 6
 function Planet({
   title,
   subtitle,
+  hint,
   x,
   y,
   color,
@@ -44,6 +47,7 @@ function Planet({
 }: {
   title: string;
   subtitle: string;
+  hint?: string;
   x: number;
   y: number;
   color: string;
@@ -145,6 +149,7 @@ function Planet({
                 <span className="font-sans text-[12.5px] font-medium text-white drop-shadow-sm tracking-wide">{title}</span>
               </motion.div>
             )}
+            {hint ? <span className="font-sans text-[10px] text-white/40 tracking-wide mt-0.5">{hint}</span> : null}
           </div>
         </div>
       </motion.div>
@@ -156,6 +161,16 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const canEnterMidnight = useAudioStore((s) => Boolean(s.canPlay && s.track));
   const isPlaying = useAudioStore((s) => s.isPlaying);
+  const track = useAudioStore((s) => s.track);
+  const canPlay = useAudioStore((s) => s.canPlay);
+  const play = useAudioStore((s) => s.play);
+  const pause = useAudioStore((s) => s.pause);
+  const tracks = useLibraryStore((s) => s.tracks);
+  const history = useLibraryStore((s) => s.history);
+  const activeMood = useMoodStore((s) => s.activeMood);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const MOOD_LABEL: Record<string, string> = { Night: '夜晚', Energy: '能量', Calm: '平静', Nostalgia: '怀旧' };
 
   // responsive sizing
   const [isMobile, setIsMobile] = useState(false);
@@ -192,8 +207,26 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
     else if (id === 'visualizer') requestSpace('visualizer');
   };
 
+  const worldColor =
+    track?.worldContext?.energyTarget === 'calm'
+      ? '#78AFFF'
+      : track?.worldContext?.energyTarget === 'electric'
+        ? '#EA8E83'
+        : '#1A2980';
+
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10">
+      {track && canPlay && (
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none mix-blend-screen"
+          style={{
+            background: `radial-gradient(ellipse at 50% 60%, ${worldColor} 0%, transparent 70%)`,
+            opacity: isPlaying ? 0.16 : 0.10,
+            transition: 'opacity 700ms ease',
+          }}
+        />
+      )}
       {/* Central core — scaled down for breathing room */}
       <div className="relative z-20 pointer-events-auto">
         <CoreVisualDom size={isMobile ? 170 : 220} onClick={handleCoreClick} />
@@ -201,12 +234,36 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
           <motion.div
             className="px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-md pointer-events-auto cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.2)]"
             whileHover={{ scale: 1.04 }}
-            onClick={() => (isPlaying ? useAudioStore.getState().pause() : void useAudioStore.getState().play())}
+            onClick={() => {
+              if (track && canPlay) {
+                if (isPlaying) pause();
+                else void play();
+              } else {
+                inputRef.current?.click();
+              }
+            }}
           >
-            <span className="text-[10px] tracking-[0.14em] uppercase text-white/70 font-sans font-medium">
-              {canEnterMidnight ? (isPlaying ? '播放中 · 点击核心进入' : '点击核心进入') : '载入歌曲以进入'}
+            <span className="text-[10px] tracking-[0.14em] text-white/70 font-sans font-medium">
+              {track && canPlay
+                ? isPlaying
+                  ? `‖ ${track.title}`
+                  : `▶ ${track.title} — ${track.artist}`
+                : track
+                  ? '已恢复会话 · 请重新载入'
+                  : '载入歌曲以进入'}
             </span>
           </motion.div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="audio/*"
+            hidden
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              if (f) await useAudioStore.getState().loadFile(f);
+              e.target.value = '';
+            }}
+          />
         </div>
       </div>
 
@@ -222,10 +279,10 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
         <OrbitRing size={getDist(740)} opacity={0.06} speed={80} reverse tilt={TILT} />
 
         <div className="absolute inset-0 pointer-events-auto flex items-center justify-center">
-          <Planet id="visualizer" title="visualizer" subtitle="enter" {...getPos(300, -145)} color="#6EA8FF" size={getSize(68)} onClick={() => handlePlanetClick('visualizer')} />
-          <Planet id="library" title="library" subtitle="explore" {...getPos(260, -35)} color="#B58CFF" size={getSize(58)} onClick={() => handlePlanetClick('library')} />
-          <Planet id="memory" title="memory" subtitle="revisit" {...getPos(290, 135)} color="#FFD27A" size={getSize(48)} onClick={() => handlePlanetClick('memory')} />
-          <Planet id="mood" title="mood space" subtitle="shift" {...getPos(340, 45)} color="#B58CFF" size={getSize(74)} onClick={() => handlePlanetClick('mood')} />
+          <Planet id="visualizer" title="visualizer" subtitle="enter" hint="进入" {...getPos(300, -145)} color="#6EA8FF" size={getSize(68)} onClick={() => handlePlanetClick('visualizer')} />
+          <Planet id="library" title="library" subtitle="explore" hint={tracks.length ? `${tracks.length} 首曲目` : '暂无曲目'} {...getPos(260, -35)} color="#B58CFF" size={getSize(58)} onClick={() => handlePlanetClick('library')} />
+          <Planet id="memory" title="memory" subtitle="revisit" hint={history.length ? `${history.length} 次聆听` : '暂无记录'} {...getPos(290, 135)} color="#FFD27A" size={getSize(48)} onClick={() => handlePlanetClick('memory')} />
+          <Planet id="mood" title="mood space" subtitle="shift" hint={activeMood ? `当前 · ${MOOD_LABEL[activeMood] ?? activeMood}` : undefined} {...getPos(340, 45)} color="#B58CFF" size={getSize(74)} onClick={() => handlePlanetClick('mood')} />
         </div>
       </motion.div>
     </div>
