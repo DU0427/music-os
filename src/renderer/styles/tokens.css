@@ -1,81 +1,97 @@
-/* Music OS — Design Tokens
-   单一真相源：所有 2D UI 共享这套变量。3D 场景色仍由 Three 侧管理，但雾/背景与此处对齐。
+/* Music OS — Design Tokens v2
+   依据 docs/design-language-v2.md（2026-09-01 批准）。
+   设计语言：黑场舞台 + 封面光源 + 动态强调色 + 三档灰排版 + 统一玻璃。
+   旧 token 名保留为兼容别名（值已对齐 v2），新代码一律使用 v2 命名。
 */
 
 :root {
-  /* ——— 背景 ——— */
-  --mo-bg: #050a14;
-  --mo-bg-soft: #0a1220;
-  --mo-bg-elevated: rgba(10, 18, 32, 0.58);
-  --mo-bg-elevated-strong: rgba(10, 18, 32, 0.72);
+  /* ——— 背景：纯黑舞台（去蓝调） ——— */
+  --mo-bg: #050507;
+  --mo-bg-soft: #0a0a0c;
+  --mo-bg-elevated: rgba(14, 14, 16, 0.6);
+  --mo-bg-elevated-strong: rgba(14, 14, 16, 0.78);
 
-  /* ——— 文字 ——— */
-  --mo-text: #edf2ff;
-  --mo-text-soft: #dce8ff;
-  --mo-text-muted: #9aa7bf;
-  --mo-text-faint: #6b7a94;
-  --mo-text-dim: #4f5d78;
+  /* ——— 文字：Apple 三档灰 ——— */
+  --mo-ink: #f5f5f7;
+  --mo-ink-soft: #a1a1a6;
+  --mo-ink-muted: #86868b;
+  --mo-ink-faint: #6e6e73;
+  /* 兼容别名 */
+  --mo-text: #f5f5f7;
+  --mo-text-soft: #e8e8ed;
+  --mo-text-muted: #a1a1a6;
+  --mo-text-faint: #86868b;
+  --mo-text-dim: #6e6e73;
 
-  /* ——— 线条/边框 ——— */
-  --mo-line: rgba(164, 190, 231, 0.1);
-  --mo-line-strong: rgba(164, 190, 231, 0.16);
-  --mo-line-subtle: rgba(164, 190, 231, 0.06);
+  /* ——— 线条 ——— */
+  --mo-line: rgba(255, 255, 255, 0.08);
+  --mo-line-strong: rgba(255, 255, 255, 0.14);
+  --mo-line-subtle: rgba(255, 255, 255, 0.05);
 
-  /* ——— 强调 ——— */
-  --mo-accent: #8dbbff;
-  --mo-accent-strong: #6ea8ff;
-  --mo-accent-ghost: rgba(110, 168, 255, 0.14);
-  --mo-home-accent: #8dbbff;
+  /* ——— 强调色：默认近白（未播放态），由封面主色动态驱动 ——— */
+  --mo-accent: #f5f5f7;
+  --mo-accent-strong: #e8e8ed;
+  --mo-accent-ghost: rgba(255, 255, 255, 0.12);
+  --mo-home-accent: #f5f5f7;
+
+  /* ——— 暖色：唯一暖色符号，仅记忆/时间线 ——— */
+  --mo-warm: #e8c28a;
+  --mo-warm-soft: rgba(232, 194, 138, 0.35);
+
+  /* ——— 状态色（兼容保留） ——— */
+  --mo-success: #a1d9b8;
+  --mo-success-glow: rgba(161, 217, 184, 0.3);
+  --mo-warn: #e8c28a;
   --mo-portal: #e8c28a;
-  --mo-portal-soft: #f0c58e;
-  --mo-success: #82d3a9;
-  --mo-success-glow: rgba(130, 211, 169, 0.42);
-  --mo-warn: #e1a95e;
+  --mo-portal-soft: #e8c28a;
 
-  /* ——— 圆角 ——— */
+  /* ——— 圆角：面板 10-14px，控件胶囊 ——— */
   --mo-radius-sm: 10px;
   --mo-radius-md: 14px;
-  --mo-radius-lg: 18px;
-  --mo-radius-xl: 22px;
+  --mo-radius-lg: 14px;
+  --mo-radius-xl: 14px;
   --mo-radius-pill: 999px;
 
-  /* ——— 间距刻度 ——— */
-  --mo-space-xs: 4px;
-  --mo-space-sm: 8px;
-  --mo-space-md: 12px;
-  --mo-space-lg: 16px;
-  --mo-space-xl: 20px;
-  --mo-space-2xl: 24px;
-
-  /* ——— 毛玻璃 ——— */
-  --mo-blur: 16px;
-  --mo-blur-soft: 12px;
-
-  /* ——— 阴影 ——— */
-  --mo-shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.32);
-  --mo-shadow-medium: 0 16px 48px rgba(0, 0, 0, 0.4);
-  --mo-shadow-hairline: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-
-  /* ——— 字体 ——— */
-  --mo-font-sans: "Inter", "SF Pro Display", "Noto Sans SC", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --mo-font-mono: "JetBrains Mono", ui-monospace, monospace;
-
-  /* ——— 字阶 ——— */
+  /* ——— 字阶（三档 + micro） ——— */
+  --mo-type-display: 30px;
+  --mo-type-display-weight: 300;
+  --mo-type-title: 18px;
+  --mo-type-title-weight: 500;
+  --mo-type-body: 13px;
+  --mo-type-caption: 11px;
+  --mo-type-micro: 10px;
+  /* 旧字阶别名 */
   --mo-text-xs: 10px;
   --mo-text-sm: 11px;
   --mo-text-base: 12px;
   --mo-text-md: 13px;
   --mo-text-lg: 15px;
-  --mo-text-xl: 19px;
-  --mo-text-2xl: 23px;
+  --mo-text-xl: 18px;
+  --mo-text-2xl: 22px;
 
-  /* ——— 动效 ——— */
+  /* ——— 玻璃材质（统一配方） ——— */
+  --mo-glass-blur: 22px;
+  --mo-glass-saturate: 1.15;
+  --mo-blur: 22px;
+  --mo-blur-soft: 16px;
+
+  /* ——— 阴影 ——— */
+  --mo-shadow-glass: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --mo-shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --mo-shadow-medium: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --mo-shadow-hairline: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  /* ——— 字体 ——— */
+  --mo-font-sans: "Inter", "SF Pro Display", "PingFang SC", "Noto Sans SC", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mo-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* ——— 动效（克制） ——— */
   --mo-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --mo-ease-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --mo-duration: 420ms;
-  --mo-duration-fast: 180ms;
+  --mo-duration: 600ms;
+  --mo-duration-fast: 200ms;
 
   /* ——— 布局 ——— */
   --mo-topbar-height: 44px;
-  --mo-dock-width: 420px;
+  --mo-dock-width: 480px;
 }

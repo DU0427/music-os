@@ -38,7 +38,7 @@ export default function SpaceBackdrop() {
     const metrics = useAudioStore.getState().metrics;
     if (materialRef.current) {
       materialRef.current.size = 0.045 + metrics.treble * 0.07 + metrics.beatPulse * 0.04;
-      materialRef.current.opacity = 0.62 + metrics.energy * 0.28;
+      materialRef.current.opacity = 0.3 + metrics.energy * 0.2;
     }
 
     if (geometry.attributes.position) {
@@ -57,7 +57,7 @@ export default function SpaceBackdrop() {
 
   return (
     <points geometry={geometry} frustumCulled={false}>
-      <pointsMaterial ref={materialRef} color="#9fc3ff" size={0.045} sizeAttenuation transparent opacity={0.72} />
+      <pointsMaterial ref={materialRef} color="#ffffff" size={0.045} sizeAttenuation transparent opacity={0.3} />
     </points>
   );
 }

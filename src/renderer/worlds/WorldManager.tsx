@@ -83,10 +83,10 @@ export default function WorldManager() {
   const isTransitioning = useRuntimeStore((state) => state.isTransitioning);
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: '#050A14' }}>
+<div style={{ position: 'absolute', inset: 0, background: '#050507' }}>
       <Canvas
         fallback={
-          <div style={{ display: 'grid', height: '100%', placeItems: 'center', color: '#dce8ff', background: '#050A14' }}>
+          <div style={{ display: 'grid', height: '100%', placeItems: 'center', color: '#e8e8ed', background: '#050507' }}>
             当前环境无法使用 WebGL，页面无法显示。
           </div>
         }
@@ -95,8 +95,8 @@ export default function WorldManager() {
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         camera={{ position: [0, 1.2, 6], fov: 60 }}
       >
-        <color attach="background" args={['#050A14']} />
-        <fog attach="fog" args={['#050A14', 9, 22]} />
+        <color attach="background" args={['#050507']} />
+        <fog attach="fog" args={['#050507', 9, 22]} />
         <AudioMetricsSampler />
         <AudioAtmosphere isTransitioning={isTransitioning} />
         <AudioLighting isTransitioning={isTransitioning} />

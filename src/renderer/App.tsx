@@ -158,16 +158,6 @@ export default function AppShell() {
       {/* Background R3F canvas — persistent spatial layer */}
       <WorldManager />
 
-      {/* Nebula overlay — prototype's soft fog layers */}
-      <div
-        aria-hidden
-        className="absolute inset-[-20%] mix-blend-screen opacity-20 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse at 40% 60%, rgba(110,168,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 30%, rgba(181,140,255,0.10) 0%, transparent 40%)',
-        }}
-      />
-
       {/* Drag overlay */}
       {isDragging && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">

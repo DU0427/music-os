@@ -32,27 +32,27 @@ body {
 
 /* ——— 选中 ——— */
 ::selection {
-  background: rgba(110, 168, 255, 0.22);
+  background: rgba(255, 255, 255, 0.18);
 }
 
-/* ——— 滚动条（仅开发者面板） ——— */
+/* ——— 滚动条（白色系，仅内容面板） ——— */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(164, 190, 231, 0.18) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 *::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(164, 190, 231, 0.18);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 999px;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* ——— 焦点环（无障碍） ——— */
+/* ——— 焦点环（无障碍，随动态强调色） ——— */
 :focus-visible {
   outline: 2px solid var(--mo-accent-strong);
   outline-offset: 2px;
@@ -63,19 +63,7 @@ body {
   user-select: none;
 }
 
-/* ——— 动画关键帧（克制） ——— */
-@keyframes mo-soft-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scale(1.06);
-    opacity: 0.22;
-  }
-}
-
+/* ——— 动画关键帧（克制：只做 fade / scale / blur） ——— */
 @keyframes mo-fade-in {
   from {
     opacity: 0;
@@ -87,14 +75,25 @@ body {
   }
 }
 
-@keyframes mo-shimmer {
-  0% {
-    opacity: 0.6;
+@keyframes mo-stage-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes mo-cover-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
   }
   50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.6;
+    opacity: 0.8;
   }
 }
