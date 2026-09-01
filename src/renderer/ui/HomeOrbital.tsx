@@ -1,181 +1,132 @@
 'use client';
 
 import { motion, AnimatePresence } from 'motion/react';
+import { Play, Pause, Library, History, Smile, Music } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAudioStore } from '../audio/store';
 import { useRuntimeStore } from '../store/runtime';
 import { useLibraryStore } from '../store/library';
 import { useMoodStore } from '../store/mood';
-import CoreVisualDom from './CoreVisualDom';
-import { useState, useEffect, useRef } from 'react';
+import { useDominantColor, withAlpha, energyTargetFallback } from '../hooks/useDominantColor';
+import type { TrackRecord } from '../../shared/ipc/music';
+import type { ProviderTrackReference } from '../../shared/music/providers';
 
-function OrbitRing({ size, opacity = 0.12, speed = 20, reverse = false, tilt = 60 }: { size: number; opacity?: number; speed?: number; reverse?: boolean; tilt?: number }) {
-  const isPlaying = useAudioStore((s) => s.isPlaying);
-  const actualSpeed = isPlaying ? speed : speed * 3;
+const MOOD_OPTIONS: Array<{ id: string | null; label: string }> = [
+  { id: null, label: '无' },
+  { id: 'Night', label: '夜晚' },
+  { id: 'Energy', label: '能量' },
+  { id: 'Calm', label: '平静' },
+  { id: 'Nostalgia', label: '怀旧' },
+];
+
+/* ——— 唱片兜底（中性暗色，无封面时） ——— */
+const VINYL_GRADIENT =
+  'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)';
+
+function Clock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const date = `${now.getMonth() + 1}月${now.getDate()}日`;
   return (
-    <motion.div
-      className="absolute top-1/2 left-1/2 pointer-events-none rounded-full"
-      initial={{ width: 0, height: 0, opacity: 0, x: '-50%', y: '-50%', rotateX: tilt }}
-      animate={{ width: size, height: size, opacity: 1, x: '-50%', y: '-50%', rotateX: tilt }}
-      transition={{ duration: 2, ease: 'easeOut', delay: 0.5 }}
-      style={{ border: `1px solid rgba(255,255,255,${opacity})` }}
-    >
-      <motion.div
-        className="w-full h-full rounded-full"
-        animate={{ rotateZ: reverse ? -360 : 360 }}
-        transition={{ duration: actualSpeed, repeat: Infinity, ease: 'linear' }}
-        style={{ transformStyle: 'preserve-3d' }}
+    <div className="absolute bottom-10 right-10 text-right pointer-events-none select-none z-10">
+      <div
+        className="font-mono tracking-[0.08em]"
+        style={{ fontSize: 15, color: 'var(--mo-ink-faint)' }}
       >
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-[2px] bg-white/40 rounded-full shadow-[0_0_5px_rgba(255,255,255,0.3)]"
-          style={{ transform: `rotateX(${-tilt}deg)` }}
-        />
-      </motion.div>
-    </motion.div>
+        {time}
+      </div>
+      <div
+        className="font-mono tracking-[0.12em] mt-1"
+        style={{ fontSize: 10, color: 'var(--mo-ink-faint)', opacity: 0.7 }}
+      >
+        {date}
+      </div>
+    </div>
   );
 }
 
-function Planet({
-  title,
-  subtitle,
-  hint,
-  x,
-  y,
-  color,
-  size,
+/* ——— 底部左侧：发光小物体（曲库/记忆/情绪） ——— */
+function StageOrb({
+  icon: Icon,
+  label,
+  active,
+  activeColor,
   onClick,
-  id,
 }: {
-  title: string;
-  subtitle: string;
-  hint?: string;
-  x: number;
-  y: number;
-  color: string;
-  size: number;
+  icon: typeof Library;
+  label: string;
+  active?: boolean;
+  activeColor?: string;
   onClick: () => void;
-  id: string;
 }) {
   const [hovered, setHovered] = useState(false);
-  const isPlaying = useAudioStore((s) => s.isPlaying);
-
   return (
-    <motion.div
-      className="absolute top-1/2 left-1/2 flex items-center justify-center group cursor-pointer z-10"
-      initial={{ x: 0, y: 0, opacity: 0 }}
-      animate={{ x, y, opacity: 1 }}
-      transition={{ duration: 2, ease: 'easeOut', delay: 0.5 }}
-      style={{ width: size, height: size, marginLeft: -size / 2, marginTop: -size / 2 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onClick}
-    >
-      <motion.div className="relative w-full h-full flex items-center justify-center" animate={{ y: [0, -8, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
-        <div className="relative transition-transform duration-500 ease-out group-hover:scale-105 flex items-center justify-center w-full h-full">
-          <div className="absolute inset-0 rounded-full bg-white/[0.01] group-hover:bg-white/[0.04] transition-colors" />
-          {/* visual per id */}
-          {id === 'visualizer' && (
-            <>
-              <div className="absolute inset-0 bg-black/50 rounded-full backdrop-blur-md border border-white/10" />
-              <motion.div
-                className="absolute inset-[10%] opacity-60 blur-[6px] rounded-full mix-blend-screen"
-                style={{ background: `conic-gradient(from 0deg at 50% 50%, transparent, ${color}, transparent)` }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
-              />
-              <motion.div
-                className="absolute inset-[25%] rounded-full border border-white/20 mix-blend-screen"
-                style={{ boxShadow: `inset 0 0 10px ${color}, 0 0 20px ${color}` }}
-                animate={{ scale: hovered ? [1, 1.3, 1] : [1, 1.1, 1] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <div className="absolute inset-[35%] bg-white rounded-full blur-[3px]" />
-            </>
-          )}
-          {id === 'library' && (
-            <>
-              <div className="absolute inset-0 bg-black/40 rounded-full backdrop-blur-md border border-white/10 overflow-hidden" />
-              <div className="absolute inset-[30%] rounded-full bg-white shadow-[0_0_20px_#B58CFF]" />
-              <div className="absolute inset-[20%] rounded-full bg-[#6EA8FF]/30 blur-[15px] mix-blend-screen" />
-              <motion.div className="absolute inset-[-20%]" animate={{ rotate: 360 }} transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}>
-                <div className="absolute top-[10%] left-[50%] w-1.5 h-1.5 bg-white/90 rounded-full shadow-[0_0_5px_#fff]" />
-                <div className="absolute top-[25%] left-[15%] w-1 h-1 bg-[#6EA8FF] rounded-full" />
-              </motion.div>
-              <motion.div className="absolute inset-[10%]" animate={{ rotate: -360 }} transition={{ duration: 35, repeat: Infinity, ease: 'linear' }}>
-                <div className="absolute bottom-[10%] right-[30%] w-1 h-1 bg-[#B58CFF] rounded-full" />
-              </motion.div>
-            </>
-          )}
-          {id === 'memory' && (
-            <>
-              <div className="absolute inset-0 bg-black/40 rounded-full backdrop-blur-md border border-white/10" />
-              <div className="absolute inset-[20%] bg-[#FFD27A]/20 mix-blend-screen blur-[15px] rounded-full" />
-              <motion.div className="absolute inset-0" animate={{ rotate: 360 }} transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}>
-                <div className="absolute top-[25%] left-[30%] w-1.5 h-1.5 rounded-full bg-[#FFD27A] shadow-[0_0_10px_#FFD27A]" />
-                <div className="absolute top-[50%] left-[70%] w-1 h-1 rounded-full bg-white" />
-                <div className="absolute top-[65%] left-[30%] w-1.5 h-1.5 rounded-full bg-[#FFD27A]" />
-                <div className="absolute top-[37.5%] left-[50%] w-[30%] h-[1px] bg-[#FFD27A]/30 origin-left rotate-[-30deg]" />
-                <div className="absolute top-[50%] left-[70%] w-[45%] h-[1px] bg-[#FFD27A]/20 origin-left rotate-[145deg]" />
-              </motion.div>
-            </>
-          )}
-          {id === 'mood' && (
-            <>
-              <div className="absolute inset-0 bg-black/40 rounded-full backdrop-blur-md border border-white/10 overflow-hidden" />
-              <motion.div
-                className="absolute inset-[-10%] opacity-60 mix-blend-screen blur-[15px] rounded-full"
-                style={{ background: `radial-gradient(circle at 30% 30%, ${color}, transparent 60%)` }}
-                animate={{ scale: hovered ? [1, 1.2, 1] : [1, 1.05, 1], rotate: 360 }}
-                transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-              />
-              <motion.div
-                className="absolute inset-[-10%] opacity-50 mix-blend-screen blur-[12px] rounded-full"
-                style={{ background: `radial-gradient(circle at 70% 70%, #B58CFF, transparent 60%)` }}
-                animate={{ scale: [1, 1.1, 1], rotate: -360 }}
-                transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-              />
-              <div className="absolute inset-[35%] bg-white/40 rounded-full blur-[6px]" />
-            </>
-          )}
-        </div>
-
-        {/* label — Mineradio-style glass tag, layered title → subtitle → hint */}
-        <div className="absolute top-[122%] whitespace-nowrap pointer-events-none z-30">
-          <div className="flex flex-col items-center rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-md px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_14px_rgba(0,0,0,0.22)] transition-all duration-500 group-hover:bg-white/[0.07] group-hover:border-white/20">
-            <div className="flex flex-col items-center">
-              {!hovered ? (
-                <span className="font-sans text-[12.5px] text-white/90 drop-shadow-sm font-semibold tracking-wide">{title}</span>
-              ) : (
-                <motion.div className="flex flex-col items-center text-center" initial={{ opacity: 0, y: -2 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                  <span className="font-sans text-[10px] text-white/50 mb-1 tracking-[0.12em] uppercase">{subtitle}</span>
-                  <span className="font-sans text-[12.5px] font-semibold text-white drop-shadow-sm tracking-wide">{title}</span>
-                </motion.div>
-              )}
-              {hint ? <span className="font-sans text-[10px] tracking-wide mt-0.5" style={{ color: 'var(--mo-home-accent, #8DBBFF)' }}>{hint}</span> : null}
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
+    <div className="relative flex flex-col items-center" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <AnimatePresence>
+        {hovered && (
+          <motion.div
+            className="absolute -top-9 whitespace-nowrap pointer-events-none"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              fontSize: 10,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: 'var(--mo-ink-muted)',
+            }}
+          >
+            {label}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <motion.button
+        type="button"
+        aria-label={label}
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.96 }}
+        onClick={onClick}
+        className="pointer-events-auto grid place-items-center rounded-full"
+        style={{
+          width: 42,
+          height: 42,
+          background: active ? withAlpha(activeColor ?? '#f5f5f7', 0.16) : 'var(--mo-bg-elevated)',
+          border: `1px solid ${active ? withAlpha(activeColor ?? '#f5f5f7', 0.35) : 'var(--mo-line)'}`,
+          backdropFilter: 'blur(22px) saturate(1.15)',
+          WebkitBackdropFilter: 'blur(22px) saturate(1.15)',
+          boxShadow: active ? `0 0 24px ${withAlpha(activeColor ?? '#f5f5f7', 0.3)}` : 'none',
+          color: active ? (activeColor ?? '#f5f5f7') : 'var(--mo-ink-muted)',
+          transition: 'color 300ms var(--mo-ease), box-shadow 300ms var(--mo-ease)',
+        }}
+      >
+        <Icon className="w-4 h-4" strokeWidth={1.5} />
+      </motion.button>
+    </div>
   );
 }
 
-export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void }) {
-  const requestSpace = useRuntimeStore((s) => s.requestSpace);
-  const canEnterMidnight = useAudioStore((s) => Boolean(s.canPlay && s.track));
-  const isPlaying = useAudioStore((s) => s.isPlaying);
+export default function HomeOrbital({ onDetail }: { onDetail?: () => void }) {
   const track = useAudioStore((s) => s.track);
+  const isPlaying = useAudioStore((s) => s.isPlaying);
   const canPlay = useAudioStore((s) => s.canPlay);
   const play = useAudioStore((s) => s.play);
   const pause = useAudioStore((s) => s.pause);
+  const loadFile = useAudioStore((s) => s.loadFile);
+  const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const tracks = useLibraryStore((s) => s.tracks);
   const history = useLibraryStore((s) => s.history);
   const activeMood = useMoodStore((s) => s.activeMood);
+  const persistMood = useMoodStore((s) => s.persist);
+
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const MOOD_LABEL: Record<string, string> = { Night: '夜晚', Energy: '能量', Calm: '平静', Nostalgia: '怀旧' };
-
-  // responsive sizing
+  const [isMoodMenuOpen, setIsMoodMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -183,123 +134,265 @@ export default function HomeOrbital({ onCoreClick }: { onCoreClick?: () => void 
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const TILT = 60;
-  const cosTilt = Math.cos((TILT * Math.PI) / 180);
-  const getDist = (d: number) => (isMobile ? d * 0.55 : d);
-  const getSize = (s: number) => (isMobile ? s * 0.75 : s);
-  const getPos = (radius: number, angle: number) => {
-    const rad = (angle * Math.PI) / 180;
-    const r = getDist(radius);
-    return { x: Math.cos(rad) * r, y: Math.sin(rad) * r * cosTilt };
+  /* ——— 英雄对象数据：当前曲目，否则「继续听」（最近播放） ——— */
+  const lastHistoryTrack = useMemo<TrackRecord | null>(() => {
+    if (history.length === 0) return null;
+    const latest = [...history].sort(
+      (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+    )[0];
+    return tracks.find((t) => t.id === latest.trackId) ?? null;
+  }, [history, tracks]);
+
+  const heroTrack = track ?? lastHistoryTrack;
+  const heroArtwork = heroTrack?.artworkUrl ?? null;
+  const isCurrent = Boolean(track);
+
+  /* ——— 动态强调色：封面主色（未播放/无封面 → 白） ——— */
+  const accent = useDominantColor(heroArtwork, energyTargetFallback(track?.worldContext ?? null));
+
+  const handleHeroClick = async () => {
+    if (track && canPlay) {
+      if (isPlaying) pause();
+      else void play();
+      return;
+    }
+    if (track && !canPlay) {
+      inputRef.current?.click();
+      return;
+    }
+    if (lastHistoryTrack && lastHistoryTrack.providerId !== 'local-file' && lastHistoryTrack.providerTrackId) {
+      await useAudioStore.getState().loadProviderTrack({
+        providerId: lastHistoryTrack.providerId as ProviderTrackReference['providerId'],
+        platformTrackId: lastHistoryTrack.providerTrackId,
+      });
+      return;
+    }
+    inputRef.current?.click();
   };
 
-  const handleEnter = () => {
-    if (canEnterMidnight) requestSpace('midnight');
+  const handleTextClick = () => {
+    if (heroTrack && onDetail) onDetail();
   };
 
-  const handleCoreClick = () => {
-    if (onCoreClick && canEnterMidnight) onCoreClick();
-    else handleEnter();
-  };
+  const microLabel = track
+    ? canPlay
+      ? isPlaying
+        ? '正在播放'
+        : '已就绪'
+      : '已恢复会话 · 请重载'
+    : lastHistoryTrack
+      ? '继续听'
+      : '载入歌曲';
 
-  const handlePlanetClick = (id: string) => {
-    if (id === 'library') requestSpace('library');
-    else if (id === 'memory') requestSpace('memory');
-    else if (id === 'mood') requestSpace('mood');
-    else if (id === 'visualizer') requestSpace('visualizer');
-  };
-
-  const worldColor =
-    track?.worldContext?.energyTarget === 'calm'
-      ? '#78AFFF'
-      : track?.worldContext?.energyTarget === 'electric'
-        ? '#EA8E83'
-        : '#1A2980';
-
-  const accent =
-    track?.worldContext?.energyTarget === 'calm'
-      ? '#78AFFF'
-      : track?.worldContext?.energyTarget === 'electric'
-        ? '#EA8E83'
-        : '#8DBBFF';
+  const heroTitle = heroTrack?.title ?? '载入一首歌';
+  const heroSub = heroTrack ? `${heroTrack.artist}${heroTrack.album ? ` · ${heroTrack.album}` : ''}` : '从本地选择音频文件，或稍后接入音乐平台';
+  const coverSize = isMobile ? 200 : 284;
 
   return (
     <div
       className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10"
-      style={{ ['--mo-home-accent' as any]: accent }}
+      style={{
+        ['--mo-accent' as string]: accent,
+        ['--mo-accent-strong' as string]: accent,
+        ['--mo-accent-ghost' as string]: withAlpha(accent, 0.14),
+        ['--mo-home-accent' as string]: accent,
+      }}
     >
-      {track && canPlay && (
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none mix-blend-screen"
-          style={{
-            background: `radial-gradient(ellipse at 50% 60%, ${worldColor} 0%, transparent 70%)`,
-            opacity: isPlaying ? 0.16 : 0.10,
-            transition: 'opacity 700ms ease',
-          }}
-        />
-      )}
-      {/* Central core — scaled down for breathing room */}
-      <div className="relative z-20 pointer-events-auto">
-        <CoreVisualDom size={isMobile ? 170 : 220} onClick={handleCoreClick} />
-        <div className="absolute left-1/2 -translate-x-1/2 -bottom-11 flex items-center justify-center pointer-events-none">
+      {/* ——— 英雄：封面发光物 + 显示级排版 ——— */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.985, filter: 'blur(6px)' }}
+        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-20 flex items-center gap-8 md:gap-12 pointer-events-auto"
+        style={{ transform: 'translateX(-4%)' }}
+      >
+        <motion.div
+          className="relative cursor-pointer group"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => void handleHeroClick()}
+          style={{ width: coverSize, height: coverSize, flexShrink: 0 }}
+        >
+          {/* 封面光晕 —— 唯一的「光源」 */}
           <motion.div
-            className="px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/10 backdrop-blur-lg pointer-events-auto cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] hover:bg-white/[0.09] transition-colors duration-300"
-            whileHover={{ scale: 1.04 }}
-            onClick={() => {
-              if (track && canPlay) {
-                if (isPlaying) pause();
-                else void play();
-              } else {
-                inputRef.current?.click();
-              }
+            aria-hidden
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              inset: '-30%',
+              background: `radial-gradient(circle, ${withAlpha(accent, isPlaying ? 0.4 : 0.22)}, transparent 65%)`,
+              filter: 'blur(70px)',
             }}
-          >
-            <span
-              className="text-[10px] tracking-[0.14em] font-sans font-semibold"
-              style={{ color: 'var(--mo-home-accent, rgba(255,255,255,0.7))' }}
-            >
-              {track && canPlay
-                ? isPlaying
-                  ? `‖ ${track.title}`
-                  : `▶ ${track.title} — ${track.artist}`
-                : track
-                  ? '已恢复会话 · 请重新载入'
-                  : '载入歌曲以进入'}
-            </span>
-          </motion.div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="audio/*"
-            hidden
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              if (f) await useAudioStore.getState().loadFile(f);
-              e.target.value = '';
+            animate={isPlaying ? { opacity: [0.6, 0.95, 0.6], scale: [1, 1.05, 1] } : { opacity: 1, scale: 1 }}
+            transition={{ duration: 3.5, repeat: isPlaying ? Infinity : 0, ease: 'easeInOut' }}
+          />
+          {/* 封面 */}
+          <div
+            className="absolute inset-0 rounded-[14px] border border-white/10"
+            style={{
+              background: heroArtwork ? `url(${heroArtwork}) center / cover no-repeat` : VINYL_GRADIENT,
+              boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
             }}
           />
+          {/* hover 播放态浮层 */}
+          <div className="absolute inset-0 rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/25 flex items-center justify-center">
+            <div
+              className="grid place-items-center rounded-full"
+              style={{
+                width: 64,
+                height: 64,
+                background: withAlpha(accent, 0.9),
+                color: relativeDarkText(accent),
+                boxShadow: `0 0 40px ${withAlpha(accent, 0.5)}`,
+              }}
+            >
+              {track && canPlay && isPlaying ? (
+                <Pause className="w-6 h-6" fill="currentColor" strokeWidth={0} />
+              ) : (
+                <Play className="w-6 h-6 ml-1" fill="currentColor" strokeWidth={0} />
+              )}
+            </div>
+          </div>
+          {/* 小音符标记（无封面时） */}
+          {!heroArtwork && (
+            <div className="absolute -top-3 -right-3 grid place-items-center rounded-full w-9 h-9" style={{ background: 'var(--mo-bg-elevated-strong)', border: '1px solid var(--mo-line)', color: 'var(--mo-ink-muted)' }}>
+              <Music className="w-4 h-4" strokeWidth={1.5} />
+            </div>
+          )}
+        </motion.div>
+
+        {/* 文字块 */}
+        <div className="flex flex-col min-w-0" onClick={handleTextClick}>
+          <div
+            className="mb-4 font-mono tracking-[0.18em] uppercase"
+            style={{ fontSize: 10, color: 'var(--mo-ink-muted)' }}
+          >
+            {microLabel}
+          </div>
+          <motion.h1
+            className="whitespace-nowrap"
+            style={{
+              fontSize: isMobile ? 26 : 34,
+              fontWeight: 300,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.12,
+              color: 'var(--mo-ink)',
+              cursor: heroTrack && onDetail ? 'pointer' : 'default',
+              textShadow: '0 2px 24px rgba(0,0,0,0.5)',
+            }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.12 }}
+          >
+            {heroTitle.length > 22 ? `${heroTitle.slice(0, 22)}…` : heroTitle}
+          </motion.h1>
+          <div
+            className="mt-3 truncate"
+            style={{ fontSize: 14, color: 'var(--mo-ink-muted)' }}
+          >
+            {heroSub}
+          </div>
+          {track && canPlay && (
+            <div className="mt-5 flex items-center gap-2">
+              <span
+                className="inline-block w-1.5 h-1.5 rounded-full"
+                style={{
+                  background: accent,
+                  boxShadow: `0 0 10px ${withAlpha(accent, 0.8)}`,
+                  animation: isPlaying ? 'mo-cover-breathe 2.4s ease-in-out infinite' : 'none',
+                }}
+              />
+              <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>
+                {isPlaying ? 'playing' : 'paused'}
+              </span>
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* ——— 底部左侧：曲库 / 记忆 / 情绪滤镜 ——— */}
+      <div className="absolute bottom-9 left-9 md:left-10 flex items-center gap-4 z-20">
+        <StageOrb icon={Library} label="曲库" onClick={() => requestSpace('library')} />
+        <StageOrb icon={History} label="记忆" onClick={() => requestSpace('memory')} />
+        <div className="relative">
+          <StageOrb
+            icon={Smile}
+            label={activeMood ? `情绪 · ${MOOD_OPTIONS.find((m) => m.id === activeMood)?.label ?? activeMood}` : '情绪'}
+            active={Boolean(activeMood)}
+            activeColor="#e8c28a"
+            onClick={() => setIsMoodMenuOpen((v) => !v)}
+          />
+          <AnimatePresence>
+            {isMoodMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                transition={{ duration: 0.18 }}
+                className="absolute bottom-12 left-0 pointer-events-auto rounded-[14px] p-2"
+                style={{
+                  background: 'var(--mo-bg-elevated-strong)',
+                  border: '1px solid var(--mo-line)',
+                  backdropFilter: 'blur(22px) saturate(1.15)',
+                  WebkitBackdropFilter: 'blur(22px) saturate(1.15)',
+                  boxShadow: 'var(--mo-shadow-glass), inset 0 1px 0 rgba(255,255,255,0.06)',
+                }}
+              >
+                {MOOD_OPTIONS.map((m) => {
+                  const isActive = activeMood === m.id;
+                  return (
+                    <button
+                      key={m.id ?? 'none'}
+                      type="button"
+                      onClick={() => {
+                        void persistMood(m.id);
+                        setIsMoodMenuOpen(false);
+                      }}
+                      className="flex items-center gap-2.5 w-full px-3 py-1.5 rounded-[10px] transition-colors"
+                      style={{
+                        color: isActive ? '#e8c28a' : 'var(--mo-ink-soft)',
+                        background: isActive ? 'rgba(232,194,138,0.1)' : 'transparent',
+                      }}
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{
+                          background: isActive ? '#e8c28a' : 'var(--mo-ink-faint)',
+                          boxShadow: isActive ? '0 0 8px rgba(232,194,138,0.8)' : 'none',
+                        }}
+                      />
+                      <span style={{ fontSize: 12 }}>{m.label}</span>
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Orbit rings + planets */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-      >
-        <OrbitRing size={getDist(420)} opacity={0.18} speed={40} tilt={TILT} />
-        <OrbitRing size={getDist(580)} opacity={0.10} speed={60} tilt={TILT} />
-        <OrbitRing size={getDist(740)} opacity={0.06} speed={80} reverse tilt={TILT} />
+      <Clock />
 
-        <div className="absolute inset-0 pointer-events-auto flex items-center justify-center">
-          <Planet id="visualizer" title="visualizer" subtitle="enter" hint="进入" {...getPos(300, -145)} color="#6EA8FF" size={getSize(68)} onClick={() => handlePlanetClick('visualizer')} />
-          <Planet id="library" title="library" subtitle="explore" hint={tracks.length ? `${tracks.length} 首曲目` : '暂无曲目'} {...getPos(260, -35)} color="#B58CFF" size={getSize(58)} onClick={() => handlePlanetClick('library')} />
-          <Planet id="memory" title="memory" subtitle="revisit" hint={history.length ? `${history.length} 次聆听` : '暂无记录'} {...getPos(290, 135)} color="#FFD27A" size={getSize(48)} onClick={() => handlePlanetClick('memory')} />
-          <Planet id="mood" title="mood space" subtitle="shift" hint={activeMood ? `当前 · ${MOOD_LABEL[activeMood] ?? activeMood}` : undefined} {...getPos(340, 45)} color="#B58CFF" size={getSize(74)} onClick={() => handlePlanetClick('mood')} />
-        </div>
-      </motion.div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="audio/*"
+        hidden
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file) await loadFile(file);
+          e.target.value = '';
+        }}
+      />
     </div>
   );
+}
+
+function relativeDarkText(hex: string): string {
+  const value = hex.replace('#', '');
+  if (value.length !== 6) return '#0a0a0c';
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 150 ? '#0a0a0c' : '#ffffff';
 }

@@ -172,7 +172,7 @@ export default function AppShell() {
       <TopBar onSearch={() => setIsSearching(true)} />
 
       {/* Home orbital DOM — only in home space */}
-      {currentSpace === 'home' && <HomeOrbital onCoreClick={() => setIsDetailOpen(true)} />}
+      {currentSpace === 'home' && <HomeOrbital onDetail={() => setIsDetailOpen(true)} />}
 
       {/* Library / Memory / Mood / Visualizer DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
