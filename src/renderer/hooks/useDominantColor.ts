@@ -6,7 +6,14 @@ import type { TrackWorldContext } from '../../shared/ipc/music';
  * 策略：8x8 降采样 → 过滤近黑(<lum25)/近白(>lum235)像素 → 其余取平均。
  * 失败（无封面/CORS/损坏）返回 null，由调用方回退。
  */
+/** 模块级缓存：同一封面只提取一次（多处订阅时避免重复 canvas 采样）。 */
+const dominantColorCache = new Map<string, string | null>();
+
 export function extractDominantColor(url: string): Promise<string | null> {
+  const cached = dominantColorCache.get(url);
+  if (cached !== undefined) {
+    return Promise.resolve(cached);
+  }
   return new Promise((resolve) => {
     const image = new Image();
     image.crossOrigin = 'anonymous';
@@ -40,16 +47,23 @@ export function extractDominantColor(url: string): Promise<string | null> {
           }
         }
         if (count === 0) {
+          dominantColorCache.set(url, null);
           resolve(null);
           return;
         }
         const toHex = (v: number) => Math.round(v).toString(16).padStart(2, '0');
-        resolve(`#${toHex(rSum / count)}${toHex(gSum / count)}${toHex(bSum / count)}`);
+        const color = `#${toHex(rSum / count)}${toHex(gSum / count)}${toHex(bSum / count)}`;
+        dominantColorCache.set(url, color);
+        resolve(color);
       } catch {
+        dominantColorCache.set(url, null);
         resolve(null);
       }
     };
-    image.onerror = () => resolve(null);
+    image.onerror = () => {
+      dominantColorCache.set(url, null);
+      resolve(null);
+    };
     image.src = url;
   });
 }
@@ -62,6 +76,11 @@ export function relativeLuminance(hex: string): number {
   const g = parseInt(value.slice(2, 4), 16) / 255;
   const b = parseInt(value.slice(4, 6), 16) / 255;
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** 强调色底上的前景文字色：亮底深字，暗底浅字。 */
+export function contrastText(hex: string): string {
+  return relativeLuminance(hex) > 0.4 ? '#0a0a0c' : '#ffffff';
 }
 
 /** 依据 worldContext.energyTarget 的稳定回退色（无封面时）。 */

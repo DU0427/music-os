@@ -8,6 +8,7 @@ import CameraRig from '../camera/CameraRig';
 import HomeSpace from './HomeSpace';
 import MidnightCityWorld from './MidnightCityWorld';
 import SpaceBackdrop from './SpaceBackdrop';
+import CoverParticleField from './CoverParticleField';
 
 function AudioLighting({ isTransitioning }: { isTransitioning: boolean }) {
   const ambientRef = useRef<AmbientLight>(null);
@@ -51,18 +52,18 @@ function AudioAtmosphere({ isTransitioning }: { isTransitioning: boolean }) {
     }
 
     const pulse = 0.45 + metrics.energy * 0.35 + metrics.beatPulse * 0.12;
-    // mood tint
+    // mood tint（克制：±0.02 内，黑场舞台以中性为主）
     const mood = useMoodStore.getState().activeMood;
     let moodR = 0, moodG = 0, moodB = 0;
-    if (mood === 'Calm') { moodR = -0.01; moodG = 0.02; moodB = 0.04; }
-    else if (mood === 'Energy') { moodR = 0.04; moodG = 0.015; moodB = -0.02; }
-    else if (mood === 'Night') { moodR = -0.008; moodG = -0.01; moodB = 0.03; }
-    else if (mood === 'Nostalgia') { moodR = 0.03; moodG = 0.01; moodB = -0.01; }
+    if (mood === 'Calm') { moodR = -0.006; moodG = 0.01; moodB = 0.02; }
+    else if (mood === 'Energy') { moodR = 0.02; moodG = 0.008; moodB = -0.01; }
+    else if (mood === 'Night') { moodR = -0.004; moodG = -0.005; moodB = 0.015; }
+    else if (mood === 'Nostalgia') { moodR = 0.015; moodG = 0.005; moodB = -0.005; }
     scene.fog?.color?.set(
       new Color(
-        0.020 + metrics.mid * 0.5 + moodR,
-        0.07 + bassInfluence * 0.2 + moodG,
-        0.15 + metrics.treble * 0.35 + moodB,
+        0.016 + metrics.mid * 0.4 + moodR,
+        0.016 + bassInfluence * 0.15 + moodG,
+        0.018 + metrics.treble * 0.22 + moodB,
       ).multiplyScalar(pulse * transitionInfluence),
     );
   });
@@ -97,10 +98,12 @@ export default function WorldManager() {
       >
         <color attach="background" args={['#050507']} />
         <fog attach="fog" args={['#050507', 9, 22]} />
-        <AudioMetricsSampler />
+<AudioMetricsSampler />
         <AudioAtmosphere isTransitioning={isTransitioning} />
         <AudioLighting isTransitioning={isTransitioning} />
         <SpaceBackdrop />
+        {/* 播放舞台背景：封面粒子幕（两态透明度，home/library 可见） */}
+        <CoverParticleField />
         <CameraRig currentSpace={currentSpace} />
 
         <group key={currentSpace}>

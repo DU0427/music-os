@@ -13,6 +13,7 @@ import SearchOrbital from './ui/SearchOrbital';
 import DetailOrbital from './ui/DetailOrbital';
 import type { AppReadyPayload } from '../shared/ipc/channels';
 import { useAudioStore } from './audio/store';
+import { useDominantColor, withAlpha, contrastText, energyTargetFallback } from './hooks/useDominantColor';
 
 const reportStartupError = async (code: string, detail: string) => {
   if (typeof window.musicOS?.reportError === 'function') {
@@ -36,6 +37,8 @@ export default function AppShell() {
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const isTransitioning = useRuntimeStore((s) => s.isTransitioning);
   const currentTrack = useAudioStore((s) => s.track ?? null);
+  /* ——— 动态强调色：封面主色，全局流动（design-language-v2 #4） ——— */
+  const accent = useDominantColor(currentTrack?.artworkUrl ?? null, energyTargetFallback(currentTrack?.worldContext ?? null));
   const currentTrackName = currentTrack?.title ?? null;
   const canPlay = useAudioStore((s) => s.canPlay);
   const canEnterMidnight = useAudioStore((s) => Boolean(s.canPlay && s.track));
@@ -153,6 +156,11 @@ export default function AppShell() {
         color: 'var(--mo-text-soft)',
         fontFamily: 'var(--mo-font-sans)',
         userSelect: 'none',
+        ['--mo-accent' as string]: accent,
+        ['--mo-accent-strong' as string]: accent,
+        ['--mo-accent-ghost' as string]: withAlpha(accent, 0.14),
+        ['--mo-accent-contrast' as string]: contrastText(accent),
+        ['--mo-home-accent' as string]: accent,
       }}
     >
       {/* Background R3F canvas — persistent spatial layer */}

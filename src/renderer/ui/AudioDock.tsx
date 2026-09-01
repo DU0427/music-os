@@ -1,4 +1,4 @@
-﻿import { useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useAudioStore } from '../audio/store';
 import type { ProviderTrack } from '../../shared/music/providers';
 import { Play, Pause, Upload } from 'lucide-react';
@@ -10,8 +10,51 @@ function formatTime(seconds: number) {
   return `${minutes}:${remainder}`;
 }
 
+const VINYL_GRADIENT =
+  'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)';
+
 type AudioDockMode = 'developer' | 'experience';
 interface AudioDockProps { mode?: AudioDockMode; }
+
+/* ——— 频谱：30 条 hairline，由平滑 metrics 驱动（FFT 数据留在引擎内） ——— */
+function SpectrumBars({ bars = 30 }: { bars?: number }) {
+  const barRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  useEffect(() => {
+    const phases = Array.from({ length: bars }, (_, i) => i * 0.57);
+    let raf = 0;
+    const tick = (time: number) => {
+      const m = useAudioStore.getState().metrics;
+      barRefs.current.forEach((bar, i) => {
+        if (!bar) return;
+        const t = i / bars;
+        const wave = 0.5 + 0.5 * Math.sin(phases[i] + time * 0.0028);
+        const band = m.bass * (1 - t) * 0.9 + m.mid * 0.55 * (0.35 + 0.65 * wave) + m.treble * t * 0.8;
+        const height = 4 + (band * 26 + m.beatPulse * 9 * wave) * (0.45 + 0.55 * wave);
+        bar.style.height = `${Math.min(42, Math.max(3, height))}px`;
+        bar.style.opacity = `${0.28 + band * 0.62}`;
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [bars]);
+
+  return (
+    <div className="flex items-end gap-[3px]" style={{ height: 34, flexShrink: 0 }} aria-hidden>
+      {Array.from({ length: bars }).map((_, i) => (
+        <div
+          key={i}
+          ref={(el) => {
+            barRefs.current[i] = el;
+          }}
+          className="w-[2px] rounded-full"
+          style={{ background: 'var(--mo-accent)', height: 4, opacity: 0.3 }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -72,13 +115,13 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
   const isLoaded = Boolean(track);
   const progressPct = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
 
-  // ——— experience: floating capsule ———
+  // ——— experience: 完整玻璃控制条 ———
   if (!isDeveloperMode) {
     return (
       <div
         style={{
           position: 'absolute',
-          left: '50%', bottom: 24, zIndex: 11,
+          left: '50%', bottom: 22, zIndex: 11,
           transform: 'translateX(-50%)',
           width: 'min(var(--mo-dock-width), calc(100vw - 32px))',
           pointerEvents: 'auto',
@@ -92,28 +135,28 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
             borderRadius: 'var(--mo-radius-pill)',
             background: 'var(--mo-bg-elevated)',
             border: '1px solid var(--mo-line)',
-            backdropFilter: 'blur(18px) saturate(1.6)',
-            WebkitBackdropFilter: 'blur(18px) saturate(1.6)',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 2px rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(22px) saturate(1.15)',
+            WebkitBackdropFilter: 'blur(22px) saturate(1.15)',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
             color: 'var(--mo-text)',
-            padding: '10px 14px',
-            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '8px 14px',
+            display: 'flex', alignItems: 'center', gap: 14,
           }}
         >
-          {/* cover — artwork or vinyl fallback */}
+          {/* 封面 */}
           <div
             style={{
-              width: 44, height: 44, flexShrink: 0,
-              borderRadius: 12,
+              width: 42, height: 42, flexShrink: 0,
+              borderRadius: 10,
               background: track?.artworkUrl
                 ? `url(${track.artworkUrl}) center / cover no-repeat`
-                : 'conic-gradient(from 210deg at 50% 50%, var(--mo-accent), transparent 32%, #070d18 56%, var(--mo-accent-strong) 80%, var(--mo-accent))',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.08)',
+                : VINYL_GRADIENT,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.06)',
               transition: 'background var(--mo-duration) var(--mo-ease)',
             }}
           />
-          {/* play / pause — object-first */}
+          {/* 播放 / 暂停 —— accent 流动 */}
           <button
             type="button"
             disabled={!isLoaded || !canPlay}
@@ -122,13 +165,11 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
             style={{
               width: 38, height: 38, flexShrink: 0,
               border: 0, borderRadius: '50%',
-              background: isLoaded && canPlay
-                ? 'linear-gradient(135deg, var(--mo-accent), var(--mo-accent-strong))'
-                : 'rgba(255,255,255,0.06)',
-              color: isLoaded && canPlay ? '#07111f' : 'rgba(255,255,255,0.32)',
+              background: isLoaded && canPlay ? 'var(--mo-accent)' : 'rgba(255,255,255,0.06)',
+              color: isLoaded && canPlay ? 'var(--mo-accent-contrast)' : 'rgba(255,255,255,0.32)',
               cursor: isLoaded && canPlay ? 'pointer' : 'default',
               display: 'grid', placeItems: 'center',
-              boxShadow: isLoaded && canPlay ? '0 0 24px rgba(110,168,255,0.28)' : 'none',
+              boxShadow: isLoaded && canPlay ? '0 0 24px var(--mo-accent-ghost)' : 'none',
               transition: 'transform var(--mo-duration-fast) var(--mo-ease-soft), background var(--mo-duration-fast) var(--mo-ease-soft)',
             }}
             onMouseEnter={(e) => { if (isLoaded && canPlay) e.currentTarget.style.transform = 'scale(1.06)'; }}
@@ -137,7 +178,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
             {isPlaying ? <Pause className="w-4 h-4" fill="currentColor" strokeWidth={0} /> : <Play className="w-4 h-4 ml-0.5" fill="currentColor" strokeWidth={0} />}
           </button>
 
-          {/* track meta — click to load */}
+          {/* 曲目信息 */}
           <div
             style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
             onClick={() => inputRef.current?.click()}
@@ -145,34 +186,38 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
           >
             <div
               style={{
-                fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1,
-                color: canPlay ? 'var(--mo-success)' : track ? 'var(--mo-warn)' : 'var(--mo-text-faint)',
+                fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1,
+                color: canPlay ? 'var(--mo-ink-muted)' : track ? 'var(--mo-warm)' : 'var(--mo-ink-faint)',
               }}
             >
               {statusText}
             </div>
             <div
               style={{
-                fontSize: 13, fontWeight: 600, lineHeight: 1.3, marginTop: 3,
+                fontSize: 13, fontWeight: 500, lineHeight: 1.3, marginTop: 3,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                color: 'var(--mo-ink)',
               }}
             >
               {trackLabel ?? '选择本地歌曲'}
             </div>
           </div>
 
-          {/* time — tabular */}
+          {/* 频谱（仅播放态） */}
+          {isPlaying && canPlay && <SpectrumBars />}
+
+          {/* 时间 */}
           <div
             style={{
               textAlign: 'right', flexShrink: 0,
-              fontSize: 11, color: 'var(--mo-text-muted)',
+              fontSize: 11, color: 'var(--mo-ink-muted)',
               fontVariantNumeric: 'tabular-nums', lineHeight: 1.3,
             }}
           >
             {formatTime(currentTime)} / {formatTime(duration)}
           </div>
 
-          {/* upload affordance — appears on hover */}
+          {/* 上传 */}
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
@@ -186,17 +231,17 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
               cursor: 'pointer',
               display: 'grid', placeItems: 'center',
               opacity: 0,
-              transition: 'opacity var(--mo-duration-fast) var(--mo-ease), color var(--mo-duration-fast) var(--mo-ease), background var(--mo-duration-fast) var(--mo-ease)',
+              transition: 'opacity var(--mo-duration-fast) var(--mo-ease), color var(--mo-duration-fast) var(--mo-ease)',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.background = 'transparent'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
           >
             <Upload className="w-3.5 h-3.5" />
           </button>
 
           <input ref={inputRef} type="file" accept="audio/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) await loadLocalFile(f); e.target.value=''; }} />
 
-          {/* progress — glowing hairline along bottom */}
+          {/* 进度 hairline —— accent 流动 */}
           <div
             style={{
               position: 'absolute', left: 0, right: 0, bottom: 0, height: 2,
@@ -207,8 +252,8 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
               style={{
                 height: '100%',
                 width: `${progressPct}%`,
-                background: 'linear-gradient(90deg, var(--mo-accent-strong), var(--mo-portal-soft))',
-                boxShadow: '0 0 16px var(--mo-accent)',
+                background: 'linear-gradient(90deg, var(--mo-accent), var(--mo-accent-ghost))',
+                boxShadow: '0 0 16px var(--mo-accent-ghost)',
                 transition: 'width 120ms linear',
               }}
             />
@@ -218,14 +263,14 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
                   position: 'absolute', top: '50%', transform: 'translateY(-50%)',
                   left: `calc(${progressPct}% - 3px)`,
                   width: 6, height: 6, borderRadius: '50%',
-                  background: '#fff',
-                  boxShadow: '0 0 12px rgba(255,255,255,0.85), 0 0 6px var(--mo-accent)',
+                  background: 'var(--mo-accent)',
+                  boxShadow: '0 0 12px var(--mo-accent)',
                   transition: 'left 120ms linear',
                 }}
               />
             ) : null}
           </div>
-          {/* invisible seek surface */}
+          {/* 隐形 seek 面 */}
           <input
             type="range" min={0} max={duration || 0.01} step={0.01}
             value={Math.min(currentTime, duration || 0.01)} disabled={!duration}
@@ -237,15 +282,15 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
           />
         </div>
 
-        {/* transient messages below the capsule */}
-        {localLoadMessage ? <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--mo-text-faint)' }}>{localLoadMessage}</div> : null}
-        {error ? <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--mo-portal-soft)' }}>{error}</div> : null}
-        {!canPlay && track ? <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--mo-text-faint)' }}>元数据已加载，请选择可播放来源。</div> : null}
+        {/* 瞬时消息 */}
+        {localLoadMessage ? <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--mo-ink-faint)' }}>{localLoadMessage}</div> : null}
+        {error ? <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--mo-warm)' }}>{error}</div> : null}
+        {!canPlay && track ? <div style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--mo-ink-faint)' }}>元数据已加载，请选择可播放来源。</div> : null}
       </div>
     );
   }
 
-  // ——— developer mode ———
+  // ——— developer mode（保留，作为开发工具） ———
   return (
     <div
       style={{
@@ -253,7 +298,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
         width: 'min(780px, calc(100vw - 28px))',
         background: 'var(--mo-bg-elevated-strong)',
         border: '1px solid var(--mo-line-strong)',
-        borderRadius: 'var(--mo-radius-xl)',
+        borderRadius: 'var(--mo-radius-md)',
         backdropFilter: 'blur(var(--mo-blur))', WebkitBackdropFilter: 'blur(var(--mo-blur))',
         boxShadow: 'var(--mo-shadow-medium), var(--mo-shadow-hairline)',
         color: 'var(--mo-text)', display: 'grid', gap: 10, padding: 14, pointerEvents: 'auto',
@@ -265,7 +310,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
           style={{
             width: 36, height: 36, border: 0, borderRadius: '50%',
             background: isLoaded && canPlay ? 'var(--mo-accent-strong)' : 'rgba(255,255,255,0.08)',
-            color: isLoaded && canPlay ? '#07111f' : 'rgba(255,255,255,0.42)', cursor: isLoaded && canPlay ? 'pointer' : 'default',
+            color: isLoaded && canPlay ? '#0a0a0c' : 'rgba(255,255,255,0.42)', cursor: isLoaded && canPlay ? 'pointer' : 'default',
             display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700,
           }}
         >
@@ -290,21 +335,21 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" onClick={()=>inputRef.current?.click()} style={{ border:'1px solid var(--mo-line)', borderRadius:999, background:'transparent', color:'var(--mo-text-muted)', padding:'5px 11px', fontSize:11, cursor:'pointer' }}>加载本地歌曲</button>
-        <span style={{ marginLeft:'auto', alignSelf:'center', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color: canPlay?'var(--mo-text-faint)':'var(--mo-portal-soft)' }}>{canPlay?'● 音频就绪':'○ 等待音频'}</span>
+        <span style={{ marginLeft:'auto', alignSelf:'center', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color: canPlay?'var(--mo-text-faint)':'var(--mo-warm)' }}>{canPlay?'● 音频就绪':'○ 等待音频'}</span>
       </div>
 
       <div style={{ display:'grid', gap:8, paddingTop:8, borderTop:'1px solid var(--mo-line-subtle)' }}>
         <div style={{ display:'flex', gap:8 }}>
           <input value={providerQuery} onChange={(e)=>setProviderQuery(e.target.value)} onKeyDown={(e)=>{ if(e.key==='Enter'){ e.preventDefault(); void searchProviderTracks(); }}} placeholder="搜索示例曲库（Mock）"
-            style={{ flex:1, minWidth:0, borderRadius:'var(--mo-radius-md)', border:'1px solid var(--mo-line)', padding:'8px 10px', background:'rgba(8,14,26,0.64)', color:'var(--mo-text)', fontSize:13 }} />
-          <button type="button" disabled={isSearchingProvider} onClick={()=>void searchProviderTracks()} style={{ border:0, borderRadius:'var(--mo-radius-md)', background:'var(--mo-accent-strong)', color:'#05070d', padding:'8px 14px', fontSize:13, fontWeight:600, cursor: isSearchingProvider?'default':'pointer' }}>{isSearchingProvider?'…':'查找'}</button>
+            style={{ flex:1, minWidth:0, borderRadius:'var(--mo-radius-sm)', border:'1px solid var(--mo-line)', padding:'8px 10px', background:'rgba(8,8,10,0.7)', color:'var(--mo-text)', fontSize:13 }} />
+          <button type="button" disabled={isSearchingProvider} onClick={()=>void searchProviderTracks()} style={{ border:0, borderRadius:'var(--mo-radius-sm)', background:'var(--mo-accent-strong)', color:'#0a0a0c', padding:'8px 14px', fontSize:13, fontWeight:600, cursor: isSearchingProvider?'default':'pointer' }}>{isSearchingProvider?'…':'查找'}</button>
         </div>
         {providerSearchMessage ? <div style={{ color:'var(--mo-text-muted)', fontSize:12 }}>{providerSearchMessage}</div> : null}
         {providerTracks.length>0 ? (
           <div style={{ display:'grid', gap:6, maxHeight:150, overflowY:'auto', paddingRight:2 }}>
             {providerTracks.map((pt)=>(
               <button key={pt.reference.platformTrackId} type="button" disabled={isLoadingProviderTrack} onClick={()=>void selectProviderTrack(pt.reference)}
-                style={{ textAlign:'left', border:'1px solid var(--mo-line)', background:'rgba(12,20,34,0.72)', borderRadius:'var(--mo-radius-md)', color:'var(--mo-text)', padding:'8px 10px', cursor: isLoadingProviderTrack?'default':'pointer' }}>
+                style={{ textAlign:'left', border:'1px solid var(--mo-line)', background:'rgba(10,10,12,0.7)', borderRadius:'var(--mo-radius-sm)', color:'var(--mo-text)', padding:'8px 10px', cursor: isLoadingProviderTrack?'default':'pointer' }}>
                 <div style={{ fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{pt.title}</div>
                 <div style={{ color:'var(--mo-text-faint)', fontSize:11 }}>{pt.artist.name}</div>
               </button>
@@ -312,7 +357,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
           </div>
         ):null}
       </div>
-      {error ? <div style={{ color:'var(--mo-portal-soft)', fontSize:11 }}>{error}</div> : null}
+      {error ? <div style={{ color:'var(--mo-warm)', fontSize:11 }}>{error}</div> : null}
       {localLoadMessage ? <div style={{ color:'var(--mo-text-faint)', fontSize:11 }}>{localLoadMessage}</div> : null}
     </div>
   );
