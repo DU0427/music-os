@@ -129,13 +129,18 @@ export default function DetailOrbital({ isOpen, onClose }: { isOpen: boolean; on
                     <span className="font-sans tracking-wide text-[12px] font-semibold">{isPlaying ? '暂停' : '播放'}</span>
                   </button>
                   <button
-                    className="flex-[1.6] flex items-center justify-between border border-[#7DE7E2]/25 bg-[#7DE7E2]/5 hover:bg-[#7DE7E2]/10 hover:border-[#7DE7E2]/40 text-[#7DE7E2] py-3 px-5 rounded-full transition-all"
+                    className="flex-[1.6] flex items-center justify-between border py-3 px-5 rounded-full transition-all"
+                    style={{
+                      borderColor: 'var(--mo-accent-ghost)',
+                      background: 'var(--mo-accent-ghost)',
+                      color: 'var(--mo-accent)',
+                    }}
                     onClick={() => {
                       onClose();
-                      requestSpace('visualizer');
+                      requestSpace('library');
                     }}
                   >
-                    <span className="font-mono tracking-wide text-[11px]">打开可视化世界</span>
+                    <span className="font-mono tracking-wide text-[11px]">进入曲库</span>
                     <ExternalLink className="w-3.5 h-3.5 opacity-60" />
                   </button>
                 </div>

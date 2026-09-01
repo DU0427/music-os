@@ -191,12 +191,6 @@ export default function HomeOrbital({ onDetail }: { onDetail?: () => void }) {
   return (
     <div
       className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10"
-      style={{
-        ['--mo-accent' as string]: accent,
-        ['--mo-accent-strong' as string]: accent,
-        ['--mo-accent-ghost' as string]: withAlpha(accent, 0.14),
-        ['--mo-home-accent' as string]: accent,
-      }}
     >
       {/* ——— 英雄：封面发光物 + 显示级排版 ——— */}
       <motion.div

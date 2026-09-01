@@ -1,16 +1,15 @@
 ﻿import { useEffect, useState } from 'react';
 import { useRuntimeStore } from './store/runtime';
 import AudioDock from './ui/AudioDock';
-import SongWorldOverlay from './ui/SongWorldOverlay';
 import WorldManager from './worlds/WorldManager';
 import TopBar from './ui/TopBar';
 import HomeOrbital from './ui/HomeOrbital';
 import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
 import MemoryFieldWorld from './worlds/MemoryFieldWorld';
-import MoodSpaceWorld from './worlds/MoodSpaceWorld';
-import VisualizerWorld from './worlds/VisualizerWorld';
 import SearchOrbital from './ui/SearchOrbital';
 import DetailOrbital from './ui/DetailOrbital';
+import { useLibraryStore } from './store/library';
+import { useMoodStore } from './store/mood';
 import type { AppReadyPayload } from '../shared/ipc/channels';
 import { useAudioStore } from './audio/store';
 import { useDominantColor, withAlpha, contrastText, energyTargetFallback } from './hooks/useDominantColor';
@@ -113,13 +112,21 @@ export default function AppShell() {
   useEffect(() => {
     const h = (e: Event) => {
       const next = (e as CustomEvent<string>).detail;
-      if (next === 'home' || next === 'midnight' || next === 'library' || next === 'memory' || next === 'mood' || next === 'visualizer') {
-        requestSpace(next as any);
+      if (next === 'home' || next === 'library' || next === 'memory') {
+        requestSpace(next);
       }
     };
     window.addEventListener('music-os-set-space', h);
     return () => window.removeEventListener('music-os-set-space', h);
   }, [requestSpace]);
+
+  /* ——— 首屏数据：曲库 + 情绪（原 TopBar 职责，随 TopBar 精简移入） ——— */
+  const refreshLibrary = useLibraryStore((s) => s.refresh);
+  const loadMood = useMoodStore((s) => s.load);
+  useEffect(() => {
+    void loadMood();
+    void refreshLibrary();
+  }, [loadMood, refreshLibrary]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -182,14 +189,9 @@ export default function AppShell() {
       {/* Home orbital DOM — only in home space */}
       {currentSpace === 'home' && <HomeOrbital onDetail={() => setIsDetailOpen(true)} />}
 
-      {/* Library / Memory / Mood / Visualizer DOM worlds */}
+      {/* Library / Memory DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
       {currentSpace === 'memory' && <MemoryFieldWorld />}
-      {currentSpace === 'mood' && <MoodSpaceWorld />}
-      {currentSpace === 'visualizer' && <VisualizerWorld />}
-
-      {/* Midnight overlay */}
-      <SongWorldOverlay />
 
       {/* Search / Detail orbitals — top-level modals */}
       <SearchOrbital isOpen={isSearching} onClose={() => setIsSearching(false)} />

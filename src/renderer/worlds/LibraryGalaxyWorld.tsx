@@ -1,61 +1,45 @@
 'use client';
 
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Play, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { useRuntimeStore } from '../store/runtime';
 import { useLibraryStore } from '../store/library';
 import { useAudioStore } from '../audio/store';
+import type { TrackRecord } from '../../shared/ipc/music';
+import type { ProviderTrackReference } from '../../shared/music/providers';
 
-const CATEGORIES = [
-  { name: 'electronic', label: 'electronic', angle: -20, radius: 150, size: 80, color: '#78AFFF' },
-  { name: 'ambient', label: 'ambient', angle: 45, radius: 200, size: 100, color: '#7DE7E2' },
-  { name: 'nostalgia', label: 'nostalgia', angle: 120, radius: 180, size: 60, color: '#F0B56A' },
-  { name: 'jazz', label: 'jazz', angle: 180, radius: 250, size: 70, color: '#EA8E83' },
-  { name: 'cinema', label: 'cinema', angle: 250, radius: 160, size: 90, color: '#B6A8D8' },
-];
+const VINYL_GRADIENT =
+  'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)';
+
+function formatDuration(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '—';
+  const minutes = Math.floor(seconds / 60);
+  const remainder = Math.floor(seconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${remainder}`;
+}
 
 export default function LibraryGalaxyWorld() {
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const tracks = useLibraryStore((s) => s.tracks);
-  const refresh = useLibraryStore((s) => s.refreshTracks);
-  const [selected, setSelected] = useState<string | null>(null);
+  const refresh = useLibraryStore((s) => s.refresh);
+  const [selected, setSelected] = useState<TrackRecord | null>(null);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  // filter tracks by moodTags or title contains
-  const filtered = selected
-    ? tracks.filter((t) => {
-        const tags = t.worldContext?.moodTags ?? [];
-        const hay = `${t.title} ${t.artist} ${tags.join(' ')}`.toLowerCase();
-        return hay.includes(selected.toLowerCase()) || tags.join('').toLowerCase().includes(selected.slice(0, 3));
-      })
-    : tracks;
-
-  const showTracks = selected ? filtered : [];
-
-  const TILT = 45;
-  const cosTilt = Math.cos((TILT * Math.PI) / 180);
-  const getPos = (radius: number, angle: number) => {
-    const rad = (angle * Math.PI) / 180;
-    return { x: Math.cos(rad) * radius, y: Math.sin(rad) * radius * cosTilt };
-  };
-
-  const handleTrackPlay = async (trackId: string) => {
-    const track = tracks.find((t) => t.id === trackId);
-    if (!track) return;
-    // For local-file tracks we can't auto-play without file; show restore hint via audio store
-    // But for provider tracks or already loaded, we can attempt restore
-    const audioState = useAudioStore.getState();
-    if (audioState.track?.id === track.id && audioState.canPlay) {
-      void audioState.play();
-    } else {
-      // Try to restore provider track if applicable
-      if (track.providerId !== 'local-file' && track.providerTrackId) {
-        await audioState.loadProviderTrack({ providerId: track.providerId as any, platformTrackId: track.providerTrackId });
-      }
+  const handlePlay = async (track: TrackRecord) => {
+    const audio = useAudioStore.getState();
+    if (audio.track?.id === track.id && audio.canPlay) {
+      void audio.play();
+      return;
+    }
+    if (track.providerId !== 'local-file' && track.providerTrackId) {
+      await audio.loadProviderTrack({
+        providerId: track.providerId as ProviderTrackReference['providerId'],
+        platformTrackId: track.providerTrackId,
+      });
     }
   };
 
@@ -69,90 +53,137 @@ export default function LibraryGalaxyWorld() {
         <span className="font-sans tracking-[0.14em] text-[11px] uppercase">返回</span>
       </button>
 
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-96 h-96 rounded-full bg-[#6EA8FF]/5 blur-[90px]" />
-
-        <div className="absolute inset-0 pointer-events-auto flex items-center justify-center">
-          {CATEGORIES.map((cat) => {
-            const pos = getPos(cat.radius, cat.angle);
-            const isSelected = selected === cat.name;
-            return (
-              <motion.div
-                key={cat.name}
-                className="absolute flex items-center justify-center group cursor-pointer"
-                style={{ width: cat.size, height: cat.size, x: pos.x, y: pos.y }}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: isSelected ? 1.12 : 1 }}
-                transition={{ duration: 0.8 }}
-                onClick={() => setSelected(isSelected ? null : cat.name)}
-              >
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <div
-                    className="absolute inset-0 rounded-full backdrop-blur-md border transition-all"
-                    style={{
-                      background: isSelected ? `${cat.color}18` : 'rgba(0,0,0,0.35)',
-                      borderColor: isSelected ? `${cat.color}55` : 'rgba(255,255,255,0.08)',
-                      boxShadow: isSelected ? `0 0 24px ${cat.color}40` : 'none',
-                    }}
-                  />
-                  <div
-                    className="absolute inset-[30%] rounded-full blur-[10px] opacity-70"
-                    style={{ background: cat.color }}
-                  />
-                  <div className="absolute inset-[38%] bg-white/80 rounded-full blur-[2px]" />
-                </div>
-                <div className="absolute top-[115%] left-1/2 -translate-x-1/2 whitespace-nowrap">
-                  <span className={`font-sans text-[11px] tracking-wide ${isSelected ? 'text-white/90' : 'text-white/55'}`}>{cat.label}</span>
-                </div>
-              </motion.div>
-            );
-          })}
+      {/* 封面场：真实封面网格 */}
+      <div className="absolute inset-0 overflow-y-auto pointer-events-auto">
+        <div className="min-h-full flex items-center justify-center">
+          {tracks.length === 0 ? (
+            <p className="text-[12px] tracking-wide" style={{ color: 'var(--mo-ink-faint)' }}>
+              载入歌曲以点亮封面场
+            </p>
+          ) : (
+            <div
+              className="grid gap-3"
+              style={{
+                gridTemplateColumns: 'repeat(auto-fill, minmax(124px, 1fr))',
+                width: 'min(920px, calc(100vw - 96px))',
+                padding: '120px 0 140px',
+              }}
+            >
+              {tracks.map((track) => (
+                <motion.button
+                  key={track.id}
+                  type="button"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.05 * Math.min(tracks.indexOf(track), 10) }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setSelected(track)}
+                  className="relative aspect-square rounded-[12px] overflow-hidden group cursor-pointer"
+                  style={{
+                    background: track.artworkUrl
+                      ? `url(${track.artworkUrl}) center / cover no-repeat`
+                      : VINYL_GRADIENT,
+                    border: '1px solid var(--mo-line-subtle)',
+                    boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+                  }}
+                >
+                  {/* hover 微亮 + 曲名浮现 */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-300" />
+                  <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2 pt-6 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="text-[11px] text-white/90 truncate text-left">{track.title}</div>
+                    <div className="text-[9px] text-white/50 truncate text-left mt-0.5">{track.artist}</div>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Track list */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[min(640px,calc(100vw-32px))] pointer-events-auto z-20">
+      {/* 详情玻璃面板 */}
+      <AnimatePresence>
         {selected && (
-          <div className="rounded-[16px] border border-white/10 bg-black/40 backdrop-blur-xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] tracking-[0.12em] uppercase text-white/40">
-                {selected} — {showTracks.length} 首
-              </span>
-              <button onClick={() => setSelected(null)} className="text-[11px] text-white/30 hover:text-white/70">
-                清除
-              </button>
+          <motion.aside
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 40 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute top-0 right-0 bottom-0 w-[340px] z-20 pointer-events-auto flex flex-col p-8"
+            style={{
+              background: 'var(--mo-bg-elevated-strong)',
+              borderLeft: '1px solid var(--mo-line)',
+              backdropFilter: 'blur(22px) saturate(1.15)',
+              WebkitBackdropFilter: 'blur(22px) saturate(1.15)',
+            }}
+          >
+            <button
+              onClick={() => setSelected(null)}
+              className="absolute top-6 right-6 text-white/40 hover:text-white transition-colors"
+              aria-label="关闭"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div
+              className="mt-10 aspect-square w-full rounded-[14px] mb-8"
+              style={{
+                background: selected.artworkUrl
+                  ? `url(${selected.artworkUrl}) center / cover no-repeat`
+                  : VINYL_GRADIENT,
+                border: '1px solid var(--mo-line-subtle)',
+                boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+              }}
+            />
+
+            <div className="font-mono tracking-[0.18em] uppercase" style={{ fontSize: 10, color: 'var(--mo-ink-muted)' }}>
+              曲库
             </div>
-            {tracks.length === 0 ? (
-              <div className="text-[12px] text-white/30 py-6 text-center">暂无曲目 — 载入本地歌曲以点亮星云</div>
-            ) : showTracks.length === 0 ? (
-              <div className="text-[12px] text-white/30 py-6 text-center">该筛选下暂无匹配</div>
-            ) : (
-              <div className="grid gap-2 max-h-[180px] overflow-y-auto pr-1">
-                {showTracks.slice(0, 12).map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => void handleTrackPlay(t.id)}
-                    className="flex items-center gap-3 text-left px-3 py-2.5 rounded-xl border border-white/5 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/10 transition-colors"
-                  >
-                    <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white/60">♪</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] text-white/85 truncate">{t.title}</div>
-                      <div className="text-[11px] text-white/35 truncate">{t.artist} {t.album ? `· ${t.album}` : ''}</div>
-                    </div>
-                    <span className="text-[10px] tracking-wide text-white/25">{Math.round(t.durationSeconds)}s</span>
-                  </button>
-                ))}
+            <h2 className="mt-2" style={{ fontSize: 22, fontWeight: 300, letterSpacing: '-0.02em', color: 'var(--mo-ink)', lineHeight: 1.2 }}>
+              {selected.title}
+            </h2>
+            <div className="mt-2" style={{ fontSize: 13, color: 'var(--mo-ink-muted)' }}>
+              {selected.artist}{selected.album ? ` · ${selected.album}` : ''}
+            </div>
+
+            <div className="mt-8 space-y-3" style={{ fontSize: 12, color: 'var(--mo-ink-faint)' }}>
+              <div className="flex items-center gap-2">
+                <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10 }}>时长</span>
+                <span>{formatDuration(selected.durationSeconds)}</span>
               </div>
-            )}
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10 }}>来源</span>
+                <span>{selected.providerId === 'local-file' ? '本地文件' : selected.providerId}</span>
+              </div>
+              {selected.worldContext?.moodTags?.length ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10 }}>氛围</span>
+                  {selected.worldContext.moodTags.map((tag) => (
+                    <span key={tag} className="px-2 py-0.5 rounded-full" style={{ background: 'var(--mo-accent-ghost)', color: 'var(--mo-accent)' }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void handlePlay(selected)}
+              className="mt-auto flex items-center justify-center gap-2 rounded-full py-3"
+              style={{
+                background: 'var(--mo-accent)',
+                color: 'var(--mo-accent-contrast)',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              <Play className="w-3.5 h-3.5" fill="currentColor" strokeWidth={0} />
+              播放
+            </button>
+          </motion.aside>
         )}
-        {!selected && (
-          <div className="text-center pointer-events-none">
-            <h3 className="font-sans text-white/70 tracking-[0.14em] text-[11px] uppercase">曲库星云</h3>
-            <p className="font-sans text-white/25 text-[11px] mt-1">五种风格 — 轻触星球探索你的收藏</p>
-          </div>
-        )}
-      </div>
+      </AnimatePresence>
 
       <div id="library-galaxy-world" data-testid="library-world" style={{ display: 'none' }} />
     </div>

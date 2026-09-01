@@ -6,7 +6,6 @@ import { useAudioStore } from '../audio/store';
 import { useMoodStore } from '../store/mood';
 import CameraRig from '../camera/CameraRig';
 import HomeSpace from './HomeSpace';
-import MidnightCityWorld from './MidnightCityWorld';
 import SpaceBackdrop from './SpaceBackdrop';
 import CoverParticleField from './CoverParticleField';
 
@@ -107,7 +106,7 @@ export default function WorldManager() {
         <CameraRig currentSpace={currentSpace} />
 
         <group key={currentSpace}>
-          {currentSpace === 'home' ? <HomeSpace /> : currentSpace === 'midnight' ? <MidnightCityWorld /> : null}
+          {currentSpace === 'home' ? <HomeSpace /> : null}
         </group>
       </Canvas>
     </div>
