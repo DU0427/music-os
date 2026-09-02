@@ -136,19 +136,37 @@ const restoreProviderPlaybackTrack = async (track: TrackRecord, positionSeconds:
   }
 };
 
-const buildLocalTrack = (file: File): TrackRecord => ({
+const buildLocalTrack = (file: File, artworkUrl: string | null): TrackRecord => ({
   id: makeTrackId(),
   title: file.name.replace(/\.[^/.]+$/, ''),
   artist: '本地导入',
   album: null,
   source: 'local-file',
   durationSeconds: 0,
-  artworkUrl: null,
+  artworkUrl,
   providerId: 'local-file',
   providerTrackId: null,
   worldContext: DEFAULT_WORLD_CONTEXT,
   createdAt: toIso(),
 });
+
+/** Electron 渲染进程的 File 额外带 .path（本地文件系统路径）。 */
+interface ElectronFile extends File {
+  path?: string;
+}
+
+/** 读取本地音频内嵌封面（主进程 music-metadata），返回 data URL 或 null。 */
+const extractFileCover = async (file: File): Promise<string | null> => {
+  const filePath = (file as ElectronFile).path;
+  if (!filePath || typeof window.musicOS?.getAudioCover !== 'function') {
+    return null;
+  }
+  try {
+    return (await window.musicOS.getAudioCover(filePath)) ?? null;
+  } catch {
+    return null;
+  }
+};
 
 const upsertTrack = async (track: TrackRecord) => {
   if (typeof window.musicOS?.upsertTrack !== 'function') {
@@ -317,7 +335,9 @@ export const useAudioStore = create<AudioStore>()((set) => {
       audioEngine.seek(seconds);
     },
     loadFile: async (file) => {
-      const track = buildLocalTrack(file);
+      // 主进程读取音频内嵌封面，填充 artworkUrl（本地文件用）
+      const cover = await extractFileCover(file);
+      const track = buildLocalTrack(file, cover);
       if (previousSyncTrackId) {
         syncTrackDurations.delete(previousSyncTrackId);
       }

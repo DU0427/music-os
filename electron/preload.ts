@@ -35,6 +35,7 @@ const APP_IPC_CHANNELS = (() => {
     providerSearch: 'music:provider:search',
     providerTrack: 'music:provider:track',
     providerPlayable: 'music:provider:playable-source',
+    audioCover: 'audio:cover',
   } as const;
 
   try {
@@ -94,6 +95,7 @@ const api: MusicOsApi = {
     ipcRenderer.invoke(APP_IPC_CHANNELS.providerTrack, reference) as Promise<ProviderTrackResult>,
   getProviderPlayableSource: (reference: ProviderTrackReference) =>
     ipcRenderer.invoke(APP_IPC_CHANNELS.providerPlayable, reference) as Promise<ProviderPlayableSourceResult>,
+  getAudioCover: (filePath: string) => ipcRenderer.invoke(APP_IPC_CHANNELS.audioCover, filePath) as Promise<string | null>,
 };
 
 contextBridge.exposeInMainWorld('musicOS', api);

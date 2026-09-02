@@ -230,6 +230,37 @@ export default function CoverParticleField() {
   }, [geometry]);
 
   const materialRef = useRef<PointsMaterial>(null);
+  // 律动基准：原始位置 + 每粒子随机抖动方向 + 随机相位（用于错峰跳动）
+  const basePositionsRef = useRef<Float32Array | null>(null);
+  const jitterDirRef = useRef<Float32Array | null>(null);
+  const phaseRef = useRef<Float32Array | null>(null);
+
+  const particleCount = hasArtwork ? GRID_COUNT : AMBIENT_COUNT;
+
+  useEffect(() => {
+    basePositionsRef.current = data.positions.slice();
+    const dir = new Float32Array(particleCount * 3);
+    const phase = new Float32Array(particleCount);
+    for (let i = 0; i < particleCount; i += 1) {
+      // 随机单位方向（归一化）
+      const rx = pseudoRandom(i * 3 + 1) * 2 - 1;
+      const ry = pseudoRandom(i * 3 + 2) * 2 - 1;
+      const rz = pseudoRandom(i * 3 + 3) * 2 - 1;
+      const len = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+      dir[i * 3] = rx / len;
+      dir[i * 3 + 1] = ry / len;
+      dir[i * 3 + 2] = rz / len;
+      phase[i] = pseudoRandom(i * 5 + 11);
+    }
+    jitterDirRef.current = dir;
+    phaseRef.current = phase;
+    // 复位到基准
+    const attrs = geometry.attributes.position;
+    if (attrs) {
+      attrs.array.set(data.positions);
+      attrs.needsUpdate = true;
+    }
+  }, [data, particleCount, geometry]);
 
   useFrame(() => {
     if (currentSpace !== 'home' && currentSpace !== 'library') {
@@ -242,18 +273,45 @@ export default function CoverParticleField() {
       return;
     }
 
+    const beat = metrics.beatPulse;
+    const bass = metrics.bass;
+    const treble = metrics.treble;
+    const energy = metrics.energy;
+
+    // 律动强度：由节拍脉冲 + 低音驱动（尖锐、随节奏弹跳，而非缓慢「呼吸」）
+    const dance = isPlaying ? beat * 0.95 + bass * 0.3 : 0;
+    const amp = hasArtwork ? 0.12 : 0.3;
+
+    const base = basePositionsRef.current;
+    const dir = jitterDirRef.current;
+    const phase = phaseRef.current;
+    const attrs = geometry.attributes.position;
+    if (base && dir && phase && attrs) {
+      const pos = attrs.array as Float32Array;
+      const count = particleCount;
+      for (let i = 0; i < count; i += 1) {
+        const p = phase[i];
+        // 错峰：每粒子有随机相位，节拍来时在前峰一波弹跳
+        const k = Math.max(0, dance - p * 0.5) * amp * 6;
+        pos[i * 3] = base[i * 3] + dir[i * 3] * k;
+        pos[i * 3 + 1] = base[i * 3 + 1] + dir[i * 3 + 1] * k;
+        pos[i * 3 + 2] = base[i * 3 + 2] + dir[i * 3 + 2] * k;
+      }
+      attrs.needsUpdate = true;
+    }
+
     if (hasArtwork) {
-      // 封面模式：点径略放大产生呼吸（克制），不糊
-      material.size = COVER_SIZE + metrics.bass * 0.07 + metrics.beatPulse * 0.02;
+      // 封面模式：点径随节拍弹跳（不糊），透明度稳定 + 节拍微闪
+      material.size = COVER_SIZE + beat * 0.05 + bass * 0.03;
       material.opacity = isPlaying
-        ? Math.min(0.34 + metrics.energy * 0.16, 0.46)
-        : 0.16 + metrics.energy * 0.06;
+        ? Math.min(0.34 + energy * 0.12 + beat * 0.1, 0.5)
+        : 0.16 + energy * 0.04;
     } else {
-      // 星尘模式：干净散点，弱音频响应
-      material.size = AMBIENT_SIZE + metrics.treble * 0.04;
+      // 星尘模式：点径随节拍跳动，成为「会跳舞的星尘」
+      material.size = AMBIENT_SIZE + beat * 0.06 + bass * 0.03 + treble * 0.02;
       material.opacity = isPlaying
-        ? Math.min(0.3 + metrics.energy * 0.14, 0.4)
-        : 0.16 + metrics.energy * 0.04;
+        ? Math.min(0.3 + energy * 0.1 + beat * 0.12, 0.46)
+        : 0.16 + energy * 0.03;
     }
   });
 
