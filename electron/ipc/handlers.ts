@@ -10,6 +10,7 @@ import type {
 } from '../../src/shared/ipc/music';
 import { MusicRepository } from '../database/repositories/music-repository';
 import { ProviderRegistry } from '../providers';
+import { readAudioCover } from '../audio/cover';
 import type { MusicProviderId, ProviderTrackReference } from '../../src/shared/music/providers';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -155,24 +156,7 @@ export function registerAppHandlers(repository: MusicRepository, providers: Prov
     if (typeof filePath !== 'string' || filePath.trim() === '') {
       return null;
     }
-    try {
-      // music-metadata 为 ESM-only，从 CJS 主进程需真实动态 import()
-      // TS 会把 import() 降级为 require()，故用 new Function 保留原生 import()
-      const dynamicImport = new Function('specifier', 'return import(specifier)') as (
-        specifier: string,
-      ) => Promise<{ parseFile: (path: string, opts: object) => Promise<{ common: { picture?: Array<{ data: Uint8Array; format?: string }> } }> }>;
-      const { parseFile } = await dynamicImport('music-metadata');
-      const metadata = await parseFile(filePath, { duration: false });
-      const picture = metadata.common.picture?.[0];
-      if (!picture?.data) {
-        return null;
-      }
-      const mime = picture.format || 'image/jpeg';
-      const base64 = Buffer.from(picture.data).toString('base64');
-      return `data:${mime};base64,${base64}`;
-    } catch {
-      return null;
-    }
+    return readAudioCover(filePath);
   });
 }
 
