@@ -21,15 +21,17 @@ Music OS 是一款面向桌面的空间化音乐体验应用。
 - Electron Main、Preload、Renderer 三层边界。
 - 基于 typed IPC 的跨进程通信。
 - 单一、持续存在的 React Three Fiber Canvas。
-- Home Space 和 Midnight City World。
-- Music Core、Spatial Portal 和 CameraRig。
+- v2 三空间：Home 黑场舞台、曲库封面场、记忆轨迹。
+- CameraRig 空间转场与单 Canvas 编排。
 - 本地音频文件选择、播放、暂停和进度控制。
+- 本地音频内嵌封面提取（music-metadata → `artworkUrl`）。
 - Web Audio API 音频分析。
 - Bass、Mid、Treble、Energy、BeatPulse 音频指标。
-- 音频驱动的 Music Core、灯光、城市和粒子效果。
+- 封面粒子场：有封面时为封面光点画，无封面时为散点星尘；由 beat/bass 驱动律动弹跳。
+- 动态强调色：封面主色贯穿播放控制面；玻璃控制条含播放、进度与实时频谱。
 - SQLite migration、repository 和本地数据 IPC。
 - Track Identity、Track World Context 和播放状态恢复基础。
-- Provider registry 和 metadata-only mock provider。
+- Provider registry 与可播放 mock provider（返回确定性 `data:audio/wav` 播放流，供 provider 合同与播放链路联调）。
 - Electron smoke contract。
 
 当前未完成：
@@ -145,12 +147,11 @@ Preload
 Renderer App
   ├── AudioEngine
   ├── Zustand Runtime Store
-  ├── WorldManager
-  │   ├── Home Space
-  │   └── Midnight City World
-  ├── Music Core
-  ├── CameraRig
-  └── Spatial UI
+  ├── WorldManager（单 Canvas）
+  │   ├── SpaceBackdrop
+  │   └── CoverParticleField（封面粒子场）
+  ├── CameraRig（home / library / memory）
+  └── DOM 空间：Home 舞台、封面场、记忆轨迹
 ```
 
 ### 音频链路
@@ -161,7 +162,7 @@ Renderer App
   -> AudioContext
   -> AnalyserNode
   -> 平滑音频指标
-  -> Core、灯光、雾、城市和粒子
+  -> 封面粒子场、环境光与界面强调色
 ```
 
 高频 FFT 数据只在 Renderer 内部使用，不通过 IPC 传输，也不直接写入 SQLite。
@@ -191,7 +192,7 @@ Provider 需要将平台数据转换为统一的共享模型，包括：
 - 授权状态。
 - 限流、不可用和未实现错误。
 
-当前只有 metadata-only mock provider。它可以用于验证 Provider contract，但不提供真实的可播放音频源。
+当前 mock provider 提供可播放的确定性 `data:audio/wav` 测试流，可用于验证 Provider 合同和可播放链路；真实平台（网易云/QQ）仍未接通授权。
 
 真实平台接入需要同时确认：
 
@@ -203,21 +204,19 @@ Provider 需要将平台数据转换为统一的共享模型，包括：
 
 ## 当前开发重点
 
-下一阶段优先修正播放会话和产品数据闭环：
+下一阶段优先级（按执行顺序，详见根目录 `AGENTS.md`）：
 
-1. 防止选择文件时错误创建播放历史。
-2. 确保一次实际播放只创建一条 listening session。
-3. 在暂停、切歌和播放结束时正确结束历史记录。
-4. 在音频 metadata 加载后保存真实歌曲时长。
-5. 统一 AudioEngine、Track Session、SQLite 和 Song World UI 使用的歌曲模型。
-6. 将音频指标采样集中为每帧一次。
-7. 继续打磨 Home Space 到 Midnight City World 的空间转场和视觉层次。
-8. 在本地体验稳定后，再接入第一个音乐平台的搜索和歌曲详情。
+1. 人工回归：连续验证本地文件载入、播放、暂停、切换、返回、关闭、重启恢复，至少 30 分钟。
+2. 本地封面兜底：无内嵌封面时按 `cover.*`、`folder.*`、同名图片优先级读取同目录图片。
+3. 视觉调参：用真实节拍曲目调粒子弹跳幅度、密度、点径与透明度。
+4. 性能验证：长时间播放下的 GPU/CPU、内存与帧稳定性。
+5. 本地体验稳定后，再做合法的网易云/QQ 授权与 Provider 接入。
 
 暂时不扩展新的空间、歌词、推荐、云同步和完整音乐库功能。
 
 ## 文档
 
+- [设计语言 v2](docs/design-language-v2.md)
 - [产品规格](docs/product-spec.md)
 - [架构说明](docs/architecture.md)
 - [实施路线](docs/implementation-roadmap.md)
@@ -228,11 +227,10 @@ Provider 需要将平台数据转换为统一的共享模型，包括：
 
 ## 设计方向
 
-Music OS 的交互和视觉方向遵循以下原则：
+当前设计语言以 [docs/design-language-v2.md](docs/design-language-v2.md) 为唯一权威：
 
-- 空间优先，而不是页面优先。
-- 音乐成为环境，而不是只显示播放状态。
-- 使用物体、光线、粒子和摄像机进行交互。
-- 保持平静、克制和高级的视觉语言。
-- 避免赛博朋克、游戏 HUD 和密集 Dashboard。
-- 技术应该隐藏在体验之后，让用户感到自己进入了一个音乐宇宙。
+- 纯黑舞台，封面是唯一光源，内容自己发光。
+- 排版建立层级：显示级 / 内容级 / 辅助级三档。
+- 单一动态强调色随封面主色流动，克制使用。
+- 两态接管：未播放安静黑场，播放时封面粒子场与环境随节拍律动。
+- 空间是氛围与状态，不是需要反复进入的菜单；避免赛博朋克、游戏 HUD 和密集 Dashboard。
