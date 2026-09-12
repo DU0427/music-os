@@ -7,6 +7,7 @@
 - 活动运行时是 `Electron + Vite + React + React Three Fiber + Zustand + Web Audio + SQLite`。
 - 活动前端代码位于 `src/renderer`；旧版 `src/app`、`src/components`、`src/hooks`、`src/lib`、`src/server` 仅作为历史原型参考。
 - Renderer 不得直接访问 Node.js、SQLite、Provider API、密钥或平台私有接口；跨进程能力必须通过 typed IPC + preload。
+- `better-sqlite3` 需要匹配 Electron ABI 的原生绑定；缺失时应用会静默回退内存模式（数据不落盘）。用 `npm run rebuild:sqlite` 修复，不要忽略主进程的 `Failed to initialize SQLite repository` 日志。
 - 当前视觉语言是：纯黑舞台、封面作为光源、动态 accent、克制玻璃材质、三档灰排版、播放态跟随节拍接管。
 - 不复制 Mineradio 的代码、素材、图片或独特视觉资产；只借鉴公开理念和交互手法。
 

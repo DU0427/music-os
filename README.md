@@ -57,6 +57,12 @@ Music OS 是一款面向桌面的空间化音乐体验应用。
 npm install
 ```
 
+如果主进程日志出现 `Failed to initialize SQLite repository`（SQLite 回退到内存模式、数据不落盘），执行一次 Electron ABI 原生绑定重建：
+
+```bash
+npm run rebuild:sqlite
+```
+
 启动 Electron 开发运行时：
 
 ```bash
