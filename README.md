@@ -29,6 +29,7 @@ Music OS 是一款面向桌面的空间化音乐体验应用。
 - Bass、Mid、Treble、Energy、BeatPulse 音频指标。
 - 封面粒子场：有封面时为封面光点画，无封面时为散点星尘；由 beat/bass 驱动律动弹跳。
 - 动态强调色：封面主色贯穿播放控制面；玻璃控制条含播放、进度与实时频谱。
+- 本地音频源重启自动恢复：持久化文件路径，启动时回读并恢复到上次播放位置。
 - SQLite migration、repository 和本地数据 IPC。
 - Track Identity、Track World Context 和播放状态恢复基础。
 - Provider registry 与可播放 mock provider（返回确定性 `data:audio/wav` 播放流，供 provider 合同与播放链路联调）。
@@ -42,7 +43,6 @@ Music OS 是一款面向桌面的空间化音乐体验应用。
 - 云同步。
 - 完整音乐库、歌单、歌词和推荐系统。
 - 多个完整 Song World。
-- 本地音频源的自动恢复。目前应用可以恢复歌曲元数据和播放位置，但用户需要重新选择本地文件才能继续播放。
 
 ## 运行项目
 
