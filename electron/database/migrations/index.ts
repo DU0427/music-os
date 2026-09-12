@@ -71,6 +71,12 @@ const migrations: Migration[] = [
       addOptionalColumn(database, 'tracks', 'world_context TEXT');
     },
   },
+  {
+    id: 3,
+    apply: (database) => {
+      addOptionalColumn(database, 'tracks', 'file_path TEXT');
+    },
+  },
 ];
 
 export function runMigrations(database: Database.Database) {

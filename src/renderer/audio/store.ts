@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import type {
   AudioPlaybackState,
   ListeningHistoryRecord,
@@ -64,6 +64,7 @@ const mapProviderTrackToRecord = (
   providerTrackId: providerTrack.reference.platformTrackId,
   worldContext: DEFAULT_WORLD_CONTEXT,
   createdAt: toIso(),
+  filePath: null,
 });
 
 const setProviderPlaybackSource = async (reference: ProviderTrackReference): Promise<TrackRecord | null> => {
@@ -136,7 +137,34 @@ const restoreProviderPlaybackTrack = async (track: TrackRecord, positionSeconds:
   }
 };
 
-const buildLocalTrack = (file: File, artworkUrl: string | null): TrackRecord => ({
+/** 重启后恢复本地文件播放源：主进程回读文件字节 → 内存 File → 现有本地加载链路。 */
+const restoreLocalPlaybackTrack = async (track: TrackRecord, positionSeconds: number): Promise<boolean> => {
+  if (
+    track.providerId !== 'local-file' ||
+    !track.filePath ||
+    typeof window.musicOS?.getAudioFileData !== 'function'
+  ) {
+    return false;
+  }
+
+  try {
+    const data = await window.musicOS.getAudioFileData(track.filePath);
+    if (!data || data.byteLength === 0) {
+      return false;
+    }
+    const fileName = track.filePath.split(/[\\/]/).pop() || track.title;
+    const file = new File([data], fileName);
+    await audioEngine.loadTrackFromFile(file, track);
+    if (Number.isFinite(positionSeconds) && positionSeconds > 0) {
+      audioEngine.seek(positionSeconds);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const buildLocalTrack = (file: File, artworkUrl: string | null, filePath: string | null): TrackRecord => ({
   id: makeTrackId(),
   title: file.name.replace(/\.[^/.]+$/, ''),
   artist: '本地导入',
@@ -148,6 +176,7 @@ const buildLocalTrack = (file: File, artworkUrl: string | null): TrackRecord => 
   providerTrackId: null,
   worldContext: DEFAULT_WORLD_CONTEXT,
   createdAt: toIso(),
+  filePath,
 });
 
 /** Electron 渲染进程的 File 额外带 .path（本地文件系统路径）。 */
@@ -155,9 +184,11 @@ interface ElectronFile extends File {
   path?: string;
 }
 
+const readElectronFilePath = (file: File): string | null => (file as ElectronFile).path ?? null;
+
 /** 读取本地音频内嵌封面（主进程 music-metadata），返回 data URL 或 null。 */
 const extractFileCover = async (file: File): Promise<string | null> => {
-  const filePath = (file as ElectronFile).path;
+  const filePath = readElectronFilePath(file);
   if (!filePath || typeof window.musicOS?.getAudioCover !== 'function') {
     return null;
   }
@@ -335,9 +366,9 @@ export const useAudioStore = create<AudioStore>()((set) => {
       audioEngine.seek(seconds);
     },
     loadFile: async (file) => {
-      // 主进程读取音频内嵌封面，填充 artworkUrl（本地文件用）
+      // 主进程读取音频内嵌封面，填充 artworkUrl；持久化文件路径用于重启恢复
       const cover = await extractFileCover(file);
-      const track = buildLocalTrack(file, cover);
+      const track = buildLocalTrack(file, cover, readElectronFilePath(file));
       if (previousSyncTrackId) {
         syncTrackDurations.delete(previousSyncTrackId);
       }
@@ -399,7 +430,10 @@ export const useAudioStore = create<AudioStore>()((set) => {
 
       const isProviderTrackRestored = await restoreProviderPlaybackTrack(track, playbackState.positionSeconds);
       if (!isProviderTrackRestored) {
-        audioEngine.restoreTrack(track, playbackState.positionSeconds);
+        const isLocalTrackRestored = await restoreLocalPlaybackTrack(track, playbackState.positionSeconds);
+        if (!isLocalTrackRestored) {
+          audioEngine.restoreTrack(track, playbackState.positionSeconds);
+        }
       }
 
       if (playbackState.isPlaying && lastPersistState?.trackId !== playbackState.trackId) {

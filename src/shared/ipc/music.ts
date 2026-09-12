@@ -25,6 +25,8 @@ export interface TrackIdentity {
 
 export interface TrackRecord extends TrackIdentity {
   createdAt: string;
+  /** 本地文件曲目的绝对路径，用于重启后自动恢复播放；provider 曲目为 null。 */
+  filePath: string | null;
 }
 
 export interface TrackSessionState {

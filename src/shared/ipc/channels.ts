@@ -34,6 +34,7 @@ export const APP_IPC_CHANNELS = {
   providerTrack: 'music:provider:track',
   providerPlayable: 'music:provider:playable-source',
   audioCover: 'audio:cover',
+  audioFileData: 'audio:file-data',
 } as const;
 
 export type AppIpcChannel = (typeof APP_IPC_CHANNELS)[keyof typeof APP_IPC_CHANNELS];
@@ -78,6 +79,8 @@ export interface MusicOsApi {
   getProviderPlayableSource(reference: ProviderTrackReference): Promise<ProviderPlayableSourceResult>;
   /** 读取本地音频文件的封面图，返回 data URL（无封面返回 null）。 */
   getAudioCover(filePath: string): Promise<string | null>;
+  /** 回读本地音频文件字节，用于重启后恢复本地播放源（失败返回 null）。 */
+  getAudioFileData(filePath: string): Promise<Uint8Array | null>;
 }
 
 export interface SharedIpcWindow {

@@ -21,6 +21,7 @@ type TrackRow = {
   provider_id: string | null;
   provider_track_id: string | null;
   world_context: string | null;
+  file_path: string | null;
 };
 
 function asTrackProviderId(value: string | null): TrackRecord['providerId'] {
@@ -61,6 +62,7 @@ function mapTrackRow(row: TrackRow): TrackRecord {
     providerId: asTrackProviderId(row.provider_id),
     providerTrackId: row.provider_track_id,
     worldContext: parseWorldContext(row.world_context),
+    filePath: row.file_path,
   };
 }
 
@@ -72,7 +74,7 @@ export class MusicRepository {
       (this.database
         .prepare(
           `SELECT id, title, artist, album, source, duration_seconds AS duration_seconds, created_at AS created_at,
-                  artwork_url, provider_id, provider_track_id, world_context
+                  artwork_url, provider_id, provider_track_id, world_context, file_path
            FROM tracks ORDER BY created_at DESC`,
         )
         .all() as TrackRow[])
@@ -95,7 +97,8 @@ export class MusicRepository {
              artwork_url,
              provider_id,
              provider_track_id,
-             world_context
+             world_context,
+             file_path
            )
            VALUES (
              @id,
@@ -108,7 +111,8 @@ export class MusicRepository {
              @artworkUrl,
              @providerId,
              @providerTrackId,
-             @worldContext
+             @worldContext,
+             @filePath
            )
            ON CONFLICT(id) DO UPDATE SET
              title = excluded.title,
@@ -119,7 +123,8 @@ export class MusicRepository {
              artwork_url = excluded.artwork_url,
              provider_id = excluded.provider_id,
              provider_track_id = excluded.provider_track_id,
-             world_context = excluded.world_context`,
+             world_context = excluded.world_context,
+             file_path = excluded.file_path`,
         )
         .run({
           ...track,
@@ -127,6 +132,7 @@ export class MusicRepository {
           providerId: track.providerId,
           providerTrackId: track.providerTrackId,
           worldContext: serializeWorldContext(track.worldContext),
+          filePath: track.filePath ?? null,
         });
       return track;
     });

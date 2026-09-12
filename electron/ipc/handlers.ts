@@ -11,6 +11,7 @@ import type {
 import { MusicRepository } from '../database/repositories/music-repository';
 import { ProviderRegistry } from '../providers';
 import { readAudioCover } from '../audio/cover';
+import { readAudioFileData } from '../audio/file-data';
 import type { MusicProviderId, ProviderTrackReference } from '../../src/shared/music/providers';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -157,6 +158,13 @@ export function registerAppHandlers(repository: MusicRepository, providers: Prov
       return null;
     }
     return readAudioCover(filePath);
+  });
+
+  ipcMain.handle(APP_IPC_CHANNELS.audioFileData, async (_event, filePath: unknown): Promise<Uint8Array | null> => {
+    if (typeof filePath !== 'string' || filePath.trim() === '') {
+      return null;
+    }
+    return readAudioFileData(filePath);
   });
 }
 
