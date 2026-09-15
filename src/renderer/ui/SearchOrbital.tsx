@@ -48,12 +48,7 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
   const handleLocalPlay = async (trackId: string) => {
     const track = tracks.find((t) => t.id === trackId);
     if (!track) return;
-    const audio = useAudioStore.getState();
-    if (track.providerId !== 'local-file' && track.providerTrackId) {
-      await audio.loadProviderTrack({ providerId: track.providerId as any, platformTrackId: track.providerTrackId });
-    } else if (audio.track?.id === track.id && audio.canPlay) {
-      void audio.play();
-    }
+    await useAudioStore.getState().playTrack(track);
     onClose();
   };
 

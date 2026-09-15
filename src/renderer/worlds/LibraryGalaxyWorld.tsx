@@ -7,7 +7,6 @@ import { useRuntimeStore } from '../store/runtime';
 import { useLibraryStore } from '../store/library';
 import { useAudioStore } from '../audio/store';
 import type { TrackRecord } from '../../shared/ipc/music';
-import type { ProviderTrackReference } from '../../shared/music/providers';
 
 const VINYL_GRADIENT =
   'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)';
@@ -30,17 +29,7 @@ export default function LibraryGalaxyWorld() {
   }, [refresh]);
 
   const handlePlay = async (track: TrackRecord) => {
-    const audio = useAudioStore.getState();
-    if (audio.track?.id === track.id && audio.canPlay) {
-      void audio.play();
-      return;
-    }
-    if (track.providerId !== 'local-file' && track.providerTrackId) {
-      await audio.loadProviderTrack({
-        providerId: track.providerId as ProviderTrackReference['providerId'],
-        platformTrackId: track.providerTrackId,
-      });
-    }
+    await useAudioStore.getState().playTrack(track);
   };
 
   return (

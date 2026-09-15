@@ -6,7 +6,6 @@ import { ArrowLeft } from 'lucide-react';
 import { useRuntimeStore } from '../store/runtime';
 import { useLibraryStore } from '../store/library';
 import { useAudioStore } from '../audio/store';
-import type { ProviderTrackReference } from '../../shared/music/providers';
 
 const WARM = '#e8c28a';
 
@@ -97,15 +96,7 @@ export default function MemoryFieldWorld() {
     if (!point.trackId) return;
     const track = trackMap.get(point.trackId);
     if (!track) return;
-    const audio = useAudioStore.getState();
-    if (track.providerId !== 'local-file' && track.providerTrackId) {
-      await audio.loadProviderTrack({
-        providerId: track.providerId as ProviderTrackReference['providerId'],
-        platformTrackId: track.providerTrackId,
-      });
-    } else if (audio.track?.id === track.id && audio.canPlay) {
-      void audio.play();
-    }
+    await useAudioStore.getState().playTrack(track);
   };
 
   return (
