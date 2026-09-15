@@ -4,21 +4,7 @@ exports.NeteaseMusicProvider = void 0;
 const errors_1 = require("../errors");
 const auth_1 = require("./auth");
 const http_1 = require("./http");
-function mapSong(song) {
-    const artist = song.ar?.[0] ?? song.artists?.[0] ?? null;
-    const album = song.al ?? song.album ?? null;
-    const durationMs = song.dt ?? song.duration ?? 0;
-    return {
-        reference: { providerId: 'netease', platformTrackId: String(song.id) },
-        title: song.name,
-        artist: { id: artist ? String(artist.id) : null, name: artist?.name ?? '未知歌手' },
-        album: album
-            ? { id: String(album.id), title: album.name, artworkUrl: album.picUrl ?? null }
-            : null,
-        durationSeconds: durationMs > 0 ? durationMs / 1000 : 0,
-        artworkUrl: album?.picUrl ?? null,
-    };
-}
+const map_1 = require("./map");
 class NeteaseMusicProvider {
     id = 'netease';
     source = 'remote';
@@ -49,7 +35,7 @@ class NeteaseMusicProvider {
         return {
             providerId: 'netease',
             query: query.text,
-            tracks: songs.map(mapSong),
+            tracks: songs.map(map_1.mapSong),
             nextCursor: nextOffset < total ? String(nextOffset) : null,
             source: 'remote',
             error: null,
@@ -62,7 +48,7 @@ class NeteaseMusicProvider {
         if (data.code !== 200 || !song) {
             return null;
         }
-        return { ...mapSong(song), playableSource: null };
+        return { ...(0, map_1.mapSong)(song), playableSource: null };
     }
     async getPlayableSource(reference) {
         const ids = encodeURIComponent(`[${reference.platformTrackId}]`);

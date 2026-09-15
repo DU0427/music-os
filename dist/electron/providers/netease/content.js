@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getNeteaseHomeContent = getNeteaseHomeContent;
+exports.getNeteasePlaylistTracks = getNeteasePlaylistTracks;
 const http_1 = require("./http");
+const map_1 = require("./map");
 /** 首页内容入口：推荐歌单 + 排行榜（均匿名可用）。 */
 async function getNeteaseHomeContent() {
     const [playlists, toplists] = await Promise.all([
@@ -9,6 +11,12 @@ async function getNeteaseHomeContent() {
         fetchToplists(),
     ]);
     return { playlists, toplists };
+}
+/** 歌单/榜单曲目：playlist/detail 对歌单与榜单通用。 */
+async function getNeteasePlaylistTracks(playlistId) {
+    const data = await (0, http_1.neteaseRequest)(`/api/playlist/detail?id=${encodeURIComponent(playlistId)}`);
+    const tracks = data.result?.tracks ?? [];
+    return tracks.map(map_1.mapSong);
 }
 async function fetchRecommendedPlaylists() {
     try {

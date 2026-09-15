@@ -28,4 +28,5 @@ exports.APP_IPC_CHANNELS = {
     neteaseAuthStatus: 'music:netease:auth-status',
     neteaseLogout: 'music:netease:logout',
     neteaseHome: 'music:netease:home',
+    neteasePlaylistTracks: 'music:netease:playlist-tracks',
 };

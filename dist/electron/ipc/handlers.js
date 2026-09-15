@@ -169,6 +169,17 @@ function registerAppHandlers(repository, providers) {
         return true;
     });
     electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseHome, async () => (0, content_1.getNeteaseHomeContent)());
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteasePlaylistTracks, async (_event, playlistId) => {
+        if (typeof playlistId !== 'string' || playlistId.trim() === '') {
+            return [];
+        }
+        try {
+            return await (0, content_1.getNeteasePlaylistTracks)(playlistId);
+        }
+        catch {
+            return [];
+        }
+    });
 }
 function readProviderId(value) {
     if (value === 'mock' || value === 'netease' || value === 'qq') {
