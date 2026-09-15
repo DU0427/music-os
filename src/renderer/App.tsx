@@ -1,6 +1,7 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { useRuntimeStore } from './store/runtime';
 import AudioDock from './ui/AudioDock';
+import BootSplash from './ui/BootSplash';
 import WorldManager from './worlds/WorldManager';
 import TopBar from './ui/TopBar';
 import HomeOrbital from './ui/HomeOrbital';
@@ -32,6 +33,23 @@ export default function AppShell() {
   const [isSearching, setIsSearching] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  /* ——— 启动 curtain：遮住 IPC ready 与播放恢复耗时，就绪后自动退场 ——— */
+  const [bootPhase, setBootPhase] = useState<'loading' | 'exiting' | 'done'>('loading');
+  const finishBoot = useCallback(() => {
+    setBootPhase((prev) => (prev === 'loading' ? 'exiting' : prev));
+  }, []);
+  useEffect(() => {
+    if (bootPhase !== 'exiting') {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setBootPhase('done'), 700);
+    return () => window.clearTimeout(timer);
+  }, [bootPhase]);
+  useEffect(() => {
+    // 兜底：即使 ready/恢复异常卡住，也最多显示 2.8 秒
+    const timer = window.setTimeout(finishBoot, 2800);
+    return () => window.clearTimeout(timer);
+  }, [finishBoot]);
   const currentSpace = useRuntimeStore((s) => s.currentSpace);
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const isTransitioning = useRuntimeStore((s) => s.isTransitioning);
@@ -94,20 +112,26 @@ export default function AppShell() {
       if (typeof window.musicOS?.ready !== 'function') {
         await reportStartupError('missing_bridge', 'musicOS.ready unavailable');
         setStatus('ipc bridge unavailable');
+        finishBoot();
         return;
       }
       try {
         const result: AppReadyPayload = await window.musicOS.ready();
         setStatus(`ready: ${result.appName} @ ${new Date(result.startedAt).toLocaleTimeString()}`);
         await restorePlaybackSession();
+        finishBoot();
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
         await reportStartupError('ipc_ready_failed', detail);
         setStatus('ipc not ready');
+        finishBoot();
       }
     };
-    ready().catch(() => setStatus('ipc not ready'));
-  }, [restorePlaybackSession]);
+    ready().catch(() => {
+      setStatus('ipc not ready');
+      finishBoot();
+    });
+  }, [restorePlaybackSession, finishBoot]);
 
   useEffect(() => {
     const h = (e: Event) => {
@@ -247,6 +271,9 @@ export default function AppShell() {
         data-duration={duration.toFixed ? duration.toFixed(3) : String(duration)}
         style={{ display: 'none' }}
       />
+
+      {/* 启动 curtain（最后渲染，覆盖全部界面；就绪后自动退场） */}
+      {bootPhase !== 'done' && <BootSplash exiting={bootPhase === 'exiting'} onSkip={finishBoot} />}
     </div>
   );
 }
