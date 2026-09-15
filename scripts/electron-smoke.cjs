@@ -174,6 +174,14 @@ function registerSmokeFallbackHandlers() {
         : null,
     error: null,
   }));
+
+  // 网易云通道桩：smoke 不访问真实平台，返回空内容避免首页误报网络错误
+  ipcMain.handle('music:netease:home', () => ({ playlists: [], toplists: [] }));
+  ipcMain.handle('music:netease:playlist-tracks', () => []);
+  ipcMain.handle('music:netease:qr-create', () => null);
+  ipcMain.handle('music:netease:qr-poll', () => ({ status: 'waiting', account: null }));
+  ipcMain.handle('music:netease:auth-status', () => ({ loggedIn: false, account: null }));
+  ipcMain.handle('music:netease:logout', () => true);
 }
 
 function registerSmokeDataContracts() {
