@@ -10,10 +10,10 @@ import VinylDisc from './VinylDisc';
 import type { TrackRecord } from '../../shared/ipc/music';
 
 /**
- * 舞台英雄：黑胶唱盘 + 封面（唱片套）+ 标题。
- * 空态时是舞台中央一只静置唱盘 + 「把音乐带进来」；有歌时封面压在唱盘上、播放时旋转。
+ * 现在播放卡（紧凑横向）：唱盘 + 封面 + 文案 + 播放键。
+ * 空态是"把音乐带进来"与本地选择；有歌时封面压在唱盘上、播放时旋转。
  */
-export default function StageHero({ onDetail }: { onDetail?: () => void }) {
+export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) {
   const track = useAudioStore((s) => s.track);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const canPlay = useAudioStore((s) => s.canPlay);
@@ -39,7 +39,7 @@ export default function StageHero({ onDetail }: { onDetail?: () => void }) {
   const isCurrent = Boolean(track);
   const accent = useDominantColor(heroArtwork, energyTargetFallback(track?.worldContext ?? null));
 
-  const handleHeroClick = async () => {
+  const handleClick = async () => {
     if (track && canPlay) {
       if (isPlaying) pause();
       else void play();
@@ -58,128 +58,117 @@ export default function StageHero({ onDetail }: { onDetail?: () => void }) {
     inputRef.current?.click();
   };
 
-  const size = 300;
-  const coverSize = size * 0.86;
-  const discSize = heroArtwork ? size * 0.96 : size * 0.9;
+  const discSize = 148;
+  const coverSize = 128;
   const isEmpty = !heroTrack;
 
   const statusLabel = isCurrent
     ? canPlay
       ? isPlaying
         ? '正在播放'
-        : '已就绪 — 点击开始'
+        : '已就绪'
       : '已恢复会话 · 点击重新载入'
     : lastHistoryTrack
       ? '继续听'
       : '';
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex items-center gap-7">
+      {/* 唱盘 + 封面 */}
       <div
-        className="group relative cursor-pointer"
-        style={{ width: size, height: size }}
-        onClick={() => void handleHeroClick()}
+        className="group relative shrink-0 cursor-pointer"
+        style={{ width: discSize, height: discSize }}
+        onClick={() => void handleClick()}
       >
-        {/* 光晕：唯一的「光源」 */}
         <motion.div
           aria-hidden
           className="pointer-events-none"
           style={{
             position: 'absolute',
-            inset: '-24%',
+            inset: '-30%',
             borderRadius: '50%',
-            background: `radial-gradient(circle, ${withAlpha(accent, isPlaying ? 0.36 : 0.18)}, transparent 66%)`,
-            filter: 'blur(62px)',
+            background: `radial-gradient(circle, ${withAlpha(accent, isPlaying ? 0.38 : 0.2)}, transparent 66%)`,
+            filter: 'blur(48px)',
           }}
-          animate={isPlaying ? { opacity: [0.6, 0.95, 0.6], scale: [1, 1.04, 1] } : { opacity: 1, scale: 1 }}
+          animate={isPlaying ? { opacity: [0.6, 0.95, 0.6] } : { opacity: 1 }}
           transition={{ duration: 3.4, repeat: isPlaying ? Infinity : 0, ease: 'easeInOut' }}
         />
-
         <VinylDisc
           size={discSize}
           spinning={isPlaying && Boolean(heroTrack)}
           style={
             heroArtwork
-              ? { right: 0, top: (size - discSize) / 2 }
+              ? { right: 0, top: 0 }
               : { left: '50%', top: '50%', marginLeft: -discSize / 2, marginTop: -discSize / 2 }
           }
         />
-
         {heroArtwork ? (
           <div
             style={{
               position: 'absolute',
               left: 0,
-              top: (size - coverSize) / 2,
+              top: (discSize - coverSize) / 2,
               width: coverSize,
               height: coverSize,
-              borderRadius: 14,
+              borderRadius: 10,
               background: `url(${heroArtwork}) center / cover no-repeat`,
               border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 26px 70px rgba(0,0,0,0.6)',
+              boxShadow: '0 18px 48px rgba(0,0,0,0.6)',
             }}
           />
         ) : null}
-
         <button
           type="button"
           aria-label={isPlaying ? '暂停' : '播放'}
           onClick={(e) => {
             e.stopPropagation();
-            void handleHeroClick();
+            void handleClick();
           }}
           className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 grid place-items-center rounded-full transition-opacity duration-300 ${
-            isEmpty ? 'opacity-45 group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+            isEmpty ? 'opacity-50 group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
           style={{
-            width: 64,
-            height: 64,
+            width: 46,
+            height: 46,
             background: withAlpha(accent, 0.92),
             color: contrastText(accent),
-            boxShadow: `0 0 44px ${withAlpha(accent, 0.5)}`,
+            boxShadow: `0 0 32px ${withAlpha(accent, 0.5)}`,
           }}
         >
           {isPlaying && canPlay ? (
-            <Pause className="w-6 h-6" fill="currentColor" strokeWidth={0} />
+            <Pause className="w-4.5 h-4.5" fill="currentColor" strokeWidth={0} />
           ) : (
-            <Play className="w-6 h-6 ml-1" fill="currentColor" strokeWidth={0} />
+            <Play className="w-4.5 h-4.5 ml-0.5" fill="currentColor" strokeWidth={0} />
           )}
         </button>
       </div>
 
-      <div className="mt-9 flex flex-col items-center text-center">
-        <h1
+      {/* 文案 */}
+      <div className="flex min-w-0 flex-col">
+        <div
+          className="font-mono tracking-[0.18em] uppercase"
+          style={{ fontSize: 10, color: isEmpty ? 'var(--mo-ink-faint)' : 'var(--mo-ink-muted)' }}
+        >
+          {isEmpty ? '现在播放' : statusLabel}
+        </div>
+        <div
           onClick={() => {
             if (track && onDetail) onDetail();
           }}
+          className="mt-2 truncate"
           style={{
-            fontSize: isEmpty ? 36 : 42,
+            fontSize: isEmpty ? 26 : 30,
             fontWeight: 300,
             letterSpacing: '-0.02em',
-            lineHeight: 1.15,
             color: 'var(--mo-ink)',
-            maxWidth: 'min(560px, 84vw)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            maxWidth: 'min(520px, 46vw)',
             cursor: track && onDetail ? 'pointer' : 'default',
             textShadow: '0 2px 24px rgba(0,0,0,0.5)',
           }}
         >
           {isEmpty ? '把音乐带进来' : heroTrack?.title}
-        </h1>
-
-        <div
-          className="mt-3"
-          style={{
-            fontSize: 14,
-            color: 'var(--mo-ink-muted)',
-            maxWidth: 'min(520px, 84vw)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        </div>
+        <div className="mt-2 truncate" style={{ fontSize: 13, color: 'var(--mo-ink-muted)', maxWidth: 'min(520px, 46vw)' }}>
           {isEmpty
             ? '拖入音频文件，或从本地选择'
             : `${heroTrack?.artist ?? ''}${heroTrack?.album ? ` · ${heroTrack.album}` : ''}`}
@@ -189,9 +178,9 @@ export default function StageHero({ onDetail }: { onDetail?: () => void }) {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="mt-7 rounded-full px-6 py-2.5 transition-colors duration-300"
+            className="mt-5 self-start rounded-full px-5 py-2 transition-colors duration-300"
             style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 500,
               color: 'var(--mo-ink)',
               background: 'var(--mo-bg-elevated)',
@@ -202,17 +191,15 @@ export default function StageHero({ onDetail }: { onDetail?: () => void }) {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = withAlpha(accent, 0.5);
-              e.currentTarget.style.boxShadow = `0 0 24px ${withAlpha(accent, 0.25)}`;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderColor = 'var(--mo-line)';
-              e.currentTarget.style.boxShadow = 'var(--mo-shadow-hairline)';
             }}
           >
             选择本地文件
           </button>
         ) : (
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2">
             <span
               className="inline-block w-1.5 h-1.5 rounded-full"
               style={{
@@ -221,11 +208,8 @@ export default function StageHero({ onDetail }: { onDetail?: () => void }) {
                 animation: isPlaying ? 'mo-cover-breathe 2.4s ease-in-out infinite' : 'none',
               }}
             />
-            <span
-              className="font-mono tracking-[0.14em] uppercase"
-              style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}
-            >
-              {statusLabel}
+            <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>
+              {isPlaying ? 'playing' : 'paused'}
             </span>
           </div>
         )}

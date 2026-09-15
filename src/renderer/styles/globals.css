@@ -119,3 +119,14 @@ body {
     transform: translateX(-50%) translateY(0);
   }
 }
+
+/* 唱片架：横向滚动，隐藏滚动条（滚动由滚轮/拖拽驱动） */
+.mo-rack-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mo-rack-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}

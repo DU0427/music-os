@@ -1,10 +1,10 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRuntimeStore } from './store/runtime';
 import AudioDock from './ui/AudioDock';
 import BootSplash from './ui/BootSplash';
 import WorldManager from './worlds/WorldManager';
 import TopBar from './ui/TopBar';
-import CorridorHome from './worlds/CorridorHome';
+import RackHome from './worlds/RackHome';
 import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
 import MemoryFieldWorld from './worlds/MemoryFieldWorld';
 import SearchOrbital from './ui/SearchOrbital';
@@ -226,7 +226,7 @@ export default function AppShell() {
       <TopBar onSearch={() => setIsSearching(true)} />
 
       {/* Home：走廊（内容优先，滚动推进） */}
-      {currentSpace === 'home' && <CorridorHome onDetail={() => setIsDetailOpen(true)} />}
+      {currentSpace === 'home' && <RackHome onDetail={() => setIsDetailOpen(true)} />}
 
       {/* Library / Memory DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
