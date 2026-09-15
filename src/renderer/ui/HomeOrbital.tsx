@@ -1,15 +1,15 @@
 'use client';
 
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Pause, Library, History, Smile, Music } from 'lucide-react';
+import { Play, Pause, Library, History, Smile } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAudioStore } from '../audio/store';
 import { useRuntimeStore } from '../store/runtime';
 import { useLibraryStore } from '../store/library';
 import { useMoodStore } from '../store/mood';
-import { useDominantColor, withAlpha, energyTargetFallback } from '../hooks/useDominantColor';
+import { useDominantColor, withAlpha, contrastText, energyTargetFallback } from '../hooks/useDominantColor';
+import VinylDisc from './VinylDisc';
 import type { TrackRecord } from '../../shared/ipc/music';
-import type { ProviderTrackReference } from '../../shared/music/providers';
 
 const MOOD_OPTIONS: Array<{ id: string | null; label: string }> = [
   { id: null, label: '无' },
@@ -18,10 +18,6 @@ const MOOD_OPTIONS: Array<{ id: string | null; label: string }> = [
   { id: 'Calm', label: '平静' },
   { id: 'Nostalgia', label: '怀旧' },
 ];
-
-/* ——— 唱片兜底（中性暗色，无封面时） ——— */
-const VINYL_GRADIENT =
-  'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)';
 
 function Clock() {
   const [now, setNow] = useState(() => new Date());
@@ -33,10 +29,7 @@ function Clock() {
   const date = `${now.getMonth() + 1}月${now.getDate()}日`;
   return (
     <div className="absolute bottom-10 right-10 text-right pointer-events-none select-none z-10">
-      <div
-        className="font-mono tracking-[0.08em]"
-        style={{ fontSize: 15, color: 'var(--mo-ink-faint)' }}
-      >
+      <div className="font-mono tracking-[0.08em]" style={{ fontSize: 15, color: 'var(--mo-ink-faint)' }}>
         {time}
       </div>
       <div
@@ -65,7 +58,11 @@ function StageOrb({
 }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <div className="relative flex flex-col items-center" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+    <div
+      className="relative flex flex-col items-center"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <AnimatePresence>
         {hovered && (
           <motion.div
@@ -116,6 +113,7 @@ export default function HomeOrbital({ onDetail }: { onDetail?: () => void }) {
   const canPlay = useAudioStore((s) => s.canPlay);
   const play = useAudioStore((s) => s.play);
   const pause = useAudioStore((s) => s.pause);
+  const playTrack = useAudioStore((s) => s.playTrack);
   const loadFile = useAudioStore((s) => s.loadFile);
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const tracks = useLibraryStore((s) => s.tracks);
@@ -157,136 +155,198 @@ export default function HomeOrbital({ onDetail }: { onDetail?: () => void }) {
       return;
     }
     if (track && !canPlay) {
-      inputRef.current?.click();
+      // 会话已恢复但缺播放源：尝试按持久化路径回读
+      const restored = await playTrack(track);
+      if (!restored) inputRef.current?.click();
       return;
     }
-    if (lastHistoryTrack && lastHistoryTrack.providerId !== 'local-file' && lastHistoryTrack.providerTrackId) {
-      await useAudioStore.getState().loadProviderTrack({
-        providerId: lastHistoryTrack.providerId as ProviderTrackReference['providerId'],
-        platformTrackId: lastHistoryTrack.providerTrackId,
-      });
+    if (lastHistoryTrack) {
+      const restored = await playTrack(lastHistoryTrack);
+      if (!restored) inputRef.current?.click();
       return;
     }
     inputRef.current?.click();
   };
 
-  const handleTextClick = () => {
-    if (heroTrack && onDetail) onDetail();
-  };
+  const size = isMobile ? 216 : 300;
+  const coverSize = size * 0.86;
+  const discSize = heroArtwork ? size * 0.96 : size * 0.9;
+  const isEmpty = !heroTrack;
 
-  const microLabel = track
+  const statusLabel = isCurrent
     ? canPlay
       ? isPlaying
         ? '正在播放'
-        : '已就绪'
-      : '已恢复会话 · 请重载'
+        : '已就绪 — 点击开始'
+      : '已恢复会话 · 点击重新载入'
     : lastHistoryTrack
       ? '继续听'
-      : '载入歌曲';
-
-  const heroTitle = heroTrack?.title ?? '载入一首歌';
-  const heroSub = heroTrack ? `${heroTrack.artist}${heroTrack.album ? ` · ${heroTrack.album}` : ''}` : '从本地选择音频文件，或稍后接入音乐平台';
-  const coverSize = isMobile ? 200 : 284;
+      : '';
 
   return (
-    <div
-      className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10"
-    >
-      {/* ——— 英雄：封面发光物 + 显示级排版 ——— */}
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-10">
+      {/* 光池：让纯黑有了「舞台」的指向 */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'radial-gradient(46% 42% at 50% 44%, rgba(255,255,255,0.05), transparent 72%)',
+        }}
+      />
+
       <motion.div
         initial={{ opacity: 0, scale: 0.985, filter: 'blur(6px)' }}
         animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-20 flex items-center gap-8 md:gap-12 pointer-events-auto"
-        style={{ transform: 'translateX(-4%)' }}
+        className="relative z-20 flex flex-col items-center pointer-events-auto"
       >
-        <motion.div
-          className="relative cursor-pointer group"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+        {/* ——— 唱盘 + 封面 ——— */}
+        <div
+          className="group relative cursor-pointer"
+          style={{ width: size, height: size }}
           onClick={() => void handleHeroClick()}
-          style={{ width: coverSize, height: coverSize, flexShrink: 0 }}
         >
-          {/* 封面光晕 —— 唯一的「光源」 */}
+          {/* 光晕：唯一的「光源」 */}
           <motion.div
             aria-hidden
-            className="absolute rounded-full pointer-events-none"
+            className="pointer-events-none"
             style={{
-              inset: '-30%',
-              background: `radial-gradient(circle, ${withAlpha(accent, isPlaying ? 0.4 : 0.22)}, transparent 65%)`,
-              filter: 'blur(70px)',
+              position: 'absolute',
+              inset: '-24%',
+              borderRadius: '50%',
+              background: `radial-gradient(circle, ${withAlpha(accent, isPlaying ? 0.36 : 0.18)}, transparent 66%)`,
+              filter: 'blur(62px)',
             }}
-            animate={isPlaying ? { opacity: [0.6, 0.95, 0.6], scale: [1, 1.05, 1] } : { opacity: 1, scale: 1 }}
-            transition={{ duration: 3.5, repeat: isPlaying ? Infinity : 0, ease: 'easeInOut' }}
+            animate={isPlaying ? { opacity: [0.6, 0.95, 0.6], scale: [1, 1.04, 1] } : { opacity: 1, scale: 1 }}
+            transition={{ duration: 3.4, repeat: isPlaying ? Infinity : 0, ease: 'easeInOut' }}
           />
-          {/* 封面 */}
-          <div
-            className="absolute inset-0 rounded-[14px] border border-white/10"
-            style={{
-              background: heroArtwork ? `url(${heroArtwork}) center / cover no-repeat` : VINYL_GRADIENT,
-              boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
-            }}
-          />
-          {/* hover 播放态浮层 */}
-          <div className="absolute inset-0 rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/25 flex items-center justify-center">
-            <div
-              className="grid place-items-center rounded-full"
-              style={{
-                width: 64,
-                height: 64,
-                background: withAlpha(accent, 0.9),
-                color: relativeDarkText(accent),
-                boxShadow: `0 0 40px ${withAlpha(accent, 0.5)}`,
-              }}
-            >
-              {track && canPlay && isPlaying ? (
-                <Pause className="w-6 h-6" fill="currentColor" strokeWidth={0} />
-              ) : (
-                <Play className="w-6 h-6 ml-1" fill="currentColor" strokeWidth={0} />
-              )}
-            </div>
-          </div>
-          {/* 小音符标记（无封面时） */}
-          {!heroArtwork && (
-            <div className="absolute -top-3 -right-3 grid place-items-center rounded-full w-9 h-9" style={{ background: 'var(--mo-bg-elevated-strong)', border: '1px solid var(--mo-line)', color: 'var(--mo-ink-muted)' }}>
-              <Music className="w-4 h-4" strokeWidth={1.5} />
-            </div>
-          )}
-        </motion.div>
 
-        {/* 文字块 */}
-        <div className="flex flex-col min-w-0" onClick={handleTextClick}>
-          <div
-            className="mb-4 font-mono tracking-[0.18em] uppercase"
-            style={{ fontSize: 10, color: 'var(--mo-ink-muted)' }}
-          >
-            {microLabel}
-          </div>
-          <motion.h1
-            className="whitespace-nowrap"
-            style={{
-              fontSize: isMobile ? 26 : 34,
-              fontWeight: 300,
-              letterSpacing: '-0.02em',
-              lineHeight: 1.12,
-              color: 'var(--mo-ink)',
-              cursor: heroTrack && onDetail ? 'pointer' : 'default',
-              textShadow: '0 2px 24px rgba(0,0,0,0.5)',
+          {/* 唱盘：有封面时从右侧露出圆弧并旋转；空态时它就是舞台上的唯一静物 */}
+          <VinylDisc
+            size={discSize}
+            spinning={isPlaying && Boolean(heroTrack)}
+            style={
+              heroArtwork
+                ? { right: 0, top: (size - discSize) / 2 }
+                : { left: '50%', top: '50%', marginLeft: -discSize / 2, marginTop: -discSize / 2 }
+            }
+          />
+
+          {/* 封面（唱片套） */}
+          {heroArtwork ? (
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: (size - coverSize) / 2,
+                width: coverSize,
+                height: coverSize,
+                borderRadius: 14,
+                background: `url(${heroArtwork}) center / cover no-repeat`,
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 26px 70px rgba(0,0,0,0.6)',
+              }}
+            />
+          ) : null}
+
+          {/* 播放/载入按钮（始终在 DOM 中；hover 显现；空态半显作为引导） */}
+          <button
+            type="button"
+            aria-label={isPlaying ? '暂停' : '播放'}
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleHeroClick();
             }}
+            className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 grid place-items-center rounded-full transition-opacity duration-300 ${
+              isEmpty ? 'opacity-45 group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+            }`}
+            style={{
+              width: 64,
+              height: 64,
+              background: withAlpha(accent, 0.92),
+              color: contrastText(accent),
+              boxShadow: `0 0 44px ${withAlpha(accent, 0.5)}`,
+            }}
+          >
+            {isPlaying && canPlay ? (
+              <Pause className="w-6 h-6" fill="currentColor" strokeWidth={0} />
+            ) : (
+              <Play className="w-6 h-6 ml-1" fill="currentColor" strokeWidth={0} />
+            )}
+          </button>
+        </div>
+
+        {/* ——— 文案 ——— */}
+        <div className="mt-10 flex flex-col items-center text-center">
+          <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.12 }}
+            onClick={() => {
+              if (track && onDetail) onDetail();
+            }}
+            style={{
+              fontSize: isEmpty ? (isMobile ? 30 : 36) : isMobile ? 32 : 42,
+              fontWeight: 300,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.15,
+              color: 'var(--mo-ink)',
+              maxWidth: 'min(560px, 84vw)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              cursor: track && onDetail ? 'pointer' : 'default',
+              textShadow: '0 2px 24px rgba(0,0,0,0.5)',
+            }}
           >
-            {heroTitle.length > 22 ? `${heroTitle.slice(0, 22)}…` : heroTitle}
+            {isEmpty ? '把音乐带进来' : heroTrack?.title}
           </motion.h1>
+
           <div
-            className="mt-3 truncate"
-            style={{ fontSize: 14, color: 'var(--mo-ink-muted)' }}
+            className="mt-3"
+            style={{
+              fontSize: 14,
+              color: 'var(--mo-ink-muted)',
+              maxWidth: 'min(520px, 84vw)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
           >
-            {heroSub}
+            {isEmpty
+              ? '拖入音频文件，或从本地选择'
+              : `${heroTrack?.artist ?? ''}${heroTrack?.album ? ` · ${heroTrack.album}` : ''}`}
           </div>
-          {track && canPlay && (
-            <div className="mt-5 flex items-center gap-2">
+
+          {isEmpty ? (
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="mt-7 rounded-full px-6 py-2.5 transition-colors duration-300"
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--mo-ink)',
+                background: 'var(--mo-bg-elevated)',
+                border: '1px solid var(--mo-line)',
+                backdropFilter: 'blur(22px) saturate(1.15)',
+                WebkitBackdropFilter: 'blur(22px) saturate(1.15)',
+                boxShadow: 'var(--mo-shadow-hairline)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = withAlpha(accent, 0.5);
+                e.currentTarget.style.boxShadow = `0 0 24px ${withAlpha(accent, 0.25)}`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--mo-line)';
+                e.currentTarget.style.boxShadow = 'var(--mo-shadow-hairline)';
+              }}
+            >
+              选择本地文件
+            </button>
+          ) : (
+            <div className="mt-4 flex items-center gap-2">
               <span
                 className="inline-block w-1.5 h-1.5 rounded-full"
                 style={{
@@ -295,8 +355,11 @@ export default function HomeOrbital({ onDetail }: { onDetail?: () => void }) {
                   animation: isPlaying ? 'mo-cover-breathe 2.4s ease-in-out infinite' : 'none',
                 }}
               />
-              <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>
-                {isPlaying ? 'playing' : 'paused'}
+              <span
+                className="font-mono tracking-[0.14em] uppercase"
+                style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}
+              >
+                {statusLabel}
               </span>
             </div>
           )}
@@ -379,14 +442,4 @@ export default function HomeOrbital({ onDetail }: { onDetail?: () => void }) {
       />
     </div>
   );
-}
-
-function relativeDarkText(hex: string): string {
-  const value = hex.replace('#', '');
-  if (value.length !== 6) return '#0a0a0c';
-  const r = parseInt(value.slice(0, 2), 16);
-  const g = parseInt(value.slice(2, 4), 16);
-  const b = parseInt(value.slice(4, 6), 16);
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luminance > 150 ? '#0a0a0c' : '#ffffff';
 }

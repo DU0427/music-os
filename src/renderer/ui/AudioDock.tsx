@@ -125,7 +125,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
           transform: 'translateX(-50%)',
           width: 'min(var(--mo-dock-width), calc(100vw - 32px))',
           pointerEvents: 'auto',
-          animation: 'mo-fade-in var(--mo-duration) var(--mo-ease)',
+          animation: 'mo-dock-in var(--mo-duration) var(--mo-ease)',
         }}
       >
         <div

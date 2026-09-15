@@ -236,8 +236,8 @@ export default function AppShell() {
       <SearchOrbital isOpen={isSearching} onClose={() => setIsSearching(false)} />
       <DetailOrbital isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} />
 
-      {/* Audio dock — mini */}
-      <AudioDock mode={showDeveloperControls ? 'developer' : 'experience'} />
+      {/* Audio dock — 仅在存在曲目时出现（空态保持干净的黑场） */}
+      {currentTrack && <AudioDock mode={showDeveloperControls ? 'developer' : 'experience'} />}
 
       {/* Diagnostics */}
       {showDiagnostics && (
