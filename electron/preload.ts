@@ -9,6 +9,10 @@ import type {
 } from '../src/shared/ipc/music';
 import type {
   MusicProviderId,
+  ProviderAccount,
+  ProviderHomeContent,
+  ProviderQrLoginSession,
+  ProviderQrPollResult,
   ProviderTrackReference,
   ProviderTrackResult,
   ProviderPlayableSourceResult,
@@ -37,6 +41,11 @@ const APP_IPC_CHANNELS = (() => {
     providerPlayable: 'music:provider:playable-source',
     audioCover: 'audio:cover',
     audioFileData: 'audio:file-data',
+    neteaseQrCreate: 'music:netease:qr-create',
+    neteaseQrPoll: 'music:netease:qr-poll',
+    neteaseAuthStatus: 'music:netease:auth-status',
+    neteaseLogout: 'music:netease:logout',
+    neteaseHome: 'music:netease:home',
   } as const;
 
   try {
@@ -99,6 +108,18 @@ const api: MusicOsApi = {
   getAudioCover: (filePath: string) => ipcRenderer.invoke(APP_IPC_CHANNELS.audioCover, filePath) as Promise<string | null>,
   getAudioFileData: (filePath: string) =>
     ipcRenderer.invoke(APP_IPC_CHANNELS.audioFileData, filePath) as Promise<Uint8Array | null>,
+  createNeteaseQrLogin: () =>
+    ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseQrCreate) as Promise<ProviderQrLoginSession | null>,
+  pollNeteaseQrLogin: (key: string) =>
+    ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseQrPoll, key) as Promise<ProviderQrPollResult>,
+  getNeteaseAuthStatus: () =>
+    ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseAuthStatus) as Promise<{
+      loggedIn: boolean;
+      account: ProviderAccount | null;
+    }>,
+  logoutNetease: () => ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseLogout) as Promise<boolean>,
+  getNeteaseHomeContent: () =>
+    ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseHome) as Promise<ProviderHomeContent>,
 };
 
 contextBridge.exposeInMainWorld('musicOS', api);

@@ -12,6 +12,8 @@ import { MusicRepository } from '../database/repositories/music-repository';
 import { ProviderRegistry } from '../providers';
 import { readAudioCover } from '../audio/cover';
 import { readAudioFileData } from '../audio/file-data';
+import { createQrLogin, fetchAccount, logoutNetease, pollQrLogin } from '../providers/netease/auth';
+import { getNeteaseHomeContent } from '../providers/netease/content';
 import type { MusicProviderId, ProviderTrackReference } from '../../src/shared/music/providers';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -166,6 +168,39 @@ export function registerAppHandlers(repository: MusicRepository, providers: Prov
     }
     return readAudioFileData(filePath);
   });
+
+  /* ——— 网易云：扫码登录与内容入口 ——— */
+
+  ipcMain.handle(APP_IPC_CHANNELS.neteaseQrCreate, async () => {
+    try {
+      return await createQrLogin();
+    } catch {
+      return null;
+    }
+  });
+
+  ipcMain.handle(APP_IPC_CHANNELS.neteaseQrPoll, async (_event, key: unknown) => {
+    if (typeof key !== 'string' || key.trim() === '') {
+      return { status: 'error', account: null };
+    }
+    try {
+      return await pollQrLogin(key);
+    } catch {
+      return { status: 'error', account: null };
+    }
+  });
+
+  ipcMain.handle(APP_IPC_CHANNELS.neteaseAuthStatus, async () => {
+    const account = await fetchAccount();
+    return { loggedIn: account !== null, account };
+  });
+
+  ipcMain.handle(APP_IPC_CHANNELS.neteaseLogout, async () => {
+    await logoutNetease();
+    return true;
+  });
+
+  ipcMain.handle(APP_IPC_CHANNELS.neteaseHome, async () => getNeteaseHomeContent());
 }
 
 function readProviderId(value: unknown): MusicProviderId | undefined {

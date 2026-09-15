@@ -7,7 +7,11 @@ import type {
 } from './music';
 import type {
   MusicProviderId,
+  ProviderAccount,
+  ProviderHomeContent,
   ProviderPlayableSourceResult,
+  ProviderQrLoginSession,
+  ProviderQrPollResult,
   ProviderSearchResult,
   ProviderTrackReference,
   ProviderTrackResult,
@@ -35,6 +39,11 @@ export const APP_IPC_CHANNELS = {
   providerPlayable: 'music:provider:playable-source',
   audioCover: 'audio:cover',
   audioFileData: 'audio:file-data',
+  neteaseQrCreate: 'music:netease:qr-create',
+  neteaseQrPoll: 'music:netease:qr-poll',
+  neteaseAuthStatus: 'music:netease:auth-status',
+  neteaseLogout: 'music:netease:logout',
+  neteaseHome: 'music:netease:home',
 } as const;
 
 export type AppIpcChannel = (typeof APP_IPC_CHANNELS)[keyof typeof APP_IPC_CHANNELS];
@@ -81,6 +90,16 @@ export interface MusicOsApi {
   getAudioCover(filePath: string): Promise<string | null>;
   /** 回读本地音频文件字节，用于重启后恢复本地播放源（失败返回 null）。 */
   getAudioFileData(filePath: string): Promise<Uint8Array | null>;
+  /** 网易云：生成扫码登录二维码（data URL）。 */
+  createNeteaseQrLogin(): Promise<ProviderQrLoginSession | null>;
+  /** 网易云：轮询扫码状态。 */
+  pollNeteaseQrLogin(key: string): Promise<ProviderQrPollResult>;
+  /** 网易云：读取当前登录账号。 */
+  getNeteaseAuthStatus(): Promise<{ loggedIn: boolean; account: ProviderAccount | null }>;
+  /** 网易云：退出登录。 */
+  logoutNetease(): Promise<boolean>;
+  /** 网易云：内容入口（推荐歌单 + 排行榜）。 */
+  getNeteaseHomeContent(): Promise<ProviderHomeContent>;
 }
 
 export interface SharedIpcWindow {
