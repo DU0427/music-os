@@ -3,25 +3,13 @@ import type {
   PlayableSource,
   ProviderSearchQuery,
   ProviderSearchResult,
-  ProviderTrack,
   ProviderTrackDetail,
   ProviderTrackReference,
 } from '../../../src/shared/music/providers';
 import { ProviderError } from '../errors';
 import { fetchAccount } from './auth';
 import { neteaseRequest } from './http';
-
-/** 网易云歌曲载荷：搜索接口（cloudsearch）用 al/ar/dt，详情接口（song/detail）用 album/artists/duration。 */
-interface NeteaseSongPayload {
-  id: number;
-  name: string;
-  al?: { id: number; name: string; picUrl?: string } | null;
-  ar?: Array<{ id: number; name: string }>;
-  dt?: number;
-  album?: { id: number; name: string; picUrl?: string } | null;
-  artists?: Array<{ id: number; name: string }>;
-  duration?: number;
-}
+import { mapSong, type NeteaseSongPayload } from './map';
 
 interface SearchResponse {
   code: number;
@@ -53,22 +41,6 @@ interface PlayerUrlEntry {
 interface PlayerUrlResponse {
   code: number;
   data?: PlayerUrlEntry[];
-}
-
-function mapSong(song: NeteaseSongPayload): ProviderTrack {
-  const artist = song.ar?.[0] ?? song.artists?.[0] ?? null;
-  const album = song.al ?? song.album ?? null;
-  const durationMs = song.dt ?? song.duration ?? 0;
-  return {
-    reference: { providerId: 'netease', platformTrackId: String(song.id) },
-    title: song.name,
-    artist: { id: artist ? String(artist.id) : null, name: artist?.name ?? '未知歌手' },
-    album: album
-      ? { id: String(album.id), title: album.name, artworkUrl: album.picUrl ?? null }
-      : null,
-    durationSeconds: durationMs > 0 ? durationMs / 1000 : 0,
-    artworkUrl: album?.picUrl ?? null,
-  };
 }
 
 export class NeteaseMusicProvider implements MusicProvider {

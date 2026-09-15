@@ -13,7 +13,7 @@ import { ProviderRegistry } from '../providers';
 import { readAudioCover } from '../audio/cover';
 import { readAudioFileData } from '../audio/file-data';
 import { createQrLogin, fetchAccount, logoutNetease, pollQrLogin } from '../providers/netease/auth';
-import { getNeteaseHomeContent } from '../providers/netease/content';
+import { getNeteaseHomeContent, getNeteasePlaylistTracks } from '../providers/netease/content';
 import type { MusicProviderId, ProviderTrackReference } from '../../src/shared/music/providers';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -201,6 +201,17 @@ export function registerAppHandlers(repository: MusicRepository, providers: Prov
   });
 
   ipcMain.handle(APP_IPC_CHANNELS.neteaseHome, async () => getNeteaseHomeContent());
+
+  ipcMain.handle(APP_IPC_CHANNELS.neteasePlaylistTracks, async (_event, playlistId: unknown) => {
+    if (typeof playlistId !== 'string' || playlistId.trim() === '') {
+      return [];
+    }
+    try {
+      return await getNeteasePlaylistTracks(playlistId);
+    } catch {
+      return [];
+    }
+  });
 }
 
 function readProviderId(value: unknown): MusicProviderId | undefined {

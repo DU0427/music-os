@@ -13,6 +13,7 @@ import type {
   ProviderHomeContent,
   ProviderQrLoginSession,
   ProviderQrPollResult,
+  ProviderTrack,
   ProviderTrackReference,
   ProviderTrackResult,
   ProviderPlayableSourceResult,
@@ -46,6 +47,7 @@ const APP_IPC_CHANNELS = (() => {
     neteaseAuthStatus: 'music:netease:auth-status',
     neteaseLogout: 'music:netease:logout',
     neteaseHome: 'music:netease:home',
+    neteasePlaylistTracks: 'music:netease:playlist-tracks',
   } as const;
 
   try {
@@ -120,6 +122,8 @@ const api: MusicOsApi = {
   logoutNetease: () => ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseLogout) as Promise<boolean>,
   getNeteaseHomeContent: () =>
     ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseHome) as Promise<ProviderHomeContent>,
+  getNeteasePlaylistTracks: (playlistId: string) =>
+    ipcRenderer.invoke(APP_IPC_CHANNELS.neteasePlaylistTracks, playlistId) as Promise<ProviderTrack[]>,
 };
 
 contextBridge.exposeInMainWorld('musicOS', api);

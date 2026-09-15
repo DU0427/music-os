@@ -13,6 +13,7 @@ import type {
   ProviderQrLoginSession,
   ProviderQrPollResult,
   ProviderSearchResult,
+  ProviderTrack,
   ProviderTrackReference,
   ProviderTrackResult,
 } from '../music/providers';
@@ -44,6 +45,7 @@ export const APP_IPC_CHANNELS = {
   neteaseAuthStatus: 'music:netease:auth-status',
   neteaseLogout: 'music:netease:logout',
   neteaseHome: 'music:netease:home',
+  neteasePlaylistTracks: 'music:netease:playlist-tracks',
 } as const;
 
 export type AppIpcChannel = (typeof APP_IPC_CHANNELS)[keyof typeof APP_IPC_CHANNELS];
@@ -100,6 +102,8 @@ export interface MusicOsApi {
   logoutNetease(): Promise<boolean>;
   /** 网易云：内容入口（推荐歌单 + 排行榜）。 */
   getNeteaseHomeContent(): Promise<ProviderHomeContent>;
+  /** 网易云：歌单/榜单曲目列表。 */
+  getNeteasePlaylistTracks(playlistId: string): Promise<ProviderTrack[]>;
 }
 
 export interface SharedIpcWindow {

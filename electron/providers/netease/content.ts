@@ -1,5 +1,10 @@
-import type { ProviderHomeContent, ProviderPlaylistSummary } from '../../../src/shared/music/providers';
+import type {
+  ProviderHomeContent,
+  ProviderPlaylistSummary,
+  ProviderTrack,
+} from '../../../src/shared/music/providers';
 import { neteaseRequest } from './http';
+import { mapSong, type NeteaseSongPayload } from './map';
 
 interface PersonalizedPlaylistResponse {
   code: number;
@@ -30,6 +35,22 @@ export async function getNeteaseHomeContent(): Promise<ProviderHomeContent> {
     fetchToplists(),
   ]);
   return { playlists, toplists };
+}
+
+interface PlaylistDetailResponse {
+  code: number;
+  result?: {
+    tracks?: NeteaseSongPayload[];
+  };
+}
+
+/** 歌单/榜单曲目：playlist/detail 对歌单与榜单通用。 */
+export async function getNeteasePlaylistTracks(playlistId: string): Promise<ProviderTrack[]> {
+  const data = await neteaseRequest<PlaylistDetailResponse>(
+    `/api/playlist/detail?id=${encodeURIComponent(playlistId)}`,
+  );
+  const tracks = data.result?.tracks ?? [];
+  return tracks.map(mapSong);
 }
 
 async function fetchRecommendedPlaylists(): Promise<ProviderPlaylistSummary[]> {
