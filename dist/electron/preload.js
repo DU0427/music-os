@@ -22,6 +22,8 @@ const APP_IPC_CHANNELS = (() => {
         providerSearch: 'music:provider:search',
         providerTrack: 'music:provider:track',
         providerPlayable: 'music:provider:playable-source',
+        audioCover: 'audio:cover',
+        audioFileData: 'audio:file-data',
     };
     try {
         const electronChannels = require('./ipc/channels');
@@ -76,5 +78,7 @@ const api = {
     searchMusic: (query, providerId) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.providerSearch, { query, providerId }),
     getProviderTrack: (reference) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.providerTrack, reference),
     getProviderPlayableSource: (reference) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.providerPlayable, reference),
+    getAudioCover: (filePath) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.audioCover, filePath),
+    getAudioFileData: (filePath) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.audioFileData, filePath),
 };
 electron_1.contextBridge.exposeInMainWorld('musicOS', api);

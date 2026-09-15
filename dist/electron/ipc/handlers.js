@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerAppHandlers = registerAppHandlers;
 const electron_1 = require("electron");
 const channels_1 = require("./channels");
+const cover_1 = require("../audio/cover");
+const file_data_1 = require("../audio/file-data");
 function isRecord(value) {
     return typeof value === 'object' && value !== null;
 }
@@ -123,6 +125,18 @@ function registerAppHandlers(repository, providers) {
     electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.providerPlayable, (_event, payload) => {
         assertProviderReference(payload);
         return providers.getPlayableSource(payload);
+    });
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.audioCover, async (_event, filePath) => {
+        if (typeof filePath !== 'string' || filePath.trim() === '') {
+            return null;
+        }
+        return (0, cover_1.readAudioCover)(filePath);
+    });
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.audioFileData, async (_event, filePath) => {
+        if (typeof filePath !== 'string' || filePath.trim() === '') {
+            return null;
+        }
+        return (0, file_data_1.readAudioFileData)(filePath);
     });
 }
 function readProviderId(value) {

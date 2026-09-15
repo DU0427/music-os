@@ -21,4 +21,6 @@ exports.APP_IPC_CHANNELS = {
     providerSearch: 'music:provider:search',
     providerTrack: 'music:provider:track',
     providerPlayable: 'music:provider:playable-source',
+    audioCover: 'audio:cover',
+    audioFileData: 'audio:file-data',
 };
