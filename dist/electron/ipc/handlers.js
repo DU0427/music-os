@@ -5,6 +5,8 @@ const electron_1 = require("electron");
 const channels_1 = require("./channels");
 const cover_1 = require("../audio/cover");
 const file_data_1 = require("../audio/file-data");
+const auth_1 = require("../providers/netease/auth");
+const content_1 = require("../providers/netease/content");
 function isRecord(value) {
     return typeof value === 'object' && value !== null;
 }
@@ -138,6 +140,35 @@ function registerAppHandlers(repository, providers) {
         }
         return (0, file_data_1.readAudioFileData)(filePath);
     });
+    /* ——— 网易云：扫码登录与内容入口 ——— */
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseQrCreate, async () => {
+        try {
+            return await (0, auth_1.createQrLogin)();
+        }
+        catch {
+            return null;
+        }
+    });
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseQrPoll, async (_event, key) => {
+        if (typeof key !== 'string' || key.trim() === '') {
+            return { status: 'error', account: null };
+        }
+        try {
+            return await (0, auth_1.pollQrLogin)(key);
+        }
+        catch {
+            return { status: 'error', account: null };
+        }
+    });
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseAuthStatus, async () => {
+        const account = await (0, auth_1.fetchAccount)();
+        return { loggedIn: account !== null, account };
+    });
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseLogout, async () => {
+        await (0, auth_1.logoutNetease)();
+        return true;
+    });
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseHome, async () => (0, content_1.getNeteaseHomeContent)());
 }
 function readProviderId(value) {
     if (value === 'mock' || value === 'netease' || value === 'qq') {

@@ -3,10 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProviderRegistry = void 0;
 exports.createProviderRegistry = createProviderRegistry;
 const mock_1 = require("./mock");
+const netease_1 = require("./netease");
 const registry_1 = require("./registry");
 function createProviderRegistry() {
     const registry = new registry_1.ProviderRegistry();
     registry.register(new mock_1.MockMusicProvider());
+    registry.register(new netease_1.NeteaseMusicProvider());
     return registry;
 }
 var registry_2 = require("./registry");

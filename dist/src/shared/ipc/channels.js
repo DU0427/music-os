@@ -23,4 +23,9 @@ exports.APP_IPC_CHANNELS = {
     providerPlayable: 'music:provider:playable-source',
     audioCover: 'audio:cover',
     audioFileData: 'audio:file-data',
+    neteaseQrCreate: 'music:netease:qr-create',
+    neteaseQrPoll: 'music:netease:qr-poll',
+    neteaseAuthStatus: 'music:netease:auth-status',
+    neteaseLogout: 'music:netease:logout',
+    neteaseHome: 'music:netease:home',
 };

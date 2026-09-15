@@ -24,6 +24,11 @@ const APP_IPC_CHANNELS = (() => {
         providerPlayable: 'music:provider:playable-source',
         audioCover: 'audio:cover',
         audioFileData: 'audio:file-data',
+        neteaseQrCreate: 'music:netease:qr-create',
+        neteaseQrPoll: 'music:netease:qr-poll',
+        neteaseAuthStatus: 'music:netease:auth-status',
+        neteaseLogout: 'music:netease:logout',
+        neteaseHome: 'music:netease:home',
     };
     try {
         const electronChannels = require('./ipc/channels');
@@ -80,5 +85,10 @@ const api = {
     getProviderPlayableSource: (reference) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.providerPlayable, reference),
     getAudioCover: (filePath) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.audioCover, filePath),
     getAudioFileData: (filePath) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.audioFileData, filePath),
+    createNeteaseQrLogin: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseQrCreate),
+    pollNeteaseQrLogin: (key) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseQrPoll, key),
+    getNeteaseAuthStatus: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseAuthStatus),
+    logoutNetease: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseLogout),
+    getNeteaseHomeContent: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseHome),
 };
 electron_1.contextBridge.exposeInMainWorld('musicOS', api);
