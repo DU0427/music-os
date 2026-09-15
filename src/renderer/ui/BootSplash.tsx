@@ -59,14 +59,14 @@ export default function BootSplash({ exiting, onSkip }: BootSplashProps) {
             transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.span
-            style={{ fontSize: 28, fontWeight: 500, letterSpacing: '0.01em', color: 'var(--mo-ink)' }}
-            initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+            style={{ fontSize: 28, fontWeight: 500, color: 'var(--mo-ink)' }}
+            initial={{ opacity: 0, y: 8, filter: 'blur(8px)', letterSpacing: '0.14em' }}
             animate={
               phase >= 1
-                ? { opacity: 1, y: 0, filter: 'blur(0px)' }
-                : { opacity: 0, y: 6, filter: 'blur(6px)' }
+                ? { opacity: 1, y: 0, filter: 'blur(0px)', letterSpacing: '0.01em' }
+                : { opacity: 0, y: 8, filter: 'blur(8px)', letterSpacing: '0.14em' }
             }
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
           >
             music os
           </motion.span>

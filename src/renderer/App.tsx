@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRuntimeStore } from './store/runtime';
 import AudioDock from './ui/AudioDock';
 import BootSplash from './ui/BootSplash';
@@ -35,9 +35,24 @@ export default function AppShell() {
   const [isDragging, setIsDragging] = useState(false);
   /* ——— 启动 curtain：遮住 IPC ready 与播放恢复耗时，就绪后自动退场 ——— */
   const [bootPhase, setBootPhase] = useState<'loading' | 'exiting' | 'done'>('loading');
+  /* 就绪信号与最短展示时长分离：就绪再快，也让品牌动画完整播完再揭幕 */
+  const [bootReady, setBootReady] = useState(false);
+  const bootStartedAtRef = useRef(Date.now());
   const finishBoot = useCallback(() => {
     setBootPhase((prev) => (prev === 'loading' ? 'exiting' : prev));
   }, []);
+  const markBootReady = useCallback(() => {
+    setBootReady(true);
+  }, []);
+  useEffect(() => {
+    if (!bootReady) {
+      return undefined;
+    }
+    const elapsed = Date.now() - bootStartedAtRef.current;
+    const remaining = Math.max(0, 1700 - elapsed);
+    const timer = window.setTimeout(finishBoot, remaining);
+    return () => window.clearTimeout(timer);
+  }, [bootReady, finishBoot]);
   useEffect(() => {
     if (bootPhase !== 'exiting') {
       return undefined;
@@ -46,10 +61,10 @@ export default function AppShell() {
     return () => window.clearTimeout(timer);
   }, [bootPhase]);
   useEffect(() => {
-    // 兜底：即使 ready/恢复异常卡住，也最多显示 2.8 秒
-    const timer = window.setTimeout(finishBoot, 2800);
+    // 兜底：即使 ready/恢复异常卡住，也最多 3.6 秒后揭幕
+    const timer = window.setTimeout(markBootReady, 3600);
     return () => window.clearTimeout(timer);
-  }, [finishBoot]);
+  }, [markBootReady]);
   const currentSpace = useRuntimeStore((s) => s.currentSpace);
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const isTransitioning = useRuntimeStore((s) => s.isTransitioning);
@@ -112,26 +127,26 @@ export default function AppShell() {
       if (typeof window.musicOS?.ready !== 'function') {
         await reportStartupError('missing_bridge', 'musicOS.ready unavailable');
         setStatus('ipc bridge unavailable');
-        finishBoot();
+        markBootReady();
         return;
       }
       try {
         const result: AppReadyPayload = await window.musicOS.ready();
         setStatus(`ready: ${result.appName} @ ${new Date(result.startedAt).toLocaleTimeString()}`);
         await restorePlaybackSession();
-        finishBoot();
+        markBootReady();
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
         await reportStartupError('ipc_ready_failed', detail);
         setStatus('ipc not ready');
-        finishBoot();
+        markBootReady();
       }
     };
     ready().catch(() => {
       setStatus('ipc not ready');
-      finishBoot();
+      markBootReady();
     });
-  }, [restorePlaybackSession, finishBoot]);
+  }, [restorePlaybackSession, markBootReady]);
 
   useEffect(() => {
     const h = (e: Event) => {
