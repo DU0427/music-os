@@ -4,7 +4,7 @@ import AudioDock from './ui/AudioDock';
 import BootSplash from './ui/BootSplash';
 import WorldManager from './worlds/WorldManager';
 import TopBar from './ui/TopBar';
-import RackHome from './worlds/RackHome';
+import WaveHome from './worlds/WaveHome';
 import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
 import MemoryFieldWorld from './worlds/MemoryFieldWorld';
 import SearchOrbital from './ui/SearchOrbital';
@@ -226,7 +226,7 @@ export default function AppShell() {
       <TopBar onSearch={() => setIsSearching(true)} />
 
       {/* Home：走廊（内容优先，滚动推进） */}
-      {currentSpace === 'home' && <RackHome onDetail={() => setIsDetailOpen(true)} />}
+      {currentSpace === 'home' && <WaveHome onDetail={() => setIsDetailOpen(true)} />}
 
       {/* Library / Memory DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
