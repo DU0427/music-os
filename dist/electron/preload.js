@@ -30,6 +30,8 @@ const APP_IPC_CHANNELS = (() => {
         neteaseLogout: 'music:netease:logout',
         neteaseHome: 'music:netease:home',
         neteasePlaylistTracks: 'music:netease:playlist-tracks',
+        neteaseRegionDensity: 'music:netease:region-density',
+        neteaseRegionPlaylists: 'music:netease:region-playlists',
     };
     try {
         const electronChannels = require('./ipc/channels');
@@ -92,5 +94,7 @@ const api = {
     logoutNetease: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseLogout),
     getNeteaseHomeContent: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseHome),
     getNeteasePlaylistTracks: (playlistId) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteasePlaylistTracks, playlistId),
+    getNeteaseRegionDensity: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseRegionDensity),
+    getNeteaseRegionPlaylists: (regionId) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseRegionPlaylists, regionId),
 };
 electron_1.contextBridge.exposeInMainWorld('musicOS', api);
