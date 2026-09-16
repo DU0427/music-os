@@ -49,7 +49,7 @@ export default function AppShell() {
       return undefined;
     }
     const elapsed = Date.now() - bootStartedAtRef.current;
-    const remaining = Math.max(0, 2200 - elapsed);
+    const remaining = Math.max(0, 3200 - elapsed);
     const timer = window.setTimeout(finishBoot, remaining);
     return () => window.clearTimeout(timer);
   }, [bootReady, finishBoot]);
@@ -57,12 +57,12 @@ export default function AppShell() {
     if (bootPhase !== 'exiting') {
       return undefined;
     }
-    const timer = window.setTimeout(() => setBootPhase('done'), 700);
+    const timer = window.setTimeout(() => setBootPhase('done'), 850);
     return () => window.clearTimeout(timer);
   }, [bootPhase]);
   useEffect(() => {
     // 兜底：即使 ready/恢复异常卡住，也最多 4.2 秒后揭幕
-    const timer = window.setTimeout(markBootReady, 4200);
+    const timer = window.setTimeout(markBootReady, 5600);
     return () => window.clearTimeout(timer);
   }, [markBootReady]);
   const currentSpace = useRuntimeStore((s) => s.currentSpace);

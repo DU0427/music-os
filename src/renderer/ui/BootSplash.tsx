@@ -17,8 +17,8 @@ export default function BootSplash({ exiting, onSkip }: BootSplashProps) {
   const [phase, setPhase] = useState<0 | 1 | 2>(0);
 
   useEffect(() => {
-    const toWordmark = setTimeout(() => setPhase(1), 80);
-    const toLine = setTimeout(() => setPhase(2), 520);
+    const toWordmark = setTimeout(() => setPhase(1), 140);
+    const toLine = setTimeout(() => setPhase(2), 720);
     return () => {
       clearTimeout(toWordmark);
       clearTimeout(toLine);
@@ -66,7 +66,7 @@ export default function BootSplash({ exiting, onSkip }: BootSplashProps) {
                 ? { opacity: 1, y: 0, filter: 'blur(0px)', letterSpacing: '0.04em' }
                 : { opacity: 0, y: 14, filter: 'blur(14px)', letterSpacing: '0.26em' }
             }
-            transition={{ duration: 1.15, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
           >
             music os
           </motion.span>
@@ -88,7 +88,7 @@ export default function BootSplash({ exiting, onSkip }: BootSplashProps) {
             }}
             initial={{ scaleX: 0 }}
             animate={phase >= 2 ? { scaleX: 1 } : { scaleX: 0 }}
-            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
           />
           <motion.div
             className="absolute inset-0"
@@ -98,7 +98,7 @@ export default function BootSplash({ exiting, onSkip }: BootSplashProps) {
             }}
             initial={{ x: '-100%', opacity: 0 }}
             animate={phase >= 2 ? { x: '100%', opacity: [0, 0.9, 0] } : { x: '-100%', opacity: 0 }}
-            transition={{ duration: 1.6, delay: 0.5, ease: 'easeInOut' }}
+            transition={{ duration: 2.2, delay: 0.7, ease: 'easeInOut' }}
           />
         </motion.div>
 
@@ -112,7 +112,7 @@ export default function BootSplash({ exiting, onSkip }: BootSplashProps) {
           }}
           initial={{ opacity: 0 }}
           animate={phase >= 2 ? { opacity: 0.9 } : { opacity: 0 }}
-          transition={{ duration: 0.7, delay: 0.35 }}
+          transition={{ duration: 0.9, delay: 0.5 }}
         >
           正在载入
         </motion.div>
