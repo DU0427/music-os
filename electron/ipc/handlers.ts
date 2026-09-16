@@ -14,6 +14,7 @@ import { readAudioCover } from '../audio/cover';
 import { readAudioFileData } from '../audio/file-data';
 import { createQrLogin, fetchAccount, logoutNetease, pollQrLogin } from '../providers/netease/auth';
 import { getNeteaseHomeContent, getNeteasePlaylistTracks } from '../providers/netease/content';
+import { getNeteaseRegionDensity, getNeteaseRegionPlaylists } from '../providers/netease/regions';
 import type { MusicProviderId, ProviderTrackReference } from '../../src/shared/music/providers';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -201,6 +202,19 @@ export function registerAppHandlers(repository: MusicRepository, providers: Prov
   });
 
   ipcMain.handle(APP_IPC_CHANNELS.neteaseHome, async () => getNeteaseHomeContent());
+
+  ipcMain.handle(APP_IPC_CHANNELS.neteaseRegionDensity, async () => getNeteaseRegionDensity());
+
+  ipcMain.handle(APP_IPC_CHANNELS.neteaseRegionPlaylists, async (_event, regionId: unknown) => {
+    if (typeof regionId !== 'string' || regionId.trim() === '') {
+      return [];
+    }
+    try {
+      return await getNeteaseRegionPlaylists(regionId);
+    } catch {
+      return [];
+    }
+  });
 
   ipcMain.handle(APP_IPC_CHANNELS.neteasePlaylistTracks, async (_event, playlistId: unknown) => {
     if (typeof playlistId !== 'string' || playlistId.trim() === '') {
