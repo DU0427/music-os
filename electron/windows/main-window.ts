@@ -10,7 +10,7 @@ export function createMainWindow(): BrowserWindow {
     backgroundColor: '#050A14',
     autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       spellcheck: false,
