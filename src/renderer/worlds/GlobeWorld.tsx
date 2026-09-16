@@ -63,6 +63,50 @@ export default function GlobeWorld() {
     };
   }, [scene]);
 
+  /* 拖拽旋转（带惯性；松手后自转恢复） */
+  const gl = useThree((state) => state.gl);
+  const dragRef = useRef({ active: false, lastX: 0, lastY: 0, velocity: 0 });
+  const rotationRef = useRef({ x: 0.04, y: 0 });
+  useEffect(() => {
+    const element = gl.domElement;
+    const previousCursor = element.style.cursor;
+    element.style.cursor = 'grab';
+
+    const onDown = (event: PointerEvent) => {
+      dragRef.current.active = true;
+      dragRef.current.lastX = event.clientX;
+      dragRef.current.lastY = event.clientY;
+      dragRef.current.velocity = 0;
+      element.style.cursor = 'grabbing';
+    };
+    const onMove = (event: PointerEvent) => {
+      if (!dragRef.current.active) {
+        return;
+      }
+      const dx = event.clientX - dragRef.current.lastX;
+      const dy = event.clientY - dragRef.current.lastY;
+      dragRef.current.lastX = event.clientX;
+      dragRef.current.lastY = event.clientY;
+      rotationRef.current.y += dx * 0.006;
+      rotationRef.current.x = Math.max(-0.7, Math.min(0.7, rotationRef.current.x + dy * 0.004));
+      dragRef.current.velocity = dx * 0.006;
+    };
+    const onUp = () => {
+      dragRef.current.active = false;
+      element.style.cursor = 'grab';
+    };
+
+    element.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      element.style.cursor = previousCursor;
+      element.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, [gl]);
+
   useEffect(() => {
     if (typeof window.musicOS?.getNeteaseRegionDensity !== 'function') {
       return undefined;
@@ -139,8 +183,10 @@ export default function GlobeWorld() {
       .pointLat((value: object) => asDensity(value).lat)
       .pointLng((value: object) => asDensity(value).lng)
       .pointColor((value: object) => asDensity(value).color)
-      .pointAltitude((value: object) => 0.012 + asDensity(value).weight * 0.11)
-      .pointRadius((value: object) => 0.05 + asDensity(value).weight * 0.11);
+      // 贴面光碟（altitude 极低，避免变成「柱子」），大小随内容密度
+      .pointAltitude(() => 0.006)
+      .pointRadius((value: object) => 0.05 + asDensity(value).weight * 0.085)
+      .pointResolution(14);
   }, [globe, density]);
 
   /* 你的足迹：在你听过的地区脉冲光环 + 聆听旅程弧线 */
@@ -188,12 +234,22 @@ export default function GlobeWorld() {
       .arcStroke(0.55);
   }, [globe, footprint]);
 
-  /* 缓慢自转 */
+  /* 缓慢自转 + 拖拽旋转 + 惯性 */
   useFrame((_, delta) => {
     const instance = globeRef.current;
-    if (instance) {
-      instance.rotation.y += delta * 0.045;
+    if (!instance) {
+      return;
     }
+    const drag = dragRef.current;
+    if (!drag.active) {
+      rotationRef.current.y += delta * 0.045 + drag.velocity;
+      drag.velocity *= 0.94;
+      if (Math.abs(drag.velocity) < 0.0004) {
+        drag.velocity = 0;
+      }
+    }
+    instance.rotation.y = rotationRef.current.y;
+    instance.rotation.x = rotationRef.current.x;
   });
 
   return <primitive object={globe} />;
