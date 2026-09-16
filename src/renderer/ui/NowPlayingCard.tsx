@@ -6,6 +6,7 @@ import { useMemo, useRef } from 'react';
 import { useAudioStore } from '../audio/store';
 import { useLibraryStore } from '../store/library';
 import { useDominantColor, withAlpha, contrastText, energyTargetFallback } from '../hooks/useDominantColor';
+import { useStageScale } from '../hooks/useStageScale';
 import VinylDisc from './VinylDisc';
 import type { TrackRecord } from '../../shared/ipc/music';
 
@@ -58,8 +59,11 @@ export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) 
     inputRef.current?.click();
   };
 
-  const discSize = 130;
-  const coverSize = 112;
+  // 唱盘随首页纵向节奏一起收缩（useStageScale），矮窗口下三带仍能一屏放下
+  const stageScale = useStageScale();
+  const discSize = Math.round(130 * stageScale);
+  const coverSize = Math.round(112 * stageScale);
+  const playSize = Math.round(46 * stageScale);
   const isEmpty = !heroTrack;
 
   const statusLabel = isCurrent
@@ -128,8 +132,8 @@ export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) 
             isEmpty ? 'opacity-50 group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
           style={{
-            width: 46,
-            height: 46,
+            width: playSize,
+            height: playSize,
             background: withAlpha(accent, 0.92),
             color: contrastText(accent),
             boxShadow: `0 0 32px ${withAlpha(accent, 0.5)}`,

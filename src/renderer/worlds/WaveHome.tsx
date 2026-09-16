@@ -8,12 +8,14 @@ import PlaylistPanel, { type PlaylistPanelTarget } from '../ui/PlaylistPanel';
 import { useAudioStore } from '../audio/store';
 import { useLibraryStore } from '../store/library';
 import { useDominantColor, withAlpha } from '../hooks/useDominantColor';
+import { useStageScale } from '../hooks/useStageScale';
 import type { ProviderHomeContent, ProviderPlaylistSummary } from '../../shared/music/providers';
 import type { TrackRecord } from '../../shared/ipc/music';
 
-const WAVE_COVER = 'min(92px, 10.5vh)';
-const CHART_BIG = 'min(126px, 14vh)';
-const CHART_SMALL = 'min(84px, 9.5vh)';
+/* 封面基准尺寸（900px 高窗口下的验收值）：渲染时乘以 useStageScale 的缩放系数。 */
+const WAVE_COVER_BASE = 92;
+const CHART_BIG_BASE = 126;
+const CHART_SMALL_BASE = 84;
 
 function Clock() {
   const [now, setNow] = useState(() => new Date());
@@ -35,31 +37,39 @@ function Clock() {
   );
 }
 
-/** 悬停浮现的玻璃小签。 */
-function HoverLabel({ title, sub, visible }: { title: string; sub: string; visible: boolean }) {
+/** 悬停时浮在封面内部的标题条（不越界，不与底部入口抢位置）。 */
+function CoverOverlay({ title, sub, visible, radius = 10 }: { title: string; sub: string; visible: boolean; radius?: number }) {
+  const s = useStageScale();
   return (
     <div
-      className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap"
+      className="pointer-events-none absolute inset-x-0 bottom-0"
       style={{
-        bottom: -34,
+        padding: `${Math.round(22 * s)}px ${Math.round(9 * s)}px ${Math.round(7 * s)}px`,
+        borderRadius: `0 0 ${radius}px ${radius}px`,
+        background: 'linear-gradient(to top, rgba(0,0,0,0.88), rgba(0,0,0,0.42) 52%, transparent)',
         opacity: visible ? 1 : 0,
-        transform: `translate(-50%, ${visible ? 0 : 4}px)`,
+        transform: `translateY(${visible ? 0 : 3}px)`,
         transition: 'opacity 240ms var(--mo-ease), transform 240ms var(--mo-ease)',
       }}
     >
-      <div
-        className="rounded-full px-3 py-1.5"
-        style={{
-          background: 'var(--mo-bg-elevated-strong)',
-          border: '1px solid var(--mo-line)',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-        }}
-      >
-        <div style={{ fontSize: 11, color: 'var(--mo-ink)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {title}
-        </div>
-        {sub ? <div style={{ fontSize: 9, color: 'var(--mo-ink-faint)', marginTop: 1 }}>{sub}</div> : null}
+      <div style={{ fontSize: Math.max(9, Math.round(10.5 * s)), lineHeight: 1.25, color: 'rgba(255,255,255,0.94)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {title}
       </div>
+      {sub ? (
+        <div
+          style={{
+            fontSize: Math.max(8, Math.round(9 * s)),
+            lineHeight: 1.3,
+            marginTop: 1,
+            color: 'rgba(255,255,255,0.55)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {sub}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -78,10 +88,11 @@ function WaveCover({
 }) {
   const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
+  const s = useStageScale();
   return (
     <div
       className="group relative cursor-pointer select-none"
-      style={{ width: WAVE_COVER }}
+      style={{ width: Math.round(WAVE_COVER_BASE * s) }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onOpen}
@@ -111,9 +122,11 @@ function WaveCover({
             ? `0 26px 60px rgba(0,0,0,0.7), 0 0 40px ${withAlpha(accent, 0.4)}`
             : '0 16px 40px rgba(0,0,0,0.55)',
           transition: 'box-shadow 380ms var(--mo-ease), border-color 380ms var(--mo-ease)',
+          overflow: 'hidden',
         }}
-      />
-      <HoverLabel title={title} sub={sub} visible={hovered} />
+      >
+        <CoverOverlay title={title} sub={sub} visible={hovered} />
+      </div>
     </div>
   );
 }
@@ -134,7 +147,8 @@ function ChartCover({
 }) {
   const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
-  const size = big ? CHART_BIG : CHART_SMALL;
+  const s = useStageScale();
+  const size = Math.round((big ? CHART_BIG_BASE : CHART_SMALL_BASE) * s);
   return (
     <div
       className="group relative shrink-0 cursor-pointer select-none"
@@ -186,7 +200,6 @@ function ChartCover({
       >
         {String(rank).padStart(2, '0')}
       </div>
-      <HoverLabel title={title} sub="" visible={hovered} />
     </div>
   );
 }
@@ -205,10 +218,11 @@ function TrackCover({
 }) {
   const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
+  const s = useStageScale();
   return (
     <div
       className="group relative cursor-pointer select-none"
-      style={{ width: WAVE_COVER }}
+      style={{ width: Math.round(WAVE_COVER_BASE * s) }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onOpen}
@@ -238,22 +252,25 @@ function TrackCover({
             ? `0 26px 60px rgba(0,0,0,0.7), 0 0 40px ${withAlpha(accent, 0.4)}`
             : '0 16px 40px rgba(0,0,0,0.55)',
           transition: 'box-shadow 380ms var(--mo-ease), border-color 380ms var(--mo-ease)',
+          overflow: 'hidden',
         }}
-      />
-      <HoverLabel title={title} sub={artist} visible={hovered} />
+      >
+        <CoverOverlay title={title} sub={artist} visible={hovered} />
+      </div>
     </div>
   );
 }
 
 /** 区块标题（标题 + 计数 + 右侧说明）。 */
 function SectionHead({ title, count, hint }: { title: string; count: number; hint?: string }) {
+  const s = useStageScale();
   return (
-    <div className="flex items-baseline gap-3" style={{ padding: '0 40px', marginBottom: 14 }}>
-      <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
-      <span className="font-mono" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>
+    <div className="flex items-baseline gap-3" style={{ padding: '0 40px', marginBottom: Math.round(14 * s) }}>
+      <h2 style={{ fontSize: Math.max(11, Math.round(14 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
+      <span className="font-mono" style={{ fontSize: Math.max(9, Math.round(10 * s)), color: 'var(--mo-ink-faint)' }}>
         {count}
       </span>
-      {hint ? <span style={{ fontSize: 11, color: 'var(--mo-ink-faint)', marginLeft: 4 }}>{hint}</span> : null}
+      {hint ? <span style={{ fontSize: Math.max(10, Math.round(11 * s)), color: 'var(--mo-ink-faint)', marginLeft: 4 }}>{hint}</span> : null}
     </div>
   );
 }
@@ -271,6 +288,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   const tracks = useLibraryStore((s) => s.tracks);
   const history = useLibraryStore((s) => s.history);
 
+  const stageScale = useStageScale();
   const stageRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef(new Map<string, HTMLDivElement | null>());
   const pointerRef = useRef({ x: 0.5, y: 0.5 });
@@ -430,19 +448,19 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   return (
     <div className="absolute inset-0 z-10">
       <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden">
-        <div style={{ padding: '64px 0 44px' }}>
+        <div style={{ padding: `${Math.round(Math.max(52, 48 * stageScale))}px 0 ${Math.round(26 * stageScale)}px` }}>
           {/* 问候语 */}
-          <div style={{ padding: '0 40px', marginBottom: 22 }}>
-            <h1 style={{ fontSize: 30, fontWeight: 300, letterSpacing: '-0.02em', color: 'var(--mo-ink)' }}>
+          <div style={{ padding: '0 40px', marginBottom: Math.round(18 * stageScale) }}>
+            <h1 style={{ fontSize: Math.max(19, Math.round(30 * stageScale)), fontWeight: 300, letterSpacing: '-0.02em', color: 'var(--mo-ink)' }}>
               {greeting}
             </h1>
-            <p className="mt-1.5" style={{ fontSize: 12, color: 'var(--mo-ink-faint)' }}>
+            <p className="mt-1.5" style={{ fontSize: Math.max(10, Math.round(12 * stageScale)), color: 'var(--mo-ink-faint)' }}>
               {greetingSub}
             </p>
           </div>
 
           {/* 现在播放 */}
-          <div style={{ padding: '0 40px', marginBottom: 34 }}>
+          <div style={{ padding: '0 40px', marginBottom: Math.round(26 * stageScale) }}>
             <NowPlayingCard onDetail={onDetail} />
           </div>
 
@@ -450,7 +468,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
           <div style={{ perspective: 1300 }}>
             <div ref={stageRef} style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}>
               {/* 推荐歌单 */}
-              <div style={{ marginBottom: 40 }}>
+              <div style={{ marginBottom: Math.round(30 * stageScale) }}>
                 <SectionHead title="推荐歌单" count={playlists.length} hint="网易云编辑精选" />
                 {renderWaveBand(
                   'playlist',
@@ -468,7 +486,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
 
               {/* 排行榜（榜单语言：前三大 + 大号排名） */}
               {toplists.length > 0 ? (
-                <div style={{ marginBottom: 40 }}>
+                <div style={{ marginBottom: Math.round(30 * stageScale) }}>
                   <SectionHead title="排行榜" count={toplists.length} hint="此刻最热" />
                   <div className="flex items-end" style={{ padding: '0 40px', gap: 'clamp(10px, 1.1vw, 18px)' }}>
                     {toplists.map((playlist, index) => (
