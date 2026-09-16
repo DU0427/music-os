@@ -106,7 +106,7 @@ Evidence:
 Must validate:
 
 - One persistent R3F canvas instance is present.
-- Home and Midnight worlds switch through `currentSpace` updates without page reload/navigation.
+- Home 与 Library 空间通过 `currentSpace` 更新切换，不触发页面重载/导航。
 - Camera transition appears continuous (no frame-teleport symptom in smoke/manual spot check).
 
 Evidence:
@@ -116,11 +116,13 @@ Evidence:
   - `transitionResult.afterDetected === true`
   - `transitionResult.conflictIgnored === true`
   - `transitionResult.afterReturnDetected === true`
+  - `transitionResult.libraryWorldVisible === true`
+  - `transitionResult.repeatedTransitionDiagnostic?.ok === true`（连续 5 轮 home ↔ library）
 - `result.shellVisible === true`
 - `result.homeState === true`
 - state checks are resolved from hidden diagnostics attributes:
   - `#audio-session-debug[data-current-space="home"]` at baseline
-  - `#audio-session-debug[data-current-space="midnight"]` after transition
+  - `#audio-session-debug[data-current-space="library"]` after transition
   - `#audio-session-debug[data-is-transitioning="0"]` for settle checks
 
 ### Stage 3 Gate - Audio Reactive Layer
@@ -142,23 +144,15 @@ Evidence:
   - `playbackStressResult?.frameStats?.frameProfilerSupported === false || playbackStressResult?.frameStats?.frameStabilityOk === true`
   - `playbackStressResult?.eventLoopStats?.supported === false || playbackStressResult?.eventLoopStats?.loopHealthOk === true`
 - manual pass: change track energy and observe:
-  - `src/renderer/core/MusicCore.tsx` motion/amplitude changes
+  - `src/renderer/worlds/WaveHome.tsx` 封面的波场起伏与 `--mo-beat` 驱动的光晕/名次徽章呼吸
   - `src/renderer/worlds/SpaceBackdrop.tsx` star size/opacity modulation
-  - `src/renderer/worlds/CitySilhouette.tsx` building emissive response
-  - `src/renderer/worlds/MemoryField.tsx` particle field response
+  - `src/renderer/worlds/CoverParticleField.tsx` cover-driven particle bounce
+  - `src/renderer/ui/NowPlayingCard.tsx` 唱盘旋转与 accent 呼吸
 
-### Stage 4 Gate - Song World Content
+### Stage 4 Gate - Song World Content（已退役）
 
-Must validate:
-
-- Midnight City entry renders atmosphere, city structure, energy field, and spatial UI.
-- Return flow to Home exists and is object-driven.
-
-Evidence:
-
- - `#audio-session-debug[data-current-space]` transitions home -> midnight via scene object interaction
- - `#song-world-overlay` exists only in midnight space
-- scene includes `MidnightCityWorld.tsx` components and `CitySilhouette`/`MemoryField`.
+- 历史 Midnight City World / Song World overlay 已退役，空间收敛为 `home / library / memory`（见 `AGENTS.md`）。
+- 当前该阶段由 Library（封面场）与 Memory（暖金轨迹）取代：可见性检查并入 Stage 2 的 `libraryWorldVisible`。
 
 ### Stage 5 Gate - Data Boundary
 
@@ -213,9 +207,9 @@ The UI state checks are intentionally resilient to rendering drift:
   - `#root` exists
   - `#audio-session-debug[data-current-space="home"]`
 - transition result confirms:
-  - `#audio-session-debug[data-current-space="midnight"]`
+  - `#audio-session-debug[data-current-space="library"]`
   - `#audio-session-debug[data-is-transitioning="0"]`
-  - `#song-world-overlay` exists
+  - `transitionResult.libraryWorldVisible === true`
 
 ## Failure Classes and Next Actions
 
@@ -227,10 +221,10 @@ The UI state checks are intentionally resilient to rendering drift:
   - Next action: inspect `out/renderer/index.html` and `main-window` URL/path policy.
 - missing `audioInput` / missing world overlay:
   - input field or overlay not yet wired in renderer shell.
-  - Next action: check `AudioDock.tsx`, `SongWorldOverlay.tsx`, runtime state transitions.
+  - Next action: check `AudioDock.tsx`、`NowPlayingCard.tsx`、runtime state transitions。
 - transition checks fail:
-  - IPC/DOM bridge unavailable to external automation, or runtime store not mutating to `midnight`.
-  - Next action: inspect the space transition contract and event hook.
+  - IPC/DOM bridge unavailable to external automation, or runtime store not mutating to `library`.
+  - Next action: inspect the space transition contract and event hook (`music-os-set-space` / `requestSpace`).
 
 ## Current Evidence Snapshot
 

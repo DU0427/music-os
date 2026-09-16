@@ -1,5 +1,17 @@
 # Music OS Architecture Audit (Phase 0)
 
+> 更新：2026-09-16。本文保留 Phase 0 审计与迁移决策作为历史记录；**当前架构与边界以 `AGENTS.md` 为准，视觉规格以 `docs/design-language-v2.md` 为准**。
+> 当前一句话现状：Electron + Vite + React 19 + R3F + Zustand + Web Audio + better-sqlite3；三空间 `home / library / memory`；netease 适配器（搜索 / 详情 / 播放地址 / 扫码登录 / 内容入口）已实网验证；音频地球实验已移除（`de39204`）。
+
+## 0) 当前边界速览（2026-09）
+
+- `electron/`（Main）：生命周期、窗口、typed IPC handlers、SQLite（`MusicRepository`）、Provider 适配器（`mock` + `netease`）。
+- `electron/preload.ts`：contextBridge，唯一跨进程 API 面（`window.musicOS`）。
+- `src/renderer/`：DOM / 单 Canvas 3D / 音频（AudioEngine + Web Audio 分析）/ Zustand。
+- `src/shared/`：IPC channels 与共享契约（`ipc/`、`music/providers.ts`、`types/world.ts`）。
+- 空间：`home`（WaveHome：问候语 + hero + 内容卡行）、`library`（封面场）、`memory`（暖金轨迹）。
+- 验证门：`build:renderer` / `build:electron` / `smoke:electron`（契约见 `docs/smoke-contract.md`）。
+
 ## 1) Current State (as of active repository scan)
 
 - Electron + Vite is now the active desktop runtime baseline.
@@ -65,15 +77,14 @@ Non-goal in this phase:
 - Stage plan: explicit per-phase execution list in `docs/phase-0-plan.md`.
 - Stage handoff tracker: `docs/goal-progress.md`.
 - Phase 1 bootstrap status: baseline shell files are added and wired to typed IPC (`app:ready`, `app:ping`) for runtime handoff.
-- Phase 2 baseline status: a single persistent R3F Canvas now owns `WorldManager`, camera interpolation, Home Space, Music Core, and the initial Midnight world shell.
+- Phase 2 baseline status: a single persistent R3F Canvas owns `WorldManager`, camera interpolation, `SpaceBackdrop` 与 `CoverParticleField` 氛围层。
 - Phase 3 baseline status: renderer-local playback uses a real local file, Web Audio analysis,
   smoothed metrics, and frame-local visual bindings without storing FFT arrays in Zustand.
-- Phase 4 baseline status: Midnight City World includes procedural atmosphere, skyline,
-  memory particles, spatial song labeling, audio response, and a spatial return object.
+- Phase 4 baseline status: 三空间收敛为 `home / library / memory`（历史 Midnight City World 已退役）。
 - Phase 5 baseline status: SQLite migrations and repositories run in Electron Main, with typed
   CRUD IPC contracts for tracks, history, memories, world settings, and playback state.
-- Phase 6 baseline status: provider contracts and a Main-process registry exist; a deterministic
-  mock stream adapter is active while NetEase/QQ adapters remain unimplemented.
+- Phase 6 baseline status: provider contracts、Main 进程 registry、mock 播放流与网易云适配器（搜索 / 详情 /
+  播放地址 / 扫码登录 / 推荐歌单与排行榜）均已落地；QQ 适配器仍未实现。
 
 ## 6) Runtime Verification Contract
 
@@ -82,8 +93,13 @@ Non-goal in this phase:
   - `window.musicOS` bridge availability.
   - `app:ready` and `app:ping` IPC success.
   - renderer shell mount + audio input presence.
-  - home-to-midnight transition and Song World overlay visibility.
+  - home → library → home 空间转场（连续 5 轮）与曲库世界可见性。
+  - playback stress（6 轮播放/暂停仍然推进时间）与堆稳定性。
   - no preload-load/render startup failure signals.
+
+## 8) 历史参考
+
+- 早期 Next.js 原型与 Phase 0 附件路径仅作历史参考；当前活跃前端是 `src/renderer`，旧目录不参与构建。
 
 ## 7) Stage 0 Read-Continue References
 

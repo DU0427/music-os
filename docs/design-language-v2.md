@@ -1,8 +1,9 @@
 # music-os 设计语言 v2 —— Design Language
 
-> 版本：2026-09-01
+> 版本：2026-09-16（v2.1）
 > 状态：已获用户批准的设计方向，作为重设计的唯一权威规格。
 > 参考来源：MineRadio（XxHuberrr/Mineradio, GPL-3.0，仅借鉴理念/手法，不复制代码素材）+ Apple HIG / apple.com 现代美学。
+> v2.1 变更：Home 从「单颗发光封面」升级为「问候语 + 内容卡体系」（见 3.1 / 3.6），补充文字清晰度纪律与响应式节奏规格。
 
 ## 0. 设计哲学
 
@@ -93,15 +94,19 @@ border-radius: 14px;                          /* 面板；控件用胶囊 */
 
 ## 3. 布局与场景
 
-### 3.1 Home ——「舞台」
+### 3.1 Home ——「舞台 + 内容卡」
 
-- 纯黑舞台，无轨道环、无行星、无卡片墙。
-- **中央偏左**：大封面发光物（280-340px，封面 + 身后 80px blur 光晕）。这是"正在播放/继续听"。
-  - 有曲目：封面 + 显示级曲名（30px/300）+ 歌手（14px 灰）。点击 = 播放/暂停。
-  - 无曲目：唱片渐变兜底 + "载入歌曲"提示，点击打开文件选择。
-- **右下角**：安静的时钟（`--mo-font-mono` 数字，弱灰）。MineRadio Now 屏概念。
-- **左下角**：2-3 枚发光小物体（半径 ~40px）：曲库 / 记忆 / 情绪滤镜。悬停浮现文字标签（micro 档）。点击进入对应屏/切换滤镜。
-- 大面积留白。焦点只有一个：那颗发光的封面。
+- 纯黑舞台，无轨道环、无行星、无卡片墙；纵向自上而下五段：
+  1. **时间问候语**（显示级 `30px/300`）：早上好 / 中午好 / 下午好 / 晚上好 / 夜深了；副标题 `body` 档，有听歌记录时显示「上次听到「曲名」」，否则「今天想听点什么？」。
+  2. **NowPlayingCard**（hero）：唱盘（黑胶 + 封面压在盘上，播放时旋转）+ 状态行 + 显示级曲名 + 歌手；悬停浮现播放键；空态为「把音乐带进来」+ 本地选择。
+  3. **推荐歌单**：4 张内容卡（见 3.6），点击打开右侧歌单曲目面板。
+  4. **排行榜**：12 张等尺寸榜单卡，封面左上角名次徽章（`01`–`12`），下方标题与曲目数。
+  5. **最近播放**：单行 6 列紧凑列表（56px 封面 + 曲名 + 艺术家），点击直接 `playTrack`；少于 3 首不显示。
+- **一屏纪律**：纵向节奏由 `useStageScale` 按视口高度整体缩放（内容高度 ≈ `205 + 580·s`，`s ∈ [0.55, 1]`），1320×900 一屏放下且不显示滚动条；矮窗口等比压缩，滚到底时末行文字仍高于左下入口 16px。
+- **底部预留**：滚动容器底部固定预留 94px（左下入口区），保证末行卡片永不压住 曲库/记忆/情绪 入口。
+- **右下角**：安静的时钟（`--mo-font-mono`，弱灰）。
+- **左下角**：3 枚入口（曲库 / 记忆 / 情绪滤镜），悬停浮现 micro 档标签。
+- 大面积留白与三段明确层级：问候语（显示级）→ hero（视觉焦点）→ 内容卡（内容级）。
 
 ### 3.2 曲库 ——「封面场」
 
@@ -131,6 +136,32 @@ border-radius: 14px;                          /* 面板；控件用胶囊 */
 - 结构：小封面(44px) + 播放/暂停(胶囊) + 曲名/歌手 + 进度 hairline（发光 thumb）+ 时间 + 频谱（实时走动）。
 - 频谱：`<canvas>` 或 30 条 hairline，用 `AudioEngine` metrics 实时绘制，仅播放态可见。
 
+### 3.6 内容卡体系（Home 内容区统一语言）
+
+所有内容入口都遵循「封面 + 文字层级」结构（借鉴 MineRadio 的 label / title / sub 结构，视觉自研），**不出现裸封面阵列**：
+
+| 卡片 | 结构 | 尺寸（基准，乘以 `s`） |
+|---|---|---|
+| 推荐歌单卡 | 左侧：眉标（accent 微光 mono）+ 两行标题 + 「N 首 · X 播放」；右下：封面（圆角 20px，静置 `rotate(3.5deg)`，悬停 `1.5deg`）+ 主色光晕 | 卡高 124，封面 94 |
+| 榜单卡 | 封面 + 封面左上角名次徽章（玻璃胶囊）+ 下方标题 + 曲目数；等尺寸网格铺满一行（12 列） | 封面 78（列宽自适应） |
+| 曲目卡 | 单行：56px 封面 + 曲名 + 艺术家（悬停整行微亮） | 高 ≈ 70 |
+
+- 播放量压缩显示：`1.2万` / `65.0亿`。
+- 悬停：卡片 `translateY(-3px)` + accent 描边 + 主色光晕；曲目卡只做整行底色微亮。
+- 入场编排：问候语 0ms → hero 80ms → 推荐歌单 160ms → 排行榜 240ms → 最近播放 330ms，带内按列再错开 26–28ms（520ms，`--mo-ease`）。
+
+**文字清晰度纪律（强制）**：
+
+1. 3D 变换（`perspective` / `rotateY` / `translate3d`）**只允许作用在封面层**；文字层必须保持 2D，否则整棵子树会被合成层光栅化而发虚。
+2. 名次徽章、标题等文字元素不得放在被每帧变换的元素内部。
+3. 入场动画结束后必须移除 reveal 的 `filter` / `transform`（`filter: blur(0)` 同样会产生合成层）。
+4. 指针视差只位移封面层，不移动文字。
+
+**播放态节拍接管（性能约束）**：
+
+- rAF 每帧只写一次 CSS 变量 `--mo-beat`（变化阈值 0.008，暂停归零），封面光晕与名次徽章用 `calc()` 读取该变量呼吸，禁止逐元素每帧写 style。
+- 光晕静止基线 0.5–0.72，节拍峰值封顶 1；暂停后必须回到静止基线。
+
 ## 4. 两态定义
 
 | | 未播放态「黑场」 | 播放态「接管」 |
@@ -142,38 +173,44 @@ border-radius: 14px;                          /* 面板；控件用胶囊 */
 
 ## 5. 明确不做（约束）
 
-- 不引入卡片网格/推荐 rail/歌词舞台/3D 歌单架（dashboard 化）。
+- 不做 dashboard 化：不允许六卡入口网格、推荐 rail、歌词舞台、Spotify 式后台布局。
+  Home 的卡片行**只为真实内容服务**（歌单 / 榜单 / 曲目），不得作为功能菜单或空壳入口。
 - 不做满屏封面粒子墙（MineRadio 式中央视觉）；我们的粒子幕是**背景层**，透明度克制。
+- 不出现裸封面阵列：内容入口必须带文字层级（见 3.6）。
 - 不引入 MineRadio 的青绿主色；保留我们"黑 + 白 + 动态色 + 记忆暖金"体系。
 - 不复制 Mineradio 的任何代码/素材/图片（GPL-3.0 + 视觉版权归作者）。
 - 不新增空间目的地（mood/visualizer 不再占空间槽位）；`currentSpace` 收敛为 home / library / memory。
 - 技术形态不改：单 Canvas、CameraRig、AudioEngine、Zustand、IPC/SQLite/Provider 边界、数据模型。
 
-## 6. 组件级变更地图
+## 6. 组件级变更地图（v2.1 现状）
 
-| 文件 | 动作 |
+| 文件 | 现状 |
 |---|---|
-| `styles/tokens.css` | 重写为 v2 视觉系统 |
-| `styles/globals.css` | 去蓝调、焦点环、动效体系 |
-| `ui/HomeOrbital.tsx` | 重写为「舞台」场景（删行星/轨道/核心球） |
-| `ui/CoreVisualDom.tsx` | 退役（由封面发光物替代）；如保留仅作兜底 |
-| `ui/AudioDock.tsx` | 升级为完整玻璃控制条（频谱 + accent 流动） |
-| `ui/TopBar.tsx` | 精简：brand + 空间标题 + 搜索，删除密集弹层 |
-| `ui/SearchOrbital.tsx` | 保留（视觉对齐新 token） |
-| `ui/DetailOrbital.tsx` | 简化或并入封面详情面板 |
-| `worlds/LibraryGalaxyWorld.tsx` | 重写为封面场 |
+| `styles/tokens.css` | v2 视觉系统（黑场 + 三档灰 + 单一动态 accent） |
+| `styles/globals.css` | 动效关键帧（fade / stage-in / cover-breathe / vinyl-spin / dock-in）+ `.mo-skeleton` 骨架 + 隐藏滚动条工具类 |
+| `worlds/WaveHome.tsx` | Home 全部内容：问候语 / NowPlayingCard / 推荐歌单卡 / 榜单卡 / 最近播放列表 + 波场 rAF + 入场编排 + 骨架 + 面板联动 |
+| `ui/NowPlayingCard.tsx` | hero：唱盘 + 封面 + 文案 + 播放键 + 本地文件 input（`useStageScale` 同步收缩） |
+| `ui/PlaylistPanel.tsx` | 歌单 / 榜单曲目玻璃侧栏（`loadProviderTrack` 播放） |
+| `ui/StageChips.tsx` | 左下入口：曲库 / 记忆 / 情绪滤镜 |
+| `ui/BootSplash.tsx` | 启动动画（黑场 + 呼吸点 + wordmark + 扫光，最短 3.2s） |
+| `hooks/useStageScale.ts` | Home 纵向节奏缩放（视口高度 → `s`，实测标定） |
+| `hooks/useDominantColor.ts` | 封面主色提取（8×8 降采样）与 `withAlpha` / `contrastText` |
+| `worlds/WorldManager.tsx` | 单 Canvas：`SpaceBackdrop` + `CoverParticleField` + `AudioLighting` + `CameraRig` |
+| `worlds/LibraryGalaxyWorld.tsx` | 曲库封面场 |
 | `worlds/MemoryFieldWorld.tsx` | 暖金细光时间线 |
-| `worlds/MoodSpaceWorld.tsx` | 删除（并入首页滤镜） |
-| `worlds/VisualizerWorld.tsx` | 并入播放态（删除独立空间） |
-| `worlds/CoverParticleField.tsx` | 提级为播放舞台主角（参数调整） |
-| `worlds/HomeSpace.tsx` | 保持空壳（环境由 CoverParticleField + SpaceBackdrop 提供） |
-| `App.tsx` | 空间收敛、移除 mood/visualizer 渲染分支 |
-| `store/runtime.ts` | currentSpace 类型收敛 |
+| `worlds/HomeSpace.tsx` | 空壳（环境由 CoverParticleField + SpaceBackdrop 提供） |
+| `App.tsx` | 空间编排（home / library / memory）+ 启动 curtain + IPC 监听 |
+| `store/runtime.ts` | `currentSpace` 收敛为三空间 |
 
-## 7. 验收总纲
+> 已移除：`GlobeWorld` / `GlobeOverlay` / `store/globe` / `worlds/globe-regions`（音乐地球实验，`de39204`），以及 `MoodSpaceWorld`、`VisualizerWorld` 等旧空间。
 
-1. 启动后首屏 = 纯黑 + 一颗发光封面 + 安静排版，无轨道环/行星/雾气。
-2. 载入歌曲播放 → 封面粒子幕浮起 + 界面被该曲主色染色 + 控制条频谱走动。
-3. 暂停 → 回暗场。曲库 = 真实封面网格。记忆 = 暖金时间线。
-4. 全程 `npm run build:renderer` + `npm run build:electron` + `smoke:electron` 绿。
-5. 无 dashboard/卡片网格/推荐流；无 Mineradio 素材复制。
+## 7. 验收总纲（v2.1）
+
+1. 启动后首屏 = 纯黑 + 问候语 + 唱盘 hero + 三行内容卡；无轨道环/行星/雾气/裸封面墙。
+2. 内容区每张卡都带文字层级（眉标 / 标题 / 元信息），榜单名次以徽章形式落在封面内。
+3. 载入歌曲播放 → 封面粒子幕浮起 + 界面被该曲主色染色 + 封面光晕与名次徽章随节拍呼吸。
+4. 1320×900 一屏放下、无可见滚动条；缩到 1100×700 时等比压缩，滚到底末行仍高于左下入口。
+5. 文字清晰：卡片标题 / 名次徽章在静止态与入场结束后均无发虚（3D 只作用在封面层）。
+6. 暂停 → 回暗场（`--mo-beat` 归零，光晕回静止基线）。
+7. 全程 `npm run build:renderer` + `npm run build:electron` + `smoke:electron` 绿。
+8. 无 dashboard 化布局、无 Mineradio 素材复制。

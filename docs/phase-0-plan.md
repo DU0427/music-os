@@ -1,3 +1,5 @@
+> ⚠️ 历史文档：记录截至 2026-07（含早期 midnight 空间与 Phase 0 阶段）。当前设计与规则以 `AGENTS.md` 与 `docs/design-language-v2.md` 为准，本文件不作为规格依据。
+
 # Phase 0 Audit Plan and Decision Register
 
 ## 0) Objective

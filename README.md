@@ -21,8 +21,9 @@ Music OS 是一款面向桌面的空间化音乐体验应用。
 - Electron Main、Preload、Renderer 三层边界。
 - 基于 typed IPC 的跨进程通信。
 - 单一、持续存在的 React Three Fiber Canvas。
-- v2 三空间：Home 黑场舞台、曲库封面场、记忆轨迹。
+- v2 三空间：Home 黑场舞台（WaveHome：问候语 + 唱盘 hero + 推荐歌单内容卡 / 榜单卡 / 最近播放列表）、曲库封面场、记忆轨迹。
 - CameraRig 空间转场与单 Canvas 编排。
+- 首页一屏自适应：`useStageScale` 按视口高度缩放节奏；入场分级编排；播放态 `--mo-beat` 驱动封面光晕与名次徽章。
 - 本地音频文件选择、播放、暂停和进度控制。
 - 本地音频内嵌封面提取（music-metadata → `artworkUrl`）。
 - Web Audio API 音频分析。
@@ -33,16 +34,16 @@ Music OS 是一款面向桌面的空间化音乐体验应用。
 - SQLite migration、repository 和本地数据 IPC。
 - Track Identity、Track World Context 和播放状态恢复基础。
 - Provider registry 与可播放 mock provider（返回确定性 `data:audio/wav` 播放流，供 provider 合同与播放链路联调）。
+- 网易云 Provider：搜索 / 歌曲详情 / 播放地址、扫码登录、内容入口（推荐歌单 12 / 排行榜 12）与歌单曲目；实网验证（详见 `docs/provider-netease.md`）。
 - Electron smoke contract。
 
 当前未完成：
 
-- 网易云音乐真实 API 接入。
-- QQ 音乐真实 API 接入。
-- 平台登录和授权。
-- 云同步。
-- 完整音乐库、歌单、歌词和推荐系统。
-- 多个完整 Song World。
+- QQ 音乐等其它平台适配器。
+- 歌单详情 → 播放的完整回归（每日推荐、搜索 UI 切换到 netease）。
+- 云同步、歌词。
+- 完整音乐库与推荐系统。
+- 多个完整 Song World（历史 Midnight City / 音乐地球实验均已退役）。
 
 ## 运行项目
 
@@ -116,7 +117,7 @@ music-os/
 ├── src/
 │   ├── renderer/
 │   │   ├── App.tsx             Renderer 应用 Shell
-│   │   ├── worlds/              Home、Midnight City 和空间运行时
+│   │   ├── worlds/              WaveHome（首页）、曲库封面场、记忆轨迹与空间运行时
 │   │   ├── core/                Music Core 视觉组件
 │   │   ├── camera/              摄像机和空间转场
 │   │   ├── audio/               音频播放和 Web Audio 分析
@@ -198,7 +199,7 @@ Provider 需要将平台数据转换为统一的共享模型，包括：
 - 授权状态。
 - 限流、不可用和未实现错误。
 
-当前 mock provider 提供可播放的确定性 `data:audio/wav` 测试流，可用于验证 Provider 合同和可播放链路；真实平台（网易云/QQ）仍未接通授权。
+当前 mock provider 提供可播放的确定性 `data:audio/wav` 测试流，用于验证 Provider 合同与可播放链路；网易云适配器已实现搜索 / 详情 / 播放地址、扫码登录与内容入口（推荐歌单、排行榜），并在真实网络下验证；QQ 平台尚未接入。
 
 真实平台接入需要同时确认：
 
@@ -212,13 +213,12 @@ Provider 需要将平台数据转换为统一的共享模型，包括：
 
 下一阶段优先级（按执行顺序，详见根目录 `AGENTS.md`）：
 
-1. 人工回归：连续验证本地文件载入、播放、暂停、切换、返回、关闭、重启恢复，至少 30 分钟。
-2. 本地封面兜底：无内嵌封面时按 `cover.*`、`folder.*`、同名图片优先级读取同目录图片。
-3. 视觉调参：用真实节拍曲目调粒子弹跳幅度、密度、点径与透明度。
-4. 性能验证：长时间播放下的 GPU/CPU、内存与帧稳定性。
-5. 本地体验稳定后，再做合法的网易云/QQ 授权与 Provider 接入。
+1. 人工回归：连续验证本地文件与 Provider 播放的载入、播放、暂停、切换、返回、关闭、重启恢复，至少 30 分钟。
+2. 内容链路：歌单详情 → 曲目列表 → 点击播放（复用 `playTrack` 的 provider 分支）；每日推荐与搜索 UI 切换到 netease。
+3. 视觉调参：用真实节拍曲目调粒子 / 封面弹跳幅度、密度、点径与透明度，目标动感但不抖屏、不形成粗糙噪点。
+4. 性能验证：长时间播放下的 GPU/CPU、内存与帧稳定性；保持单 Canvas 与当前粒子数量预算。
 
-暂时不扩展新的空间、歌词、推荐、云同步和完整音乐库功能。
+暂时不扩展新的空间、歌词、云同步和完整音乐库功能。
 
 ## 文档
 
@@ -229,6 +229,10 @@ Provider 需要将平台数据转换为统一的共享模型，包括：
 - [阶段计划](docs/phase-0-plan.md)
 - [产品切片进度](docs/product-slice-progress.md)
 - [Electron Smoke Contract](docs/smoke-contract.md)
+- [IPC 契约](docs/ipc-contracts.md)
+- [数据模型](docs/data-model.md)
+- [Provider 契约](docs/provider-contracts.md)
+- [网易云 Provider](docs/provider-netease.md)
 - [Goal 进度记录](docs/goal-progress.md)
 
 ## 设计方向
