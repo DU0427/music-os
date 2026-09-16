@@ -7,7 +7,6 @@ const cover_1 = require("../audio/cover");
 const file_data_1 = require("../audio/file-data");
 const auth_1 = require("../providers/netease/auth");
 const content_1 = require("../providers/netease/content");
-const regions_1 = require("../providers/netease/regions");
 function isRecord(value) {
     return typeof value === 'object' && value !== null;
 }
@@ -170,18 +169,6 @@ function registerAppHandlers(repository, providers) {
         return true;
     });
     electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseHome, async () => (0, content_1.getNeteaseHomeContent)());
-    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseRegionDensity, async () => (0, regions_1.getNeteaseRegionDensity)());
-    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseRegionPlaylists, async (_event, regionId) => {
-        if (typeof regionId !== 'string' || regionId.trim() === '') {
-            return [];
-        }
-        try {
-            return await (0, regions_1.getNeteaseRegionPlaylists)(regionId);
-        }
-        catch {
-            return [];
-        }
-    });
     electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteasePlaylistTracks, async (_event, playlistId) => {
         if (typeof playlistId !== 'string' || playlistId.trim() === '') {
             return [];

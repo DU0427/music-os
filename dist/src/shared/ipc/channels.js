@@ -29,6 +29,4 @@ exports.APP_IPC_CHANNELS = {
     neteaseLogout: 'music:netease:logout',
     neteaseHome: 'music:netease:home',
     neteasePlaylistTracks: 'music:netease:playlist-tracks',
-    neteaseRegionDensity: 'music:netease:region-density',
-    neteaseRegionPlaylists: 'music:netease:region-playlists',
 };
