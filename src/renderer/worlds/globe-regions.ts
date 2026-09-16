@@ -78,6 +78,6 @@ export function buildFootprint(tracks: TrackRecord[], history: ListeningHistoryR
       .map(([id, count]) => ({ region: findRegion(id)!, count }))
       .filter((entry) => Boolean(entry.region))
       .sort((a, b) => b.count - a.count),
-    journeys: journeys.slice(-12),
+    journeys: journeys.slice(-8),
   };
 }

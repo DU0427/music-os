@@ -5,7 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import Globe from 'three-globe';
 import { MeshPhongMaterial } from 'three';
 import { feature } from 'topojson-client';
-import countries110m from 'world-atlas/countries-110m.json';
+import countries110m from 'world-atlas/land-110m.json';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import { useLibraryStore } from '../store/library';
 import { buildFootprint, REGION_POINTS, type RegionPoint } from './globe-regions';
@@ -154,16 +154,17 @@ export default function GlobeWorld() {
     };
   }, [globe]);
 
-  /* 陆地：国家轮廓以暗色面 + 细亮海岸线呈现（真实边界数据） */
+  /* 陆地：真实陆地轮廓（land-110m，无国界内部线，几何量约为 countries 的一半） */
   useEffect(() => {
     const topology = countries110m as unknown as Topology;
-    const collection = feature(topology, topology.objects.countries as GeometryCollection);
+    const collection = feature(topology, topology.objects.land as GeometryCollection);
     globe
       .polygonsData(collection.features)
       .polygonCapColor(() => 'rgba(255,255,255,0.05)')
       .polygonSideColor(() => 'rgba(255,255,255,0.02)')
       .polygonStrokeColor(() => 'rgba(255,255,255,0.30)')
-      .polygonAltitude(0.004);
+      .polygonAltitude(0.004)
+      .polygonCapCurvatureResolution(7);
   }, [globe]);
 
   /* 内容密度光点（真实歌单总量） */
@@ -231,7 +232,7 @@ export default function GlobeWorld() {
       .arcDashLength(0.38)
       .arcDashGap(0.22)
       .arcDashAnimateTime(3400)
-      .arcStroke(0.55);
+      .arcStroke(null);
   }, [globe, footprint]);
 
   /* 缓慢自转 + 拖拽旋转 + 惯性 */

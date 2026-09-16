@@ -109,10 +109,8 @@ export default function GlobeOverlay() {
               onClick={() => setSelectedRegion(isActive ? null : item.id)}
               className="flex items-center gap-2 rounded-full px-3.5 py-2 transition-colors"
               style={{
-                background: isActive ? withAlpha(item.color, 0.16) : 'var(--mo-bg-elevated)',
+                background: isActive ? withAlpha(item.color, 0.18) : 'rgba(12, 12, 15, 0.72)',
                 border: `1px solid ${isActive ? withAlpha(item.color, 0.42) : 'var(--mo-line)'}`,
-                backdropFilter: 'blur(20px) saturate(1.15)',
-                WebkitBackdropFilter: 'blur(20px) saturate(1.15)',
                 color: isActive ? item.color : 'var(--mo-ink-muted)',
               }}
             >
@@ -148,10 +146,8 @@ export default function GlobeOverlay() {
             className="fixed top-0 right-0 bottom-0 z-40 flex flex-col"
             style={{
               width: 'min(400px, 92vw)',
-              background: 'var(--mo-bg-elevated-strong)',
+              background: 'rgba(11, 11, 14, 0.92)',
               borderLeft: '1px solid var(--mo-line)',
-              backdropFilter: 'blur(24px) saturate(1.15)',
-              WebkitBackdropFilter: 'blur(24px) saturate(1.15)',
             }}
           >
             <div className="flex items-start justify-between p-7 pb-4">

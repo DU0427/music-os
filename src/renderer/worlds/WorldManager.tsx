@@ -92,7 +92,7 @@ export default function WorldManager() {
           </div>
         }
         style={{ width: '100%', height: '100%' }}
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         camera={{ position: [0, 1.2, 6], fov: 60 }}
       >

@@ -88,10 +88,8 @@ export default function PlaylistPanel({ target, onClose }: PlaylistPanelProps) {
           className="fixed top-0 right-0 bottom-0 z-40 flex flex-col"
           style={{
             width: 'min(400px, 92vw)',
-            background: 'var(--mo-bg-elevated-strong)',
+            background: 'rgba(11, 11, 14, 0.92)',
             borderLeft: '1px solid var(--mo-line)',
-            backdropFilter: 'blur(24px) saturate(1.15)',
-            WebkitBackdropFilter: 'blur(24px) saturate(1.15)',
           }}
         >
           {/* 头部 */}
