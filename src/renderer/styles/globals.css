@@ -142,6 +142,23 @@ body {
   height: 0;
 }
 
+/* 横向轨道：隐藏滚动条 + 抓取光标（滚动由滚轮/拖拽驱动） */
+.mo-rail {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+}
+.mo-rail::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.mo-rail:active {
+  cursor: grabbing;
+}
+
 /* 载入骨架：一次微光扫过（reduced-motion 时静止） */
 @keyframes mo-skeleton-sheen {
   from {

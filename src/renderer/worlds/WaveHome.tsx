@@ -5,6 +5,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import NowPlayingCard from '../ui/NowPlayingCard';
 import StageChips from '../ui/StageChips';
 import PlaylistPanel, { type PlaylistPanelTarget } from '../ui/PlaylistPanel';
+import Rail from '../ui/Rail';
 import { useAudioStore } from '../audio/store';
 import { useLibraryStore } from '../store/library';
 import { useDominantColor, withAlpha } from '../hooks/useDominantColor';
@@ -15,10 +16,13 @@ import type { TrackRecord } from '../../shared/ipc/music';
 /* 底部固定预留：左下入口（曲库/记忆/情绪）区域高度，保证末行文字不压入口。 */
 const HOME_BOTTOM_RESERVE = 94;
 
-/* 卡面基准尺寸（900px 高窗口下的验收值）：渲染时乘以 useStageScale 的缩放系数。 */
-const PLAYLIST_CARD_BASE = 124;
-const CHART_COVER_BASE = 78;
-const TRACK_COVER_BASE = 56;
+/* 卡面基准尺寸（900px 高窗口下的验收值）：渲染时乘以 useStageScale 的缩放系数。
+   轨道内卡片为固定尺寸，右侧露出的半张卡就是「还有更多」的提示。 */
+const PLAYLIST_CARD_WIDTH = 208;
+const PLAYLIST_CARD_HEIGHT = 118;
+const CHART_COVER_BASE = 104;
+const TRACK_CARD_WIDTH = 186;
+const TRACK_COVER_BASE = 48;
 
 /** 播放量压缩显示（12345 → 1.2万）。 */
 function compactCount(value: number | null): string {
@@ -139,9 +143,10 @@ function PlaylistCard({
       onClick={onOpen}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative w-full overflow-hidden text-left"
+      className="relative shrink-0 overflow-hidden text-left"
       style={{
-        minHeight: Math.round(PLAYLIST_CARD_BASE * s),
+        width: Math.round(PLAYLIST_CARD_WIDTH * s),
+        minHeight: Math.round(PLAYLIST_CARD_HEIGHT * s),
         padding: Math.round(16 * s),
         borderRadius: 18,
         border: `1px solid ${hovered ? withAlpha(accent, 0.4) : 'rgba(255,255,255,0.075)'}`,
@@ -248,8 +253,8 @@ function ChartCard({
       onClick={onOpen}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative w-full text-left"
-      style={{ cursor: 'pointer' }}
+      className="relative shrink-0 text-left"
+      style={{ width: Math.round(CHART_COVER_BASE * s), cursor: 'pointer' }}
     >
       <span style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '1 / 1' }}>
         <span style={{ position: 'absolute', inset: 0, perspective: 700 }}>
@@ -344,8 +349,9 @@ function TrackCard({
       onClick={onOpen}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="flex w-full items-center text-left"
+      className="flex shrink-0 items-center text-left"
       style={{
+        width: Math.round(TRACK_CARD_WIDTH * s),
         gap: Math.round(11 * s),
         padding: `${Math.round(7 * s)}px ${Math.round(9 * s)}px`,
         borderRadius: 12,
@@ -624,33 +630,12 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     }
   };
 
-  /** 卡片行：columns > 0 用等宽网格（卡片填满列），否则等距铺满整行。 */
-  const renderCardRow = (band: string, children: React.ReactNode[], revealBase = 0, columns = 0) =>
-    children.length === 0 ? null : (
-      <div
-        style={{
-          display: columns > 0 ? 'grid' : 'flex',
-          gridTemplateColumns: columns > 0 ? `repeat(${columns}, minmax(0, 1fr))` : undefined,
-          justifyContent: columns > 0 ? undefined : 'space-between',
-          alignItems: 'flex-start',
-          gap: columns > 0 ? 'clamp(10px, 1.1vw, 18px)' : 'clamp(10px, 1.4vw, 26px)',
-          padding: '0 40px',
-        }}
-      >
-        {children.map((child, index) => (
-          <div key={`${band}-${index}`} style={coverReveal(revealBase + index * 26)}>
-            {child}
-          </div>
-        ))}
-      </div>
-    );
-
   return (
     <div className="absolute inset-0 z-10">
       <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden">
         <div style={{ padding: `${Math.round(Math.max(52, 48 * stageScale))}px 0 ${HOME_BOTTOM_RESERVE}px` }}>
           {/* 问候语 */}
-          <div style={{ ...sectionReveal(0), padding: '0 40px', marginBottom: Math.round(18 * stageScale) }}>
+          <div style={{ ...sectionReveal(0), padding: '0 40px', marginBottom: Math.round(16 * stageScale) }}>
             <h1 style={{ fontSize: Math.max(19, Math.round(30 * stageScale)), fontWeight: 300, letterSpacing: '-0.02em', color: 'var(--mo-ink)' }}>
               {greeting}
             </h1>
@@ -659,95 +644,195 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
             </p>
           </div>
 
-          {/* 现在播放 */}
-          <div style={{ ...sectionReveal(80), padding: '0 40px', marginBottom: Math.round(26 * stageScale) }}>
-            <NowPlayingCard onDetail={onDetail} />
+          {/* Split 主视觉：左侧继续听 / 正在播放，右侧榜单前三快捷直达 */}
+          <div
+            style={{
+              ...sectionReveal(80),
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1.45fr) minmax(0, 1fr)',
+              gap: Math.round(20 * stageScale),
+              padding: '0 40px',
+              marginBottom: Math.round(24 * stageScale),
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: 20,
+                border: '1px solid rgba(255,255,255,0.07)',
+                background: 'linear-gradient(140deg, rgba(20,22,28,0.55), rgba(9,9,12,0.68))',
+                padding: `${Math.round(16 * stageScale)}px ${Math.round(22 * stageScale)}px`,
+                minHeight: Math.round(148 * stageScale),
+              }}
+            >
+              <NowPlayingCard onDetail={onDetail} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: Math.round(4 * stageScale) }}>
+              <div
+                className="font-mono"
+                style={{
+                  fontSize: 9.5,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  color: 'var(--mo-ink-faint)',
+                  marginBottom: Math.round(2 * stageScale),
+                }}
+              >
+                此刻最热 · Top 3
+              </div>
+              {(toplists.length > 0 ? toplists.slice(0, 3) : []).map((playlist, index) => (
+                <button
+                  key={playlist.id}
+                  type="button"
+                  onClick={() => openPlaylist(playlist)}
+                  className="flex items-center text-left"
+                  style={{
+                    gap: Math.round(11 * stageScale),
+                    padding: `${Math.round(6 * stageScale)}px ${Math.round(8 * stageScale)}px`,
+                    borderRadius: 12,
+                    border: '1px solid transparent',
+                    background: 'transparent',
+                    transition: 'background 240ms var(--mo-ease)',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(event) => {
+                    event.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  }}
+                  onMouseLeave={(event) => {
+                    event.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <span
+                    className="font-mono shrink-0"
+                    style={{
+                      fontSize: Math.max(10, Math.round(12 * stageScale)),
+                      color: 'rgba(255,255,255,0.5)',
+                      width: Math.round(20 * stageScale),
+                      opacity: 'calc(0.7 + var(--mo-beat, 0) * 0.6)',
+                    }}
+                  >
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span
+                    aria-hidden
+                    style={{
+                      width: Math.round(38 * stageScale),
+                      height: Math.round(38 * stageScale),
+                      flexShrink: 0,
+                      borderRadius: 10,
+                      background: playlist.coverUrl ? `url(${playlist.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+                      border: '1px solid rgba(255,255,255,0.09)',
+                    }}
+                  />
+                  <span className="min-w-0" style={{ display: 'block' }}>
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: Math.max(11, Math.round(12.5 * stageScale)),
+                        color: CARD_TITLE_COLOR,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {playlist.title}
+                    </span>
+                    <span
+                      style={{
+                        display: 'block',
+                        marginTop: 1,
+                        fontSize: Math.max(9.5, Math.round(10.5 * stageScale)),
+                        color: CARD_META_COLOR,
+                      }}
+                    >
+                      {playlist.trackCount ? `${playlist.trackCount} 首歌曲` : '网易云榜单'}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* 卡片区：3D 只作用在封面层（各自 perspective），文字层保持 2D 以保证清晰 */}
+          {/* 内容轨道：3D 只作用在封面层（各自 perspective），文字层保持 2D 以保证清晰 */}
           <div>
             <div ref={stageRef}>
-              {/* 推荐歌单：4 张内容卡（label / 标题 / 元信息 + 右下封面） */}
-              <div style={{ ...sectionReveal(160), marginBottom: Math.round(30 * stageScale) }}>
-                <SectionHead title="推荐歌单" count={playlists.length} hint="网易云编辑精选" />
-                {renderCardRow(
-                  'playlist',
-                  isLoading && playlists.length === 0
-                    ? Array.from({ length: 4 }, (_, index) => (
+              {/* 推荐歌单 */}
+              <div style={{ ...sectionReveal(160), marginBottom: Math.round(24 * stageScale) }}>
+                <SectionHead title="推荐歌单" count={playlists.length} hint="横向滚动 · 网易云编辑精选" />
+                <Rail gap={Math.round(16 * stageScale)}>
+                  {isLoading && playlists.length === 0
+                    ? Array.from({ length: 6 }, (_, index) => (
                         <SkeletonBlock
                           key={`skeleton-playlist-${index}`}
-                          width="100%"
-                          height={Math.round(PLAYLIST_CARD_BASE * stageScale)}
+                          width={Math.round(PLAYLIST_CARD_WIDTH * stageScale)}
+                          height={Math.round(PLAYLIST_CARD_HEIGHT * stageScale)}
                           radius={18}
                         />
                       ))
-                    : playlists.slice(0, 4).map((playlist, index) => (
-                        <PlaylistCard
-                          key={playlist.id}
-                          coverUrl={playlist.coverUrl}
-                          title={playlist.title}
-                          sub={playlistMeta(playlist)}
-                          label={playlist.kind === 'toplist' ? 'Chart' : 'Playlist'}
-                          onOpen={() => openPlaylist(playlist)}
-                          waveRef={waveRefFor('playlist', index)}
-                        />
-                      )),
-                  200,
-                  4,
-                )}
+                    : playlists.map((playlist, index) => (
+                        <div key={playlist.id} style={coverReveal(200 + index * 26)}>
+                          <PlaylistCard
+                            coverUrl={playlist.coverUrl}
+                            title={playlist.title}
+                            sub={playlistMeta(playlist)}
+                            label={playlist.kind === 'toplist' ? 'Chart' : 'Playlist'}
+                            onOpen={() => openPlaylist(playlist)}
+                            waveRef={waveRefFor('playlist', index)}
+                          />
+                        </div>
+                      ))}
+                </Rail>
               </div>
 
-              {/* 排行榜：等尺寸榜单卡 + 封面内名次徽章 + 标题 */}
+              {/* 排行榜 */}
               {isLoading || toplists.length > 0 ? (
-                <div style={{ ...sectionReveal(240), marginBottom: Math.round(30 * stageScale) }}>
-                  <SectionHead title="排行榜" count={toplists.length} hint="此刻最热" />
-                  {renderCardRow(
-                    'chart',
-                    isLoading && toplists.length === 0
-                      ? Array.from({ length: 12 }, (_, index) => (
+                <div style={{ ...sectionReveal(240), marginBottom: Math.round(24 * stageScale) }}>
+                  <SectionHead title="排行榜" count={toplists.length} hint="横向滚动 · 此刻最热" />
+                  <Rail gap={Math.round(14 * stageScale)}>
+                    {isLoading && toplists.length === 0
+                      ? Array.from({ length: 6 }, (_, index) => (
                           <SkeletonBlock
                             key={`skeleton-chart-${index}`}
-                            width="100%"
+                            width={Math.round(CHART_COVER_BASE * stageScale)}
                             height={Math.round(CHART_COVER_BASE * stageScale)}
                             radius={16}
                           />
                         ))
-                      : toplists.slice(0, 12).map((playlist, index) => (
-                          <ChartCard
-                            key={playlist.id}
-                            coverUrl={playlist.coverUrl}
-                            title={playlist.title}
-                            meta={playlist.trackCount ? `${playlist.trackCount} 首歌曲` : '网易云榜单'}
-                            rank={index + 1}
-                            onOpen={() => openPlaylist(playlist)}
-                            waveRef={waveRefFor('chart', index)}
-                          />
-                        )),
-                    260,
-                    12,
-                  )}
+                      : toplists.map((playlist, index) => (
+                          <div key={playlist.id} style={coverReveal(260 + index * 24)}>
+                            <ChartCard
+                              coverUrl={playlist.coverUrl}
+                              title={playlist.title}
+                              meta={playlist.trackCount ? `${playlist.trackCount} 首歌曲` : '网易云榜单'}
+                              rank={index + 1}
+                              onOpen={() => openPlaylist(playlist)}
+                              waveRef={waveRefFor('chart', index)}
+                            />
+                          </div>
+                        ))}
+                  </Rail>
                 </div>
               ) : null}
 
               {/* 最近播放（你自己的曲目） */}
               {recentTracks.length >= 3 ? (
                 <div style={sectionReveal(330)}>
-                  <SectionHead title="最近播放" count={recentTracks.length} hint="继续听" />
-                  {renderCardRow(
-                    'recent',
-                    recentTracks.slice(0, 6).map((track, index) => (
-                      <TrackCard
-                        key={track.id}
-                        coverUrl={track.artworkUrl}
-                        title={track.title}
-                        artist={track.artist}
-                        onOpen={() => void useAudioStore.getState().playTrack(track)}
-                        waveRef={waveRefFor('recent', index)}
-                      />
-                    )),
-                    360,
-                    6,
-                  )}
+                  <SectionHead title="最近播放" count={recentTracks.length} hint="横向滚动 · 继续听" />
+                  <Rail gap={Math.round(12 * stageScale)}>
+                    {recentTracks.map((track, index) => (
+                      <div key={track.id} style={coverReveal(360 + index * 24)}>
+                        <TrackCard
+                          coverUrl={track.artworkUrl}
+                          title={track.title}
+                          artist={track.artist}
+                          onOpen={() => void useAudioStore.getState().playTrack(track)}
+                          waveRef={waveRefFor('recent', index)}
+                        />
+                      </div>
+                    ))}
+                  </Rail>
                 </div>
               ) : null}
             </div>
