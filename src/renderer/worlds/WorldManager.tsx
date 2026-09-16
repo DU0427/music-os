@@ -1,4 +1,4 @@
-﻿import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useRef } from 'react';
 import { Color, type AmbientLight, type DirectionalLight } from 'three';
 import { useRuntimeStore } from '../store/runtime';
@@ -8,6 +8,7 @@ import CameraRig from '../camera/CameraRig';
 import HomeSpace from './HomeSpace';
 import SpaceBackdrop from './SpaceBackdrop';
 import CoverParticleField from './CoverParticleField';
+import GlobeWorld from './GlobeWorld';
 
 function AudioLighting({ isTransitioning }: { isTransitioning: boolean }) {
   const ambientRef = useRef<AmbientLight>(null);
@@ -106,7 +107,7 @@ export default function WorldManager() {
         <CameraRig currentSpace={currentSpace} />
 
         <group key={currentSpace}>
-          {currentSpace === 'home' ? <HomeSpace /> : null}
+          {currentSpace === 'home' ? <HomeSpace /> : currentSpace === 'globe' ? <GlobeWorld /> : null}
         </group>
       </Canvas>
     </div>
