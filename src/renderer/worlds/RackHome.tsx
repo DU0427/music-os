@@ -76,17 +76,17 @@ export default function RackHome({ onDetail }: { onDetail?: () => void }) {
 
   return (
     <div className="absolute inset-0 z-10">
-      <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
-        <div style={{ padding: '92px 0 140px' }}>
+      <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden">
+        <div style={{ padding: '72px 0 40px' }}>
           {/* 现在播放 */}
-          <div style={{ padding: '0 40px', marginBottom: 48 }}>
+          <div style={{ padding: '0 40px', marginBottom: 20 }}>
             <NowPlayingCard onDetail={onDetail} />
           </div>
 
           {/* 唱片架（块级流：避免 grid 的 min-content 约束把货架撑宽） */}
           <div>
             {playlists.length > 0 ? (
-              <div style={{ marginBottom: 52 }}>
+              <div style={{ marginBottom: 26 }}>
                 <RackRow title="推荐歌单" items={playlists} onOpen={openPlaylist} />
               </div>
             ) : null}

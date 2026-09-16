@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react';
 import { useDominantColor, withAlpha } from '../hooks/useDominantColor';
 import type { ProviderPlaylistSummary } from '../../shared/music/providers';
 
-const COVER_SIZE = 196;
+const COVER_SIZE = 'min(172px, 16.5vh)';
 
 function RackCover({
   item,
@@ -84,7 +84,7 @@ function RackCover({
         ) : null}
       </div>
 
-      <div className="mt-3.5">
+      <div className="mt-3">
         <div
           style={{
             fontSize: 13,
@@ -124,14 +124,18 @@ export default function RackRow({
     startLeft: 0,
     dragging: false,
   });
+  const [scrollProgress, setScrollProgress] = useState(0);
 
-  /* 滚轮 → 横向滚动（页面本身不需要纵向滚动） */
+  /* Shift + 滚轮 → 横向翻阅（普通滚轮保持竖向，交给页面） */
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) {
       return undefined;
     }
     const onWheel = (event: WheelEvent) => {
+      if (!event.shiftKey) {
+        return;
+      }
       const delta = Math.abs(event.deltaY) > Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
       if (delta === 0) {
         return;
@@ -141,6 +145,21 @@ export default function RackRow({
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  /* 横向位置 → 架面光段 */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return undefined;
+    }
+    const onScroll = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      setScrollProgress(max > 0 ? Math.min(1, el.scrollLeft / max) : 0);
+    };
+    onScroll();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
   /* 拖拽滚动（拖动超过阈值时抑制点击） */
@@ -211,8 +230,8 @@ export default function RackRow({
         ref={scrollRef}
         className="mo-rack-scroll flex overflow-x-auto"
         style={{
-          gap: 22,
-          padding: '20px 40px 30px',
+          gap: 18,
+          padding: '10px 40px 16px',
           maskImage: 'linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%)',
           WebkitMaskImage: 'linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%)',
           cursor: 'grab',
@@ -226,18 +245,31 @@ export default function RackRow({
         ))}
       </div>
 
-      {/* 架面：细线 + 光池 */}
+      {/* 架面：细线 + 光池 + 横向位置光段（替代滚动条） */}
       <div aria-hidden className="pointer-events-none" style={{ margin: '0 40px' }}>
         <div
           style={{
+            position: 'relative',
             height: 1,
             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)',
           }}
-        />
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              height: 1,
+              width: '22%',
+              left: `${scrollProgress * 78}%`,
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)',
+              transition: 'left 140ms linear',
+            }}
+          />
+        </div>
         <div
           style={{
-            height: 46,
-            marginTop: -46,
+            height: 34,
+            marginTop: -34,
             background: 'linear-gradient(180deg, rgba(255,255,255,0.035), transparent)',
           }}
         />

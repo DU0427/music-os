@@ -58,8 +58,8 @@ export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) 
     inputRef.current?.click();
   };
 
-  const discSize = 148;
-  const coverSize = 128;
+  const discSize = 130;
+  const coverSize = 112;
   const isEmpty = !heroTrack;
 
   const statusLabel = isCurrent
