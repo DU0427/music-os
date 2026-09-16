@@ -141,3 +141,29 @@ body {
   width: 0;
   height: 0;
 }
+
+/* 载入骨架：一次微光扫过（reduced-motion 时静止） */
+@keyframes mo-skeleton-sheen {
+  from {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+.mo-skeleton {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.03);
+  background-image: linear-gradient(100deg, transparent 34%, rgba(255, 255, 255, 0.07) 50%, transparent 66%);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: mo-skeleton-sheen 2.1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mo-skeleton {
+    animation: none;
+  }
+}

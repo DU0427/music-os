@@ -74,6 +74,14 @@ function CoverOverlay({ title, sub, visible, radius = 10 }: { title: string; sub
   );
 }
 
+/** 载入骨架封面：与真实封面同尺寸，数据到达后不产生跳动。 */
+function SkeletonCover({ kind = 'wave' }: { kind?: 'wave' | 'chartBig' | 'chartSmall' }) {
+  const s = useStageScale();
+  const base = kind === 'chartBig' ? CHART_BIG_BASE : kind === 'chartSmall' ? CHART_SMALL_BASE : WAVE_COVER_BASE;
+  const size = Math.round(base * s);
+  return <div aria-hidden className="mo-skeleton" style={{ width: size, height: size }} />;
+}
+
 /** 波场封面（推荐歌单 / 最近播放）。 */
 function WaveCover({
   coverUrl,
@@ -105,6 +113,7 @@ function WaveCover({
           borderRadius: '50%',
           background: `radial-gradient(circle, ${withAlpha(accent, hovered ? 0.5 : 0.22)}, transparent 66%)`,
           filter: 'blur(26px)',
+          opacity: 'calc(0.72 + var(--mo-beat, 0) * 0.42)',
           transition: 'background 400ms var(--mo-ease)',
         }}
       />
@@ -165,6 +174,7 @@ function ChartCover({
           borderRadius: '50%',
           background: `radial-gradient(circle, ${withAlpha(accent, hovered ? 0.46 : 0.18)}, transparent 66%)`,
           filter: 'blur(28px)',
+          opacity: 'calc(0.72 + var(--mo-beat, 0) * 0.42)',
           transition: 'background 400ms var(--mo-ease)',
         }}
       />
@@ -184,7 +194,7 @@ function ChartCover({
           transition: 'box-shadow 380ms var(--mo-ease), border-color 380ms var(--mo-ease)',
         }}
       />
-      {/* 排名数字：压在封面左下角 */}
+      {/* 排名数字：压在封面左下角；播放时随节拍提亮 */}
       <div
         className="pointer-events-none absolute font-mono"
         style={{
@@ -193,12 +203,18 @@ function ChartCover({
           fontSize: big ? 46 : 22,
           fontWeight: 300,
           lineHeight: 1,
-          color: hovered ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.42)',
-          textShadow: '0 4px 20px rgba(0,0,0,0.9)',
-          transition: 'color 300ms var(--mo-ease)',
+          opacity: 'calc(0.7 + var(--mo-beat, 0) * 0.6)',
         }}
       >
-        {String(rank).padStart(2, '0')}
+        <span
+          style={{
+            color: hovered ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.5)',
+            textShadow: '0 4px 20px rgba(0,0,0,0.9)',
+            transition: 'color 300ms var(--mo-ease)',
+          }}
+        >
+          {String(rank).padStart(2, '0')}
+        </span>
       </div>
     </div>
   );
@@ -235,6 +251,7 @@ function TrackCover({
           borderRadius: '50%',
           background: `radial-gradient(circle, ${withAlpha(accent, hovered ? 0.5 : 0.2)}, transparent 66%)`,
           filter: 'blur(26px)',
+          opacity: 'calc(0.72 + var(--mo-beat, 0) * 0.42)',
           transition: 'background 400ms var(--mo-ease)',
         }}
       />
@@ -292,6 +309,45 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef(new Map<string, HTMLDivElement | null>());
   const pointerRef = useRef({ x: 0.5, y: 0.5 });
+
+  /* 入场编排：内容就位后一次性分级入场（respect prefers-reduced-motion） */
+  const [entranceReady, setEntranceReady] = useState(false);
+  const prefersReducedMotion = useMemo(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    [],
+  );
+  useEffect(() => {
+    if (isLoading) {
+      return undefined;
+    }
+    const id = requestAnimationFrame(() => setEntranceReady(true));
+    return () => cancelAnimationFrame(id);
+  }, [isLoading]);
+
+  /** 区块入场：淡入 + 轻微模糊收束 + 上浮（问候语 / hero / 各带标题行）。 */
+  const sectionReveal = (delay: number): React.CSSProperties => {
+    if (prefersReducedMotion) {
+      return {};
+    }
+    return {
+      opacity: entranceReady ? 1 : 0,
+      filter: entranceReady ? 'blur(0px)' : 'blur(6px)',
+      transform: entranceReady ? 'translateY(0)' : 'translateY(8px)',
+      transition: `opacity 520ms var(--mo-ease) ${delay}ms, transform 520ms var(--mo-ease) ${delay}ms, filter 520ms var(--mo-ease) ${delay}ms`,
+    };
+  };
+
+  /** 封面入场：只做上浮 + 淡入，作用在波场 rAF 不触碰的外层。 */
+  const coverReveal = (delay: number): React.CSSProperties => {
+    if (prefersReducedMotion) {
+      return {};
+    }
+    return {
+      opacity: entranceReady ? 1 : 0,
+      transform: entranceReady ? 'translateY(0)' : 'translateY(12px)',
+      transition: `opacity 520ms var(--mo-ease) ${delay}ms, transform 520ms var(--mo-ease) ${delay}ms`,
+    };
+  };
 
   const loadContent = useCallback(async () => {
     if (typeof window.musicOS?.getNeteaseHomeContent !== 'function') {
@@ -374,6 +430,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     let raf = 0;
     let tiltX = 0;
     let tiltY = 0;
+    let lastBeat = -1;
     const started = performance.now();
 
     const tick = (now: number) => {
@@ -388,6 +445,12 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
       tiltX += (targetTiltX - tiltX) * 0.06;
       if (stage) {
         stage.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+        // 节拍接管：每帧只写一次 CSS 变量，封面光晕 / 排名数字由 CSS 读取，避免逐元素写 style
+        const beat = isPlaying ? metrics.beatPulse : 0;
+        if (Math.abs(beat - lastBeat) > 0.008) {
+          lastBeat = beat;
+          stage.style.setProperty('--mo-beat', beat.toFixed(3));
+        }
       }
 
       const amp = 14 + metrics.bass * 90 + metrics.beatPulse * 44;
@@ -421,7 +484,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     });
   };
 
-  const renderWaveBand = (band: string, children: React.ReactNode[]) =>
+  const renderWaveBand = (band: string, children: React.ReactNode[], revealBase = 0) =>
     children.length === 0 ? null : (
       <div
         style={{
@@ -432,14 +495,15 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
         }}
       >
         {children.map((child, index) => (
-          <div
-            key={`${band}-${index}`}
-            ref={(el) => {
-              itemRefs.current.set(`${band}-${index}`, el);
-            }}
-            style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
-          >
-            {child}
+          <div key={`${band}-${index}`} style={coverReveal(revealBase + index * 28)}>
+            <div
+              ref={(el) => {
+                itemRefs.current.set(`${band}-${index}`, el);
+              }}
+              style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+            >
+              {child}
+            </div>
           </div>
         ))}
       </div>
@@ -450,7 +514,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
       <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden">
         <div style={{ padding: `${Math.round(Math.max(52, 48 * stageScale))}px 0 ${Math.round(26 * stageScale)}px` }}>
           {/* 问候语 */}
-          <div style={{ padding: '0 40px', marginBottom: Math.round(18 * stageScale) }}>
+          <div style={{ ...sectionReveal(0), padding: '0 40px', marginBottom: Math.round(18 * stageScale) }}>
             <h1 style={{ fontSize: Math.max(19, Math.round(30 * stageScale)), fontWeight: 300, letterSpacing: '-0.02em', color: 'var(--mo-ink)' }}>
               {greeting}
             </h1>
@@ -460,7 +524,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
           </div>
 
           {/* 现在播放 */}
-          <div style={{ padding: '0 40px', marginBottom: Math.round(26 * stageScale) }}>
+          <div style={{ ...sectionReveal(80), padding: '0 40px', marginBottom: Math.round(26 * stageScale) }}>
             <NowPlayingCard onDetail={onDetail} />
           </div>
 
@@ -468,51 +532,61 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
           <div style={{ perspective: 1300 }}>
             <div ref={stageRef} style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}>
               {/* 推荐歌单 */}
-              <div style={{ marginBottom: Math.round(30 * stageScale) }}>
+              <div style={{ ...sectionReveal(160), marginBottom: Math.round(30 * stageScale) }}>
                 <SectionHead title="推荐歌单" count={playlists.length} hint="网易云编辑精选" />
                 {renderWaveBand(
                   'playlist',
-                  playlists.map((playlist) => (
-                    <WaveCover
-                      key={playlist.id}
-                      coverUrl={playlist.coverUrl}
-                      title={playlist.title}
-                      sub={playlist.trackCount ? `${playlist.trackCount} 首` : ''}
-                      onOpen={() => openPlaylist(playlist)}
-                    />
-                  )),
+                  isLoading && playlists.length === 0
+                    ? Array.from({ length: 12 }, (_, index) => <SkeletonCover key={`skeleton-playlist-${index}`} />)
+                    : playlists.map((playlist) => (
+                        <WaveCover
+                          key={playlist.id}
+                          coverUrl={playlist.coverUrl}
+                          title={playlist.title}
+                          sub={playlist.trackCount ? `${playlist.trackCount} 首` : ''}
+                          onOpen={() => openPlaylist(playlist)}
+                        />
+                      )),
+                  200,
                 )}
               </div>
 
               {/* 排行榜（榜单语言：前三大 + 大号排名） */}
-              {toplists.length > 0 ? (
-                <div style={{ marginBottom: Math.round(30 * stageScale) }}>
+              {isLoading || toplists.length > 0 ? (
+                <div style={{ ...sectionReveal(240), marginBottom: Math.round(30 * stageScale) }}>
                   <SectionHead title="排行榜" count={toplists.length} hint="此刻最热" />
                   <div className="flex items-end" style={{ padding: '0 40px', gap: 'clamp(10px, 1.1vw, 18px)' }}>
-                    {toplists.map((playlist, index) => (
-                      <div
-                        key={`chart-${index}`}
-                        ref={(el) => {
-                          itemRefs.current.set(`chart-${index}`, el);
-                        }}
-                        style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
-                      >
-                        <ChartCover
-                          coverUrl={playlist.coverUrl}
-                          title={playlist.title}
-                          rank={index + 1}
-                          big={index < 3}
-                          onOpen={() => openPlaylist(playlist)}
-                        />
-                      </div>
-                    ))}
+                    {isLoading && toplists.length === 0
+                      ? Array.from({ length: 12 }, (_, index) => (
+                          <div key={`skeleton-chart-${index}`} style={coverReveal(280 + index * 26)}>
+                            <SkeletonCover kind={index < 3 ? 'chartBig' : 'chartSmall'} />
+                          </div>
+                        ))
+                      : toplists.map((playlist, index) => (
+                          <div key={`chart-${index}`} style={coverReveal(280 + index * 26)}>
+                            <div
+                              ref={(el) => {
+                                itemRefs.current.set(`chart-${index}`, el);
+                              }}
+                              style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+                            >
+                              <ChartCover
+                                coverUrl={playlist.coverUrl}
+                                title={playlist.title}
+                                rank={index + 1}
+                                big={index < 3}
+                                onOpen={() => openPlaylist(playlist)}
+                              />
+                            </div>
+                          </div>
+                        ))}
                   </div>
                 </div>
               ) : null}
 
               {/* 最近播放（你自己的曲目） */}
               {recentTracks.length >= 3 ? (
-                <div>
+                <div style={sectionReveal(320)}>
                   <SectionHead title="最近播放" count={recentTracks.length} hint="继续听" />
                   {renderWaveBand(
                     'recent',
@@ -525,6 +599,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                         onOpen={() => void useAudioStore.getState().playTrack(track)}
                       />
                     )),
+                    360,
                   )}
                 </div>
               ) : null}
