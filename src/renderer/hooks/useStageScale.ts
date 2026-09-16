@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
  */
 const FIXED_HEIGHT = 205;
 const SCALED_HEIGHT = 580;
-const RESERVED_HEIGHT = 317;
+const RESERVED_HEIGHT = 345;
 const MIN_SCALE = 0.55;
 
 /**
