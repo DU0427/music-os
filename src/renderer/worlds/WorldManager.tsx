@@ -8,7 +8,6 @@ import CameraRig from '../camera/CameraRig';
 import HomeSpace from './HomeSpace';
 import SpaceBackdrop from './SpaceBackdrop';
 import CoverParticleField from './CoverParticleField';
-import GlobeWorld from './GlobeWorld';
 
 function AudioLighting({ isTransitioning }: { isTransitioning: boolean }) {
   const ambientRef = useRef<AmbientLight>(null);
@@ -84,7 +83,7 @@ export default function WorldManager() {
   const isTransitioning = useRuntimeStore((state) => state.isTransitioning);
 
   return (
-<div style={{ position: 'absolute', inset: 0, background: '#050507' }}>
+    <div style={{ position: 'absolute', inset: 0, background: '#050507' }}>
       <Canvas
         fallback={
           <div style={{ display: 'grid', height: '100%', placeItems: 'center', color: '#e8e8ed', background: '#050507' }}>
@@ -98,7 +97,7 @@ export default function WorldManager() {
       >
         <color attach="background" args={['#050507']} />
         <fog attach="fog" args={['#050507', 9, 22]} />
-<AudioMetricsSampler />
+        <AudioMetricsSampler />
         <AudioAtmosphere isTransitioning={isTransitioning} />
         <AudioLighting isTransitioning={isTransitioning} />
         <SpaceBackdrop />
@@ -107,7 +106,7 @@ export default function WorldManager() {
         <CameraRig currentSpace={currentSpace} />
 
         <group key={currentSpace}>
-          {currentSpace === 'home' ? <HomeSpace /> : currentSpace === 'globe' ? <GlobeWorld /> : null}
+          {currentSpace === 'home' ? <HomeSpace /> : null}
         </group>
       </Canvas>
     </div>

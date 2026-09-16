@@ -13,8 +13,6 @@ import type {
   ProviderHomeContent,
   ProviderQrLoginSession,
   ProviderQrPollResult,
-  ProviderRegionDensity,
-  ProviderPlaylistSummary,
   ProviderTrack,
   ProviderTrackReference,
   ProviderTrackResult,
@@ -50,8 +48,6 @@ const APP_IPC_CHANNELS = (() => {
     neteaseLogout: 'music:netease:logout',
     neteaseHome: 'music:netease:home',
     neteasePlaylistTracks: 'music:netease:playlist-tracks',
-    neteaseRegionDensity: 'music:netease:region-density',
-    neteaseRegionPlaylists: 'music:netease:region-playlists',
   } as const;
 
   try {
@@ -128,10 +124,6 @@ const api: MusicOsApi = {
     ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseHome) as Promise<ProviderHomeContent>,
   getNeteasePlaylistTracks: (playlistId: string) =>
     ipcRenderer.invoke(APP_IPC_CHANNELS.neteasePlaylistTracks, playlistId) as Promise<ProviderTrack[]>,
-  getNeteaseRegionDensity: () =>
-    ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseRegionDensity) as Promise<ProviderRegionDensity[]>,
-  getNeteaseRegionPlaylists: (regionId: string) =>
-    ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseRegionPlaylists, regionId) as Promise<ProviderPlaylistSummary[]>,
 };
 
 contextBridge.exposeInMainWorld('musicOS', api);

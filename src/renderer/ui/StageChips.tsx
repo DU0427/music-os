@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'motion/react';
-import { Library, History, Smile, Globe2 } from 'lucide-react';
+import { Library, History, Smile } from 'lucide-react';
 import { useState } from 'react';
 import { useRuntimeStore } from '../store/runtime';
 import { useMoodStore } from '../store/mood';
@@ -89,7 +89,6 @@ export default function StageChips() {
   return (
     <div className="absolute bottom-9 left-9 md:left-10 flex items-center gap-4 z-30">
       <StageOrb icon={Library} label="曲库" onClick={() => requestSpace('library')} />
-      <StageOrb icon={Globe2} label="地球" onClick={() => requestSpace('globe')} />
       <StageOrb icon={History} label="记忆" onClick={() => requestSpace('memory')} />
       <div className="relative">
         <StageOrb

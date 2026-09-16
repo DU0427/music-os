@@ -11,9 +11,7 @@ import type {
   ProviderHomeContent,
   ProviderPlayableSourceResult,
   ProviderQrLoginSession,
-  ProviderRegionDensity,
   ProviderQrPollResult,
-  ProviderPlaylistSummary,
   ProviderSearchResult,
   ProviderTrack,
   ProviderTrackReference,
@@ -48,8 +46,6 @@ export const APP_IPC_CHANNELS = {
   neteaseLogout: 'music:netease:logout',
   neteaseHome: 'music:netease:home',
   neteasePlaylistTracks: 'music:netease:playlist-tracks',
-  neteaseRegionDensity: 'music:netease:region-density',
-  neteaseRegionPlaylists: 'music:netease:region-playlists',
 } as const;
 
 export type AppIpcChannel = (typeof APP_IPC_CHANNELS)[keyof typeof APP_IPC_CHANNELS];
@@ -108,10 +104,6 @@ export interface MusicOsApi {
   getNeteaseHomeContent(): Promise<ProviderHomeContent>;
   /** 网易云：歌单/榜单曲目列表。 */
   getNeteasePlaylistTracks(playlistId: string): Promise<ProviderTrack[]>;
-  /** 网易云：各地区（语种）内容密度。 */
-  getNeteaseRegionDensity(): Promise<ProviderRegionDensity[]>;
-  /** 网易云：某地区（语种）下的歌单。 */
-  getNeteaseRegionPlaylists(regionId: string): Promise<ProviderPlaylistSummary[]>;
 }
 
 export interface SharedIpcWindow {

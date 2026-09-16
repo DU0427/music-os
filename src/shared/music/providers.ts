@@ -124,13 +124,3 @@ export interface ProviderHomeContent {
   playlists: ProviderPlaylistSummary[];
   toplists: ProviderPlaylistSummary[];
 }
-
-/* ——— 地区（语种）内容密度：地球空间用 ——— */
-
-export interface ProviderRegionDensity {
-  id: string;
-  label: string;
-  lat: number;
-  lng: number;
-  playlistTotal: number;
-}

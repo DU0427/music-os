@@ -5,7 +5,6 @@ import BootSplash from './ui/BootSplash';
 import WorldManager from './worlds/WorldManager';
 import TopBar from './ui/TopBar';
 import WaveHome from './worlds/WaveHome';
-import GlobeOverlay from './ui/GlobeOverlay';
 import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
 import MemoryFieldWorld from './worlds/MemoryFieldWorld';
 import SearchOrbital from './ui/SearchOrbital';
@@ -152,7 +151,7 @@ export default function AppShell() {
   useEffect(() => {
     const h = (e: Event) => {
       const next = (e as CustomEvent<string>).detail;
-      if (next === 'home' || next === 'library' || next === 'memory' || next === 'globe') {
+      if (next === 'home' || next === 'library' || next === 'memory') {
         requestSpace(next);
       }
     };
@@ -232,7 +231,6 @@ export default function AppShell() {
       {/* Library / Memory DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
       {currentSpace === 'memory' && <MemoryFieldWorld />}
-      {currentSpace === 'globe' && <GlobeOverlay />}
 
       {/* Search / Detail orbitals — top-level modals */}
       <SearchOrbital isOpen={isSearching} onClose={() => setIsSearching(false)} />

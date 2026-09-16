@@ -1,1 +1,1 @@
-export type SpaceType = 'home' | 'library' | 'memory' | 'globe';
+export type SpaceType = 'home' | 'library' | 'memory';

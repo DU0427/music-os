@@ -9,7 +9,6 @@ const CAMERA_PRESETS: Record<SpaceType, { position: [number, number, number]; lo
   home: { position: [0, 1.2, 6], lookAt: [0, 0.2, 0], fov: 60 },
   library: { position: [0, 1.4, 7], lookAt: [0, 0.4, 0], fov: 58 },
   memory: { position: [0, 1.2, 6.5], lookAt: [0, 0.3, 0], fov: 60 },
-  globe: { position: [0, 55, 300], lookAt: [0, 0, 0], fov: 45 },
 };
 
 export default function CameraRig({ currentSpace }: { currentSpace: SpaceType }) {
