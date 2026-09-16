@@ -18,7 +18,7 @@ const HOME_BOTTOM_RESERVE = 94;
 /* 卡面基准尺寸（900px 高窗口下的验收值）：渲染时乘以 useStageScale 的缩放系数。 */
 const PLAYLIST_CARD_BASE = 124;
 const CHART_COVER_BASE = 78;
-const TRACK_COVER_BASE = 68;
+const TRACK_COVER_BASE = 56;
 
 /** 播放量压缩显示（12345 → 1.2万）。 */
 function compactCount(value: number | null): string {
@@ -202,7 +202,7 @@ function PlaylistCard({
           height: artSize,
           transform: `rotate(${hovered ? 1.5 : 3.5}deg)`,
           transition: 'transform 320ms var(--mo-ease)',
-          transformStyle: 'preserve-3d',
+          perspective: 700,
         }}
       >
         <CoverGlow accent={accent} hovered={hovered} inset="-26%" blur={20} />
@@ -248,45 +248,46 @@ function ChartCard({
       onClick={onOpen}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative shrink-0 text-left"
-      style={{ width: Math.round(CHART_COVER_BASE * s), cursor: 'pointer' }}
+      className="relative w-full text-left"
+      style={{ cursor: 'pointer' }}
     >
-      <span style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '1 / 1', transformStyle: 'preserve-3d' }}>
-        <CoverGlow accent={accent} hovered={hovered} inset="-30%" blur={22} base={0.64} />
-        <span
-          ref={waveRef}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 16,
-            background: coverUrl ? `url(${coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
-            border: `1px solid ${hovered ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.09)'}`,
-            boxShadow: hovered
-              ? `0 22px 52px rgba(0,0,0,0.62), 0 0 32px ${withAlpha(accent, 0.34)}`
-              : '0 14px 36px rgba(0,0,0,0.5)',
-            transition: 'box-shadow 340ms var(--mo-ease), border-color 340ms var(--mo-ease)',
-            willChange: 'transform',
-          }}
-        >
-          {/* 名次：封面内左上角徽章，随节拍提亮 */}
+      <span style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '1 / 1' }}>
+        <span style={{ position: 'absolute', inset: 0, perspective: 700 }}>
+          <CoverGlow accent={accent} hovered={hovered} inset="-30%" blur={22} base={0.64} />
           <span
-            className="font-mono"
+            ref={waveRef}
             style={{
               position: 'absolute',
-              top: 6,
-              left: 6,
-              padding: '1px 7px',
-              borderRadius: 999,
-              fontSize: Math.max(9, Math.round(11 * s)),
-              lineHeight: 1.5,
-              color: 'rgba(255,255,255,0.94)',
-              background: 'rgba(6,6,9,0.62)',
-              border: '1px solid rgba(255,255,255,0.16)',
-              opacity: 'calc(0.72 + var(--mo-beat, 0) * 0.5)',
+              inset: 0,
+              borderRadius: 16,
+              background: coverUrl ? `url(${coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+              border: `1px solid ${hovered ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.09)'}`,
+              boxShadow: hovered
+                ? `0 22px 52px rgba(0,0,0,0.62), 0 0 32px ${withAlpha(accent, 0.34)}`
+                : '0 14px 36px rgba(0,0,0,0.5)',
+              transition: 'box-shadow 340ms var(--mo-ease), border-color 340ms var(--mo-ease)',
+              willChange: 'transform',
             }}
-          >
-            {String(rank).padStart(2, '0')}
-          </span>
+          />
+        </span>
+        {/* 名次：封面左上角徽章，放在 3D 变换之外保持清晰，播放时随节拍提亮 */}
+        <span
+          className="font-mono"
+          style={{
+            position: 'absolute',
+            top: 6,
+            left: 6,
+            padding: '1px 7px',
+            borderRadius: 999,
+            fontSize: Math.max(9, Math.round(11 * s)),
+            lineHeight: 1.5,
+            color: 'rgba(255,255,255,0.94)',
+            background: 'rgba(6,6,9,0.62)',
+            border: '1px solid rgba(255,255,255,0.16)',
+            opacity: 'calc(0.72 + var(--mo-beat, 0) * 0.5)',
+          }}
+        >
+          {String(rank).padStart(2, '0')}
         </span>
       </span>
       <span
@@ -336,58 +337,65 @@ function TrackCard({
   const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
   const s = useStageScale();
+  const artSize = Math.round(TRACK_COVER_BASE * s);
   return (
     <button
       type="button"
       onClick={onOpen}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative shrink-0 text-left"
-      style={{ width: Math.round(TRACK_COVER_BASE * s), cursor: 'pointer' }}
+      className="flex w-full items-center text-left"
+      style={{
+        gap: Math.round(11 * s),
+        padding: `${Math.round(7 * s)}px ${Math.round(9 * s)}px`,
+        borderRadius: 12,
+        border: '1px solid transparent',
+        background: hovered ? 'rgba(255,255,255,0.045)' : 'transparent',
+        transition: 'background 260ms var(--mo-ease)',
+        cursor: 'pointer',
+      }}
     >
-      <span style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '1 / 1', transformStyle: 'preserve-3d' }}>
-        <CoverGlow accent={accent} hovered={hovered} inset="-34%" blur={22} base={0.64} />
+      <span style={{ position: 'relative', width: artSize, height: artSize, flexShrink: 0, perspective: 700 }}>
+        <CoverGlow accent={accent} hovered={hovered} inset="-30%" blur={16} base={0.5} />
         <span
           ref={waveRef}
           style={{
             position: 'absolute',
             inset: 0,
-            borderRadius: 16,
+            borderRadius: 12,
             background: coverUrl ? `url(${coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
-            border: `1px solid ${hovered ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.09)'}`,
-            boxShadow: hovered
-              ? `0 22px 52px rgba(0,0,0,0.62), 0 0 32px ${withAlpha(accent, 0.34)}`
-              : '0 14px 36px rgba(0,0,0,0.5)',
-            transition: 'box-shadow 340ms var(--mo-ease), border-color 340ms var(--mo-ease)',
+            border: `1px solid ${hovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'}`,
+            boxShadow: '0 10px 26px rgba(0,0,0,0.5)',
             willChange: 'transform',
           }}
         />
       </span>
-      <span
-        style={{
-          display: 'block',
-          marginTop: Math.round(9 * s),
-          fontSize: Math.max(11, Math.round(12.5 * s)),
-          color: CARD_TITLE_COLOR,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {title}
-      </span>
-      <span
-        style={{
-          display: 'block',
-          marginTop: 2,
-          fontSize: Math.max(9.5, Math.round(10.5 * s)),
-          color: CARD_META_COLOR,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {artist}
+      <span className="min-w-0" style={{ display: 'block' }}>
+        <span
+          style={{
+            display: 'block',
+            fontSize: Math.max(11, Math.round(12.5 * s)),
+            color: CARD_TITLE_COLOR,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {title}
+        </span>
+        <span
+          style={{
+            display: 'block',
+            marginTop: 2,
+            fontSize: Math.max(9.5, Math.round(10.5 * s)),
+            color: CARD_META_COLOR,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {artist}
+        </span>
       </span>
     </button>
   );
@@ -427,6 +435,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
 
   /* 入场编排：内容就位后一次性分级入场（respect prefers-reduced-motion） */
   const [entranceReady, setEntranceReady] = useState(false);
+  const [entranceSettled, setEntranceSettled] = useState(false);
   const prefersReducedMotion = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     [],
@@ -439,9 +448,18 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     return () => cancelAnimationFrame(id);
   }, [isLoading]);
 
+  useEffect(() => {
+    if (!entranceReady) {
+      return undefined;
+    }
+    // 入场结束后移除全部 reveal 样式：合成层的 filter/transform 会让文字被重新光栅化而发虚
+    const timer = setTimeout(() => setEntranceSettled(true), 900);
+    return () => clearTimeout(timer);
+  }, [entranceReady]);
+
   /** 区块入场：淡入 + 轻微模糊收束 + 上浮（问候语 / hero / 各带标题行）。 */
   const sectionReveal = (delay: number): React.CSSProperties => {
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion || entranceSettled) {
       return {};
     }
     return {
@@ -454,7 +472,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
 
   /** 封面入场：只做上浮 + 淡入，作用在波场 rAF 不触碰的外层。 */
   const coverReveal = (delay: number): React.CSSProperties => {
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion || entranceSettled) {
       return {};
     }
     return {
@@ -540,11 +558,9 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     return () => stage.removeEventListener('mousemove', onMove);
   }, []);
 
-  /* 波场推进（视差 + 起伏 + 音乐律动） */
+  /* 波场推进（指针视差 + 起伏 + 音乐律动）：只驱动卡面封面，文字层不做 3D 变换以保持清晰 */
   useEffect(() => {
     let raf = 0;
-    let tiltX = 0;
-    let tiltY = 0;
     let lastBeat = -1;
     const started = performance.now();
 
@@ -554,13 +570,12 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
       const isPlaying = useAudioStore.getState().isPlaying;
       const t = (now - started) / 1000;
 
-      const targetTiltY = (pointerRef.current.x - 0.5) * 9;
-      const targetTiltX = -(pointerRef.current.y - 0.5) * 5.5;
-      tiltY += (targetTiltY - tiltY) * 0.06;
-      tiltX += (targetTiltX - tiltX) * 0.06;
+      // 指针视差：位移只加在封面层，不移动文字
+      const parallaxX = (pointerRef.current.x - 0.5) * 14;
+      const parallaxY = (pointerRef.current.y - 0.5) * 10;
+
       if (stage) {
-        stage.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
-        // 节拍接管：每帧只写一次 CSS 变量，封面光晕 / 排名数字由 CSS 读取，避免逐元素写 style
+        // 节拍接管：每帧只写一次 CSS 变量，封面光晕 / 名次徽章由 CSS 读取，避免逐元素写 style
         const beat = isPlaying ? metrics.beatPulse : 0;
         if (Math.abs(beat - lastBeat) > 0.008) {
           lastBeat = beat;
@@ -582,7 +597,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
         const bob = Math.cos(col * 0.5 + t * speed * 0.8 + bandPhase) * (isPlaying ? 5 : 2.5);
         const depthScale = 1 + z / 1400;
         const ry = Math.sin(col * 0.4 + t * 0.25) * 3.2;
-        el.style.transform = `translate3d(0, ${bob}px, ${z}px) rotateY(${ry}deg) scale(${depthScale})`;
+        el.style.transform = `translate3d(${parallaxX}px, ${bob + parallaxY}px, ${z}px) rotateY(${ry}deg) scale(${depthScale})`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -649,9 +664,9 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
             <NowPlayingCard onDetail={onDetail} />
           </div>
 
-          {/* 波场：推荐歌单 + 榜单 + 最近播放 */}
-          <div style={{ perspective: 1300 }}>
-            <div ref={stageRef} style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}>
+          {/* 卡片区：3D 只作用在封面层（各自 perspective），文字层保持 2D 以保证清晰 */}
+          <div>
+            <div ref={stageRef}>
               {/* 推荐歌单：4 张内容卡（label / 标题 / 元信息 + 右下封面） */}
               <div style={{ ...sectionReveal(160), marginBottom: Math.round(30 * stageScale) }}>
                 <SectionHead title="推荐歌单" count={playlists.length} hint="网易云编辑精选" />
@@ -689,15 +704,15 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                   {renderCardRow(
                     'chart',
                     isLoading && toplists.length === 0
-                      ? Array.from({ length: 6 }, (_, index) => (
+                      ? Array.from({ length: 12 }, (_, index) => (
                           <SkeletonBlock
                             key={`skeleton-chart-${index}`}
-                            width={Math.round(CHART_COVER_BASE * stageScale)}
+                            width="100%"
                             height={Math.round(CHART_COVER_BASE * stageScale)}
                             radius={16}
                           />
                         ))
-                      : toplists.slice(0, 6).map((playlist, index) => (
+                      : toplists.slice(0, 12).map((playlist, index) => (
                           <ChartCard
                             key={playlist.id}
                             coverUrl={playlist.coverUrl}
@@ -709,6 +724,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                           />
                         )),
                     260,
+                    12,
                   )}
                 </div>
               ) : null}
@@ -719,7 +735,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                   <SectionHead title="最近播放" count={recentTracks.length} hint="继续听" />
                   {renderCardRow(
                     'recent',
-                    recentTracks.slice(0, 8).map((track, index) => (
+                    recentTracks.slice(0, 6).map((track, index) => (
                       <TrackCard
                         key={track.id}
                         coverUrl={track.artworkUrl}
@@ -730,6 +746,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                       />
                     )),
                     360,
+                    6,
                   )}
                 </div>
               ) : null}
