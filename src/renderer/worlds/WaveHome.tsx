@@ -1,15 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 import NowPlayingCard from '../ui/NowPlayingCard';
 import StageChips from '../ui/StageChips';
 import PlaylistPanel, { type PlaylistPanelTarget } from '../ui/PlaylistPanel';
 import { useAudioStore } from '../audio/store';
+import { useLibraryStore } from '../store/library';
 import { useDominantColor, withAlpha } from '../hooks/useDominantColor';
 import type { ProviderHomeContent, ProviderPlaylistSummary } from '../../shared/music/providers';
+import type { TrackRecord } from '../../shared/ipc/music';
 
-const PERSPECTIVE = 1300;
+const WAVE_COVER = 'min(92px, 10.5vh)';
+const CHART_BIG = 'min(126px, 14vh)';
+const CHART_SMALL = 'min(84px, 9.5vh)';
 
 function Clock() {
   const [now, setNow] = useState(() => new Date());
@@ -31,26 +35,57 @@ function Clock() {
   );
 }
 
-/** 单张波场封面：自己的封面色作辉光，悬停浮起并浮现标题。 */
+/** 悬停浮现的玻璃小签。 */
+function HoverLabel({ title, sub, visible }: { title: string; sub: string; visible: boolean }) {
+  return (
+    <div
+      className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap"
+      style={{
+        bottom: -34,
+        opacity: visible ? 1 : 0,
+        transform: `translate(-50%, ${visible ? 0 : 4}px)`,
+        transition: 'opacity 240ms var(--mo-ease), transform 240ms var(--mo-ease)',
+      }}
+    >
+      <div
+        className="rounded-full px-3 py-1.5"
+        style={{
+          background: 'var(--mo-bg-elevated-strong)',
+          border: '1px solid var(--mo-line)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+        }}
+      >
+        <div style={{ fontSize: 11, color: 'var(--mo-ink)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {title}
+        </div>
+        {sub ? <div style={{ fontSize: 9, color: 'var(--mo-ink-faint)', marginTop: 1 }}>{sub}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+/** 波场封面（推荐歌单 / 最近播放）。 */
 function WaveCover({
-  item,
+  coverUrl,
+  title,
+  sub,
   onOpen,
 }: {
-  item: ProviderPlaylistSummary;
-  onOpen: (playlist: ProviderPlaylistSummary) => void;
+  coverUrl: string | null;
+  title: string;
+  sub: string;
+  onOpen: () => void;
 }) {
-  const accent = useDominantColor(item.coverUrl, '#f5f5f7');
+  const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
-
   return (
     <div
       className="group relative cursor-pointer select-none"
-      style={{ pointerEvents: 'auto' }}
+      style={{ width: WAVE_COVER }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => onOpen(item)}
+      onClick={onOpen}
     >
-      {/* 封面自己的辉光 */}
       <div
         aria-hidden
         className="pointer-events-none absolute"
@@ -68,59 +103,173 @@ function WaveCover({
           width: '100%',
           aspectRatio: '1 / 1',
           borderRadius: 10,
-          background: item.coverUrl
-            ? `url(${item.coverUrl}) center / cover no-repeat`
+          background: coverUrl
+            ? `url(${coverUrl}) center / cover no-repeat`
             : 'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)',
           border: `1px solid ${hovered ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.09)'}`,
           boxShadow: hovered
             ? `0 26px 60px rgba(0,0,0,0.7), 0 0 40px ${withAlpha(accent, 0.4)}`
             : '0 16px 40px rgba(0,0,0,0.55)',
           transition: 'box-shadow 380ms var(--mo-ease), border-color 380ms var(--mo-ease)',
-          WebkitBoxReflect: 'below 7px linear-gradient(transparent 58%, rgba(0,0,0,0.42))',
         }}
       />
-      {/* 悬停标题 */}
+      <HoverLabel title={title} sub={sub} visible={hovered} />
+    </div>
+  );
+}
+
+/** 榜单封面（大号排名数字；前三名更大）。 */
+function ChartCover({
+  coverUrl,
+  title,
+  rank,
+  big,
+  onOpen,
+}: {
+  coverUrl: string | null;
+  title: string;
+  rank: number;
+  big: boolean;
+  onOpen: () => void;
+}) {
+  const accent = useDominantColor(coverUrl, '#f5f5f7');
+  const [hovered, setHovered] = useState(false);
+  const size = big ? CHART_BIG : CHART_SMALL;
+  return (
+    <div
+      className="group relative shrink-0 cursor-pointer select-none"
+      style={{ width: size }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onOpen}
+    >
       <div
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap"
+        aria-hidden
+        className="pointer-events-none absolute"
         style={{
-          bottom: -34,
-          opacity: hovered ? 1 : 0,
-          transform: `translate(-50%, ${hovered ? 0 : 4}px)`,
-          transition: 'opacity 260ms var(--mo-ease), transform 260ms var(--mo-ease)',
+          inset: '-36%',
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${withAlpha(accent, hovered ? 0.46 : 0.18)}, transparent 66%)`,
+          filter: 'blur(28px)',
+          transition: 'background 400ms var(--mo-ease)',
+        }}
+      />
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '1 / 1',
+          borderRadius: 10,
+          background: coverUrl
+            ? `url(${coverUrl}) center / cover no-repeat`
+            : 'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)',
+          border: `1px solid ${hovered ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.09)'}`,
+          boxShadow: hovered
+            ? `0 26px 60px rgba(0,0,0,0.7), 0 0 40px ${withAlpha(accent, 0.4)}`
+            : '0 16px 40px rgba(0,0,0,0.55)',
+          transition: 'box-shadow 380ms var(--mo-ease), border-color 380ms var(--mo-ease)',
+        }}
+      />
+      {/* 排名数字：压在封面左下角 */}
+      <div
+        className="pointer-events-none absolute font-mono"
+        style={{
+          left: big ? -10 : -7,
+          bottom: big ? -14 : -10,
+          fontSize: big ? 46 : 22,
+          fontWeight: 300,
+          lineHeight: 1,
+          color: hovered ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.42)',
+          textShadow: '0 4px 20px rgba(0,0,0,0.9)',
+          transition: 'color 300ms var(--mo-ease)',
         }}
       >
-        <div
-          className="rounded-full px-3 py-1.5"
-          style={{
-            background: 'var(--mo-bg-elevated-strong)',
-            border: '1px solid var(--mo-line)',
-            backdropFilter: 'blur(18px) saturate(1.15)',
-            WebkitBackdropFilter: 'blur(18px) saturate(1.15)',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-          }}
-        >
-          <div style={{ fontSize: 11, color: 'var(--mo-ink)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {item.title}
-          </div>
-          <div style={{ fontSize: 9, color: 'var(--mo-ink-faint)', marginTop: 1 }}>
-            {item.trackCount ? `${item.trackCount} 首` : ''}
-            {item.kind === 'toplist' ? ' · 榜单' : ''}
-          </div>
-        </div>
+        {String(rank).padStart(2, '0')}
       </div>
+      <HoverLabel title={title} sub="" visible={hovered} />
+    </div>
+  );
+}
+
+/** 最近播放（你自己的曲目）。 */
+function TrackCover({
+  coverUrl,
+  title,
+  artist,
+  onOpen,
+}: {
+  coverUrl: string | null;
+  title: string;
+  artist: string;
+  onOpen: () => void;
+}) {
+  const accent = useDominantColor(coverUrl, '#f5f5f7');
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      className="group relative cursor-pointer select-none"
+      style={{ width: WAVE_COVER }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onOpen}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute"
+        style={{
+          inset: '-40%',
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${withAlpha(accent, hovered ? 0.5 : 0.2)}, transparent 66%)`,
+          filter: 'blur(26px)',
+          transition: 'background 400ms var(--mo-ease)',
+        }}
+      />
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '1 / 1',
+          borderRadius: 10,
+          background: coverUrl
+            ? `url(${coverUrl}) center / cover no-repeat`
+            : 'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)',
+          border: `1px solid ${hovered ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.09)'}`,
+          boxShadow: hovered
+            ? `0 26px 60px rgba(0,0,0,0.7), 0 0 40px ${withAlpha(accent, 0.4)}`
+            : '0 16px 40px rgba(0,0,0,0.55)',
+          transition: 'box-shadow 380ms var(--mo-ease), border-color 380ms var(--mo-ease)',
+        }}
+      />
+      <HoverLabel title={title} sub={artist} visible={hovered} />
+    </div>
+  );
+}
+
+/** 区块标题（标题 + 计数 + 右侧说明）。 */
+function SectionHead({ title, count, hint }: { title: string; count: number; hint?: string }) {
+  return (
+    <div className="flex items-baseline gap-3" style={{ padding: '0 40px', marginBottom: 14 }}>
+      <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
+      <span className="font-mono" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>
+        {count}
+      </span>
+      {hint ? <span style={{ fontSize: 11, color: 'var(--mo-ink-faint)', marginLeft: 4 }}>{hint}</span> : null}
     </div>
   );
 }
 
 /**
- * 封面波场：两条 3D 封面带（推荐歌单 / 排行榜）在黑色舞台上起伏。
- * 鼠标移动产生视差；播放时波幅与涟漪由 bass/beat 驱动；封面自带辉光与地板倒影。
+ * 首页：问候语 + 现在播放 + 推荐歌单 + 排行榜（榜单语言）+ 最近播放。
+ * 波场（3D 视差 + 起伏 + 音乐律动）保留；不同区块用不同排版语言区分层次。
  */
 export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   const [content, setContent] = useState<ProviderHomeContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [panelTarget, setPanelTarget] = useState<PlaylistPanelTarget | null>(null);
+
+  const tracks = useLibraryStore((s) => s.tracks);
+  const history = useLibraryStore((s) => s.history);
 
   const stageRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef(new Map<string, HTMLDivElement | null>());
@@ -153,6 +302,40 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   const playlists = (content?.playlists ?? []).slice(0, 12);
   const toplists = (content?.toplists ?? []).slice(0, 12);
 
+  /* 最近播放：按时间倒序去重，取最多 12 首真实曲目 */
+  const recentTracks = useMemo<TrackRecord[]>(() => {
+    if (history.length === 0 || tracks.length === 0) {
+      return [];
+    }
+    const ordered = [...history].sort(
+      (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+    );
+    const seen = new Set<string>();
+    const result: TrackRecord[] = [];
+    for (const record of ordered) {
+      if (seen.has(record.trackId)) continue;
+      const track = tracks.find((candidate) => candidate.id === record.trackId);
+      if (!track) continue;
+      seen.add(record.trackId);
+      result.push(track);
+      if (result.length >= 12) break;
+    }
+    return result;
+  }, [history, tracks]);
+
+  /* 问候语 */
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 6) return '夜深了';
+    if (hour < 11) return '早上好';
+    if (hour < 14) return '中午好';
+    if (hour < 18) return '下午好';
+    return '晚上好';
+  }, []);
+  const greetingSub = recentTracks.length
+    ? `上次听到「${recentTracks[0].title}」`
+    : '今天想听点什么？';
+
   /* 鼠标视差 */
   useEffect(() => {
     const stage = stageRef.current;
@@ -168,7 +351,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     return () => stage.removeEventListener('mousemove', onMove);
   }, []);
 
-  /* 波场推进：rAF 直接写 transform（视差 + 起伏 + 音乐律动 + 景深） */
+  /* 波场推进（视差 + 起伏 + 音乐律动） */
   useEffect(() => {
     let raf = 0;
     let tiltX = 0;
@@ -181,7 +364,6 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
       const isPlaying = useAudioStore.getState().isPlaying;
       const t = (now - started) / 1000;
 
-      // 视角倾斜（向鼠标方向，lerp 平滑）
       const targetTiltY = (pointerRef.current.x - 0.5) * 9;
       const targetTiltX = -(pointerRef.current.y - 0.5) * 5.5;
       tiltY += (targetTiltY - tiltY) * 0.06;
@@ -197,7 +379,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
         if (!el) continue;
         const [band, colText] = key.split('-');
         const col = Number(colText) || 0;
-        const bandPhase = band === 'top' ? 0.6 : 2.1;
+        const bandPhase = band === 'playlist' ? 0.6 : band === 'chart' ? 2.1 : 3.4;
         const wave = Math.sin(col * 0.72 + t * speed + bandPhase);
         const ripple = Math.sin(col * 0.5 - t * 3.4) * metrics.beatPulse;
         const z = wave * amp + ripple * 34;
@@ -210,7 +392,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playlists.length, toplists.length]);
+  }, [playlists.length, toplists.length, recentTracks.length]);
 
   const openPlaylist = (playlist: ProviderPlaylistSummary) => {
     setPanelTarget({
@@ -221,25 +403,25 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     });
   };
 
-  const renderBand = (kind: 'top' | 'bottom', items: ProviderPlaylistSummary[]) =>
-    items.length === 0 ? null : (
+  const renderWaveBand = (band: string, children: React.ReactNode[]) =>
+    children.length === 0 ? null : (
       <div
-        className="grid"
         style={{
-          gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
+          display: 'grid',
+          gridTemplateColumns: `repeat(${children.length}, minmax(0, 1fr))`,
           gap: 'clamp(8px, 0.9vw, 14px)',
           padding: '0 40px',
         }}
       >
-        {items.map((item, index) => (
+        {children.map((child, index) => (
           <div
-            key={`${kind}-${index}`}
+            key={`${band}-${index}`}
             ref={(el) => {
-              itemRefs.current.set(`${kind}-${index}`, el);
+              itemRefs.current.set(`${band}-${index}`, el);
             }}
             style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
           >
-            <WaveCover item={item} onOpen={openPlaylist} />
+            {child}
           </div>
         ))}
       </div>
@@ -248,40 +430,92 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   return (
     <div className="absolute inset-0 z-10">
       <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden">
-        <div style={{ padding: '72px 0 48px' }}>
+        <div style={{ padding: '64px 0 44px' }}>
+          {/* 问候语 */}
+          <div style={{ padding: '0 40px', marginBottom: 22 }}>
+            <h1 style={{ fontSize: 30, fontWeight: 300, letterSpacing: '-0.02em', color: 'var(--mo-ink)' }}>
+              {greeting}
+            </h1>
+            <p className="mt-1.5" style={{ fontSize: 12, color: 'var(--mo-ink-faint)' }}>
+              {greetingSub}
+            </p>
+          </div>
+
           {/* 现在播放 */}
           <div style={{ padding: '0 40px', marginBottom: 34 }}>
             <NowPlayingCard onDetail={onDetail} />
           </div>
 
-          {/* 封面波场 */}
-          <div style={{ perspective: PERSPECTIVE }}>
+          {/* 波场：推荐歌单 + 榜单 + 最近播放 */}
+          <div style={{ perspective: 1300 }}>
             <div ref={stageRef} style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}>
-              <div className="flex items-baseline gap-3" style={{ padding: '0 40px', marginBottom: 14 }}>
-                <h2 style={{ fontSize: 13, fontWeight: 500, color: 'var(--mo-ink-muted)', letterSpacing: '0.08em' }}>
-                  推荐歌单
-                </h2>
-                <span className="font-mono" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>
-                  {playlists.length}
-                </span>
+              {/* 推荐歌单 */}
+              <div style={{ marginBottom: 40 }}>
+                <SectionHead title="推荐歌单" count={playlists.length} hint="网易云编辑精选" />
+                {renderWaveBand(
+                  'playlist',
+                  playlists.map((playlist) => (
+                    <WaveCover
+                      key={playlist.id}
+                      coverUrl={playlist.coverUrl}
+                      title={playlist.title}
+                      sub={playlist.trackCount ? `${playlist.trackCount} 首` : ''}
+                      onOpen={() => openPlaylist(playlist)}
+                    />
+                  )),
+                )}
               </div>
-              {renderBand('top', playlists)}
 
-              <div className="flex items-baseline gap-3" style={{ padding: '0 40px', margin: '46px 0 14px' }}>
-                <h2 style={{ fontSize: 13, fontWeight: 500, color: 'var(--mo-ink-muted)', letterSpacing: '0.08em' }}>
-                  排行榜
-                </h2>
-                <span className="font-mono" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>
-                  {toplists.length}
-                </span>
-              </div>
-              {renderBand('bottom', toplists)}
+              {/* 排行榜（榜单语言：前三大 + 大号排名） */}
+              {toplists.length > 0 ? (
+                <div style={{ marginBottom: 40 }}>
+                  <SectionHead title="排行榜" count={toplists.length} hint="此刻最热" />
+                  <div className="flex items-end" style={{ padding: '0 40px', gap: 'clamp(10px, 1.1vw, 18px)' }}>
+                    {toplists.map((playlist, index) => (
+                      <div
+                        key={`chart-${index}`}
+                        ref={(el) => {
+                          itemRefs.current.set(`chart-${index}`, el);
+                        }}
+                        style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+                      >
+                        <ChartCover
+                          coverUrl={playlist.coverUrl}
+                          title={playlist.title}
+                          rank={index + 1}
+                          big={index < 3}
+                          onOpen={() => openPlaylist(playlist)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* 最近播放（你自己的曲目） */}
+              {recentTracks.length >= 3 ? (
+                <div>
+                  <SectionHead title="最近播放" count={recentTracks.length} hint="继续听" />
+                  {renderWaveBand(
+                    'recent',
+                    recentTracks.map((track) => (
+                      <TrackCover
+                        key={track.id}
+                        coverUrl={track.artworkUrl}
+                        title={track.title}
+                        artist={track.artist}
+                        onOpen={() => void useAudioStore.getState().playTrack(track)}
+                      />
+                    )),
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
 
           {/* 载入 / 错误 */}
           {isLoading || loadError ? (
-            <div className="flex flex-col items-center gap-3" style={{ padding: '32px 40px 0' }}>
+            <div className="flex flex-col items-center gap-3" style={{ padding: '28px 40px 0' }}>
               {isLoading ? (
                 <div className="flex items-center gap-2" style={{ color: 'var(--mo-ink-faint)' }}>
                   <Loader2 className="w-4 h-4 animate-spin" />
