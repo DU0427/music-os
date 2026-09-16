@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { AdditiveBlending, BufferGeometry, CanvasTexture, Color, Float32BufferAttribute, TextureLoader } from 'three';
+import { AdditiveBlending, BufferGeometry, Color, Float32BufferAttribute, TextureLoader } from 'three';
 import type { PointsMaterial } from 'three';
 import { useAudioStore } from '../audio/store';
 import { useRuntimeStore } from '../store/runtime';
+import { makeGlowTexture } from './glow-texture';
 import type { TrackIdentity } from '../../shared/ipc/music';
 
 /* ————————————————————————————————
@@ -23,9 +24,9 @@ const PLANE_H = 8.2;
 const GRID_SPACING = PLANE_W / (GRID - 1);
 const COVER_SIZE = GRID_SPACING * 0.62;
 
-// —— 无封面模式：散点星尘 ——
-const AMBIENT_COUNT = 620;
-const AMBIENT_SIZE = 0.055;
+// —— 无封面模式：散点星尘（更多更小的点 + 柔光衰减 = 细尘埃而非粗糙噪点） ——
+const AMBIENT_COUNT = 900;
+const AMBIENT_SIZE = 0.038;
 
 const NO_TRACK_RGB = new Color('#0A0A0C');
 
@@ -39,32 +40,7 @@ function energyTone(track: TrackIdentity | null): Color {
   return new Color('#1A2980');
 }
 
-// 圆形柔光贴图：中心亮、边缘透明，让粒子呈柔和光点而非方块
-function makeGlowTexture(): CanvasTexture {
-  const size = 64;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const context = canvas.getContext('2d');
-  if (context) {
-    const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    gradient.addColorStop(0, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.28, 'rgba(255,255,255,0.82)');
-    gradient.addColorStop(0.62, 'rgba(255,255,255,0.26)');
-    gradient.addColorStop(1, 'rgba(255,255,255,0)');
-    context.fillStyle = gradient;
-    context.beginPath();
-    context.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-    context.fill();
-  }
-  const texture = new CanvasTexture(canvas);
-  texture.minFilter = 0x2600; // LinearMipmapLinearFilter
-  texture.magFilter = 0x2601; // LinearFilter
-  texture.generateMipmaps = true;
-  texture.needsUpdate = true;
-  return texture;
-}
-
+// 圆形柔光贴图：中心亮、边缘透明，让粒子呈柔和光点而非方块（与背景星尘共用同一贴图）
 function pseudoRandom(seed: number) {
   const value = Math.sin(seed * 12.9898) * 43758.5453;
   return value - Math.floor(value);
@@ -307,10 +283,10 @@ export default function CoverParticleField() {
         ? Math.min(0.34 + energy * 0.12 + beat * 0.1, 0.5)
         : 0.16 + energy * 0.04;
     } else {
-      // 星尘模式：点径随节拍跳动，成为「会跳舞的星尘」
-      material.size = AMBIENT_SIZE + beat * 0.06 + bass * 0.03 + treble * 0.02;
+      // 星尘模式：点径随节拍轻微跳动，保持「细尘」而不是「大颗粒」
+      material.size = AMBIENT_SIZE + beat * 0.035 + bass * 0.018 + treble * 0.012;
       material.opacity = isPlaying
-        ? Math.min(0.3 + energy * 0.1 + beat * 0.12, 0.46)
+        ? Math.min(0.28 + energy * 0.09 + beat * 0.1, 0.42)
         : 0.16 + energy * 0.03;
     }
   });

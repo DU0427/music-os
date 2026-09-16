@@ -3,8 +3,10 @@ import { useFrame } from '@react-three/fiber';
 import { BufferGeometry, Float32BufferAttribute } from 'three';
 import type { PointsMaterial } from 'three';
 import { useAudioStore } from '../audio/store';
+import { makeGlowTexture } from './glow-texture';
 
-const STAR_COUNT = 96;
+/* 远处星尘：更细更暗，作为「安静的背景」，不与前台卡片抢注意力 */
+const STAR_COUNT = 150;
 
 function sample(seed: number) {
   const value = Math.sin(seed * 12.9898) * 43758.5453;
@@ -26,19 +28,21 @@ export default function SpaceBackdrop() {
     return nextGeometry;
   }, []);
 
+  const glowTexture = useMemo(() => makeGlowTexture(), []);
   const materialRef = useRef<PointsMaterial>(null);
 
   useEffect(() => {
     return () => {
       geometry.dispose();
+      glowTexture.dispose();
     };
-  }, [geometry]);
+  }, [geometry, glowTexture]);
 
   useFrame(({ clock }) => {
     const metrics = useAudioStore.getState().metrics;
     if (materialRef.current) {
-      materialRef.current.size = 0.045 + metrics.treble * 0.07 + metrics.beatPulse * 0.04;
-      materialRef.current.opacity = 0.3 + metrics.energy * 0.2;
+      materialRef.current.size = 0.026 + metrics.treble * 0.03 + metrics.beatPulse * 0.02;
+      materialRef.current.opacity = 0.2 + metrics.energy * 0.14;
     }
 
     if (geometry.attributes.position) {
@@ -46,7 +50,7 @@ export default function SpaceBackdrop() {
       for (let index = 0; index < STAR_COUNT; index += 1) {
         const zIndex = index * 3 + 2;
         const t = metrics.bass * 0.35 + metrics.mid * 0.18;
-        positions[zIndex] += 0.02 + t * 0.22;
+        positions[zIndex] += 0.012 + t * 0.14;
         if (positions[zIndex] > -0.8) {
           positions[zIndex] = -18;
         }
@@ -57,7 +61,16 @@ export default function SpaceBackdrop() {
 
   return (
     <points geometry={geometry} frustumCulled={false}>
-      <pointsMaterial ref={materialRef} color="#ffffff" size={0.045} sizeAttenuation transparent opacity={0.3} />
+      <pointsMaterial
+        ref={materialRef}
+        map={glowTexture}
+        color="#ffffff"
+        size={0.026}
+        sizeAttenuation
+        transparent
+        opacity={0.2}
+        depthWrite={false}
+      />
     </points>
   );
 }

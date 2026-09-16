@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Loader2, RefreshCw } from 'lucide-react';
 import NowPlayingCard from '../ui/NowPlayingCard';
 import StageChips from '../ui/StageChips';
@@ -18,8 +19,9 @@ const HOME_BOTTOM_RESERVE = 94;
 
 /* 卡面基准尺寸（900px 高窗口下的验收值）：渲染时乘以 useStageScale 的缩放系数。
    轨道内卡片为固定尺寸，右侧露出的半张卡就是「还有更多」的提示。 */
-const PLAYLIST_CARD_WIDTH = 208;
-const PLAYLIST_CARD_HEIGHT = 118;
+const PLAYLIST_CARD_WIDTH = 226;
+const PLAYLIST_CARD_HEIGHT = 112;
+const PLAYLIST_ART_BASE = 68;
 const CHART_COVER_BASE = 104;
 const TRACK_CARD_WIDTH = 186;
 const TRACK_COVER_BASE = 48;
@@ -136,7 +138,9 @@ function PlaylistCard({
   const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
   const s = useStageScale();
-  const artSize = Math.round(94 * s);
+  // 文字块宽度显式算出（卡宽 − 左内边距 − 封面 − 封面右偏移 − 间隙），保证任何 s 下都不与封面重叠
+  const artSize = Math.round(PLAYLIST_ART_BASE * s);
+  const textWidth = Math.round((PLAYLIST_CARD_WIDTH - 18 - PLAYLIST_ART_BASE - 13 - 14) * s);
   return (
     <button
       type="button"
@@ -164,18 +168,25 @@ function PlaylistCard({
     >
       <span
         className="font-mono"
-        style={{ display: 'block', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: withAlpha(accent, 0.92) }}
+        style={{
+          display: 'block',
+          width: textWidth,
+          fontSize: Math.max(10.5, Math.round(11.5 * s)),
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: withAlpha(accent, 0.92),
+        }}
       >
         {label}
       </span>
       <div
         style={{
           marginTop: Math.round(7 * s),
-          fontSize: Math.max(13, Math.round(16 * s)),
+          width: textWidth,
+          fontSize: Math.max(14, Math.round(16.5 * s)),
           fontWeight: 500,
           lineHeight: 1.26,
           color: CARD_TITLE_COLOR,
-          maxWidth: '62%',
           display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
@@ -187,9 +198,9 @@ function PlaylistCard({
       <div
         style={{
           marginTop: Math.round(7 * s),
-          fontSize: Math.max(10, Math.round(11.5 * s)),
+          width: textWidth,
+          fontSize: Math.max(11, Math.round(12 * s)),
           color: CARD_META_COLOR,
-          maxWidth: '62%',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -284,7 +295,7 @@ function ChartCard({
             left: 6,
             padding: '1px 7px',
             borderRadius: 999,
-            fontSize: Math.max(9, Math.round(11 * s)),
+            fontSize: Math.max(10.5, Math.round(11.5 * s)),
             lineHeight: 1.5,
             color: 'rgba(255,255,255,0.94)',
             background: 'rgba(6,6,9,0.62)',
@@ -299,7 +310,7 @@ function ChartCard({
         style={{
           display: 'block',
           marginTop: Math.round(9 * s),
-          fontSize: Math.max(11, Math.round(12.5 * s)),
+          fontSize: Math.max(12.5, Math.round(13.5 * s)),
           color: CARD_TITLE_COLOR,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -312,7 +323,7 @@ function ChartCard({
         style={{
           display: 'block',
           marginTop: 2,
-          fontSize: Math.max(9.5, Math.round(10.5 * s)),
+          fontSize: Math.max(11, Math.round(11.5 * s)),
           color: CARD_META_COLOR,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -380,7 +391,7 @@ function TrackCard({
         <span
           style={{
             display: 'block',
-            fontSize: Math.max(11, Math.round(12.5 * s)),
+            fontSize: Math.max(12.5, Math.round(13.5 * s)),
             color: CARD_TITLE_COLOR,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -393,7 +404,7 @@ function TrackCard({
           style={{
             display: 'block',
             marginTop: 2,
-            fontSize: Math.max(9.5, Math.round(10.5 * s)),
+            fontSize: Math.max(11, Math.round(11.5 * s)),
             color: CARD_META_COLOR,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -412,11 +423,11 @@ function SectionHead({ title, count, hint }: { title: string; count: number; hin
   const s = useStageScale();
   return (
     <div className="flex items-baseline gap-3" style={{ padding: '0 40px', marginBottom: Math.round(14 * s) }}>
-      <h2 style={{ fontSize: Math.max(11, Math.round(14 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
-      <span className="font-mono" style={{ fontSize: Math.max(9, Math.round(10 * s)), color: 'var(--mo-ink-faint)' }}>
+      <h2 style={{ fontSize: Math.max(12.5, Math.round(14.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
+      <span className="font-mono" style={{ fontSize: Math.max(10, Math.round(10.5 * s)), color: 'var(--mo-ink-faint)' }}>
         {count}
       </span>
-      {hint ? <span style={{ fontSize: Math.max(10, Math.round(11 * s)), color: 'var(--mo-ink-faint)', marginLeft: 4 }}>{hint}</span> : null}
+      {hint ? <span style={{ fontSize: Math.max(10.5, Math.round(11.5 * s)), color: 'var(--mo-ink-faint)', marginLeft: 4 }}>{hint}</span> : null}
     </div>
   );
 }
@@ -437,7 +448,6 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   const stageScale = useStageScale();
   const stageRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef(new Map<string, HTMLElement | null>());
-  const pointerRef = useRef({ x: 0.5, y: 0.5 });
 
   /* 入场编排：内容就位后一次性分级入场（respect prefers-reduced-motion） */
   const [entranceReady, setEntranceReady] = useState(false);
@@ -549,22 +559,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     ? `上次听到「${recentTracks[0].title}」`
     : '今天想听点什么？';
 
-  /* 鼠标视差 */
-  useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return undefined;
-    const onMove = (event: MouseEvent) => {
-      const rect = stage.getBoundingClientRect();
-      pointerRef.current = {
-        x: (event.clientX - rect.left) / Math.max(rect.width, 1),
-        y: (event.clientY - rect.top) / Math.max(rect.height, 1),
-      };
-    };
-    stage.addEventListener('mousemove', onMove);
-    return () => stage.removeEventListener('mousemove', onMove);
-  }, []);
-
-  /* 波场推进（指针视差 + 起伏 + 音乐律动）：只驱动卡面封面，文字层不做 3D 变换以保持清晰 */
+  /* 律动推进：只由音频指标驱动（无鼠标跟随、无持续位移） */
   useEffect(() => {
     let raf = 0;
     let lastBeat = -1;
@@ -576,10 +571,6 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
       const isPlaying = useAudioStore.getState().isPlaying;
       const t = (now - started) / 1000;
 
-      // 指针视差：位移只加在封面层，不移动文字
-      const parallaxX = (pointerRef.current.x - 0.5) * 14;
-      const parallaxY = (pointerRef.current.y - 0.5) * 10;
-
       if (stage) {
         // 节拍接管：每帧只写一次 CSS 变量，封面光晕 / 名次徽章由 CSS 读取，避免逐元素写 style
         const beat = isPlaying ? metrics.beatPulse : 0;
@@ -589,8 +580,8 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
         }
       }
 
-      const amp = 14 + metrics.bass * 90 + metrics.beatPulse * 44;
-      const speed = 0.55 + metrics.energy * 1.5;
+      const amp = 9 + metrics.bass * 70 + metrics.beatPulse * 34;
+      const speed = 0.5 + metrics.energy * 1.2;
 
       for (const [key, el] of itemRefs.current) {
         if (!el) continue;
@@ -599,11 +590,11 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
         const bandPhase = band === 'playlist' ? 0.6 : band === 'chart' ? 2.1 : 3.4;
         const wave = Math.sin(col * 0.72 + t * speed + bandPhase);
         const ripple = Math.sin(col * 0.5 - t * 3.4) * metrics.beatPulse;
-        const z = wave * amp + ripple * 34;
-        const bob = Math.cos(col * 0.5 + t * speed * 0.8 + bandPhase) * (isPlaying ? 5 : 2.5);
-        const depthScale = 1 + z / 1400;
-        const ry = Math.sin(col * 0.4 + t * 0.25) * 3.2;
-        el.style.transform = `translate3d(${parallaxX}px, ${bob + parallaxY}px, ${z}px) rotateY(${ry}deg) scale(${depthScale})`;
+        const z = wave * amp + ripple * 26;
+        const bob = Math.cos(col * 0.5 + t * speed * 0.8 + bandPhase) * (isPlaying ? 4 : 1.2);
+        const depthScale = 1 + z / 1600;
+        const ry = Math.sin(col * 0.4 + t * 0.25) * 2;
+        el.style.transform = `translate3d(0, ${bob}px, ${z}px) rotateY(${ry}deg) scale(${depthScale})`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -635,11 +626,11 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
       <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden">
         <div style={{ padding: `${Math.round(Math.max(52, 48 * stageScale))}px 0 ${HOME_BOTTOM_RESERVE}px` }}>
           {/* 问候语 */}
-          <div style={{ ...sectionReveal(0), padding: '0 40px', marginBottom: Math.round(16 * stageScale) }}>
+          <div style={{ ...sectionReveal(0), padding: '0 40px', marginBottom: Math.round(12 * stageScale) }}>
             <h1 style={{ fontSize: Math.max(19, Math.round(30 * stageScale)), fontWeight: 300, letterSpacing: '-0.02em', color: 'var(--mo-ink)' }}>
               {greeting}
             </h1>
-            <p className="mt-1.5" style={{ fontSize: Math.max(10, Math.round(12 * stageScale)), color: 'var(--mo-ink-faint)' }}>
+            <p className="mt-1.5" style={{ fontSize: Math.max(12.5, Math.round(13.5 * stageScale)), color: 'var(--mo-ink-faint)' }}>
               {greetingSub}
             </p>
           </div>
@@ -652,7 +643,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
               gridTemplateColumns: 'minmax(0, 1.45fr) minmax(0, 1fr)',
               gap: Math.round(20 * stageScale),
               padding: '0 40px',
-              marginBottom: Math.round(24 * stageScale),
+              marginBottom: Math.round(18 * stageScale),
             }}
           >
             <div
@@ -663,7 +654,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                 border: '1px solid rgba(255,255,255,0.07)',
                 background: 'linear-gradient(140deg, rgba(20,22,28,0.55), rgba(9,9,12,0.68))',
                 padding: `${Math.round(16 * stageScale)}px ${Math.round(22 * stageScale)}px`,
-                minHeight: Math.round(148 * stageScale),
+                minHeight: Math.round(140 * stageScale),
               }}
             >
               <NowPlayingCard onDetail={onDetail} />
@@ -677,7 +668,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                   letterSpacing: '0.16em',
                   textTransform: 'uppercase',
                   color: 'var(--mo-ink-faint)',
-                  marginBottom: Math.round(2 * stageScale),
+                  marginBottom: Math.round(3 * stageScale),
                 }}
               >
                 此刻最热 · Top 3
@@ -707,7 +698,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                   <span
                     className="font-mono shrink-0"
                     style={{
-                      fontSize: Math.max(10, Math.round(12 * stageScale)),
+                      fontSize: Math.max(11, Math.round(12 * stageScale)),
                       color: 'rgba(255,255,255,0.5)',
                       width: Math.round(20 * stageScale),
                       opacity: 'calc(0.7 + var(--mo-beat, 0) * 0.6)',
@@ -730,7 +721,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                     <span
                       style={{
                         display: 'block',
-                        fontSize: Math.max(11, Math.round(12.5 * stageScale)),
+                        fontSize: Math.max(12.5, Math.round(13.5 * stageScale)),
                         color: CARD_TITLE_COLOR,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -743,7 +734,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                       style={{
                         display: 'block',
                         marginTop: 1,
-                        fontSize: Math.max(9.5, Math.round(10.5 * stageScale)),
+                        fontSize: Math.max(11, Math.round(11.5 * stageScale)),
                         color: CARD_META_COLOR,
                       }}
                     >
@@ -759,7 +750,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
           <div>
             <div ref={stageRef}>
               {/* 推荐歌单 */}
-              <div style={{ ...sectionReveal(160), marginBottom: Math.round(24 * stageScale) }}>
+              <div style={{ ...sectionReveal(160), marginBottom: Math.round(20 * stageScale) }}>
                 <SectionHead title="推荐歌单" count={playlists.length} hint="横向滚动 · 网易云编辑精选" />
                 <Rail gap={Math.round(16 * stageScale)}>
                   {isLoading && playlists.length === 0
@@ -788,7 +779,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
 
               {/* 排行榜 */}
               {isLoading || toplists.length > 0 ? (
-                <div style={{ ...sectionReveal(240), marginBottom: Math.round(24 * stageScale) }}>
+                <div style={{ ...sectionReveal(240), marginBottom: Math.round(20 * stageScale) }}>
                   <SectionHead title="排行榜" count={toplists.length} hint="横向滚动 · 此刻最热" />
                   <Rail gap={Math.round(14 * stageScale)}>
                     {isLoading && toplists.length === 0
@@ -872,7 +863,11 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
 
       <StageChips />
       <Clock />
-      <PlaylistPanel target={panelTarget} onClose={() => setPanelTarget(null)} />
+      {/* 面板挂到 body：WaveHome 的 z-10 容器会建立层叠上下文，直接内联会被顶部栏盖住 */}
+      {createPortal(
+        <PlaylistPanel target={panelTarget} onClose={() => setPanelTarget(null)} />,
+        document.body,
+      )}
     </div>
   );
 }
