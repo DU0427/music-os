@@ -94,7 +94,9 @@ export default function PlaylistPanel({ target, onClose }: PlaylistPanelProps) {
         >
           {/* 头部 */}
           <div className="flex items-start gap-4 p-7 pb-5">
-            <div
+            <motion.div
+              layoutId={`cover-${target.id}`}
+              transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
               className="shrink-0"
               style={{
                 width: 84,

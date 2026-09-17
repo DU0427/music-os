@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
 import NowPlayingCard from '../ui/NowPlayingCard';
 import StageChips from '../ui/StageChips';
@@ -118,19 +119,23 @@ function SkeletonBlock({ width, height, radius = 10 }: { width: number | string;
 
 
 
-/** 最近播放卡：封面 + 标题 + 艺术家（你自己的曲目）。 */
+/** 最近播放卡：封面 + 标题 + 艺术家（你自己的曲目）；正在播放时接管样式。 */
 function TrackCard({
   coverUrl,
   title,
   artist,
   onOpen,
   waveRef,
+  isCurrent = false,
+  isPlaying = false,
 }: {
   coverUrl: string | null;
   title: string;
   artist: string;
   onOpen: () => void;
   waveRef?: (el: HTMLSpanElement | null) => void;
+  isCurrent?: boolean;
+  isPlaying?: boolean;
 }) {
   const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
@@ -148,14 +153,18 @@ function TrackCard({
         gap: Math.round(11 * s),
         padding: `${Math.round(7 * s)}px ${Math.round(9 * s)}px`,
         borderRadius: 12,
-        border: '1px solid transparent',
-        background: hovered ? 'rgba(255,255,255,0.045)' : 'transparent',
-        transition: 'background 260ms var(--mo-ease)',
+        border: `1px solid ${isCurrent ? withAlpha(accent, 0.42) : 'transparent'}`,
+        background: isCurrent
+          ? withAlpha(accent, 0.09)
+          : hovered
+            ? 'rgba(255,255,255,0.045)'
+            : 'transparent',
+        transition: 'background 260ms var(--mo-ease), border-color 260ms var(--mo-ease)',
         cursor: 'pointer',
       }}
     >
       <span style={{ position: 'relative', width: artSize, height: artSize, flexShrink: 0, perspective: 700 }}>
-        <CoverGlow accent={accent} hovered={hovered} inset="-30%" blur={16} base={0.5} />
+        <CoverGlow accent={accent} hovered={hovered || isCurrent} inset="-30%" blur={16} base={isCurrent ? 0.72 : 0.5} />
         <span
           ref={waveRef}
           style={{
@@ -163,18 +172,38 @@ function TrackCard({
             inset: 0,
             borderRadius: 12,
             background: coverUrl ? `url(${coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
-            border: `1px solid ${hovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'}`,
-            boxShadow: '0 10px 26px rgba(0,0,0,0.5)',
+            border: `1px solid ${isCurrent ? withAlpha(accent, 0.55) : hovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'}`,
+            boxShadow: isCurrent ? `0 0 0 2px ${withAlpha(accent, 0.35)}, 0 10px 26px rgba(0,0,0,0.5)` : '0 10px 26px rgba(0,0,0,0.5)',
             willChange: 'transform',
           }}
         />
+        {isCurrent ? (
+          <span
+            style={{
+              position: 'absolute',
+              left: 4,
+              bottom: 4,
+              padding: '2px 5px',
+              borderRadius: 999,
+              background: 'rgba(6,6,9,0.62)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              ...({ '--mo-accent-strong': accent } as React.CSSProperties),
+            }}
+          >
+            <span className="mo-bars" data-paused={isPlaying ? 'false' : 'true'}>
+              <span />
+              <span />
+              <span />
+            </span>
+          </span>
+        ) : null}
       </span>
       <span className="min-w-0" style={{ display: 'block' }}>
         <span
           style={{
             display: 'block',
             fontSize: Math.max(12.5, Math.round(13.5 * s)),
-            color: CARD_TITLE_COLOR,
+            color: isCurrent ? accent : CARD_TITLE_COLOR,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -204,9 +233,11 @@ function TrackCard({
 function Spotlight({
   items,
   onOpen,
+  openId,
 }: {
   items: ProviderPlaylistSummary[];
   onOpen: (playlist: ProviderPlaylistSummary) => void;
+  openId: string | null;
 }) {
   const s = useStageScale();
   const [page, setPage] = useState(0);
@@ -335,7 +366,9 @@ function Spotlight({
         </div>
         <div style={{ position: 'relative', width: art, height: art, flexShrink: 0, perspective: 700 }}>
           <CoverGlow accent={accent} hovered={hovered} inset="-24%" blur={26} base={0.5} />
-          <span
+          <motion.span
+            layoutId={openId === current.id ? undefined : `cover-${current.id}`}
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             style={{
               position: 'absolute',
               inset: 0,
@@ -373,9 +406,11 @@ function Spotlight({
 function MosaicSmall({
   playlist,
   onOpen,
+  openId,
 }: {
   playlist: ProviderPlaylistSummary;
   onOpen: (playlist: ProviderPlaylistSummary) => void;
+  openId: string | null;
 }) {
   const s = useStageScale();
   const accent = useDominantColor(playlist.coverUrl, '#f5f5f7');
@@ -400,8 +435,10 @@ function MosaicSmall({
         overflow: 'hidden',
       }}
     >
-      <span
+      <motion.span
         aria-hidden
+        layoutId={openId === playlist.id ? undefined : `cover-${playlist.id}`}
+        transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
         style={{
           width: art,
           height: art,
@@ -437,9 +474,11 @@ function MosaicSmall({
 function MosaicGrid({
   items,
   onOpen,
+  openId,
 }: {
   items: ProviderPlaylistSummary[];
   onOpen: (playlist: ProviderPlaylistSummary) => void;
+  openId: string | null;
 }) {
   const s = useStageScale();
   const big = items[0];
@@ -528,7 +567,7 @@ function MosaicGrid({
         </div>
       </div>
       {smalls.map((playlist) => (
-        <MosaicSmall key={playlist.id} playlist={playlist} onOpen={onOpen} />
+        <MosaicSmall key={playlist.id} playlist={playlist} onOpen={onOpen} openId={openId} />
       ))}
     </div>
   );
@@ -626,6 +665,8 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
 
   const tracks = useLibraryStore((s) => s.tracks);
   const history = useLibraryStore((s) => s.history);
+  const currentTrackId = useAudioStore((s) => s.track?.id ?? null);
+  const isPlaying = useAudioStore((s) => s.isPlaying);
 
   const stageScale = useStageScale();
   const stageRef = useRef<HTMLDivElement>(null);
@@ -675,8 +716,8 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     }
     return {
       opacity: entranceReady ? 1 : 0,
-      transform: entranceReady ? 'translateY(0)' : 'translateY(12px)',
-      transition: `opacity 520ms var(--mo-ease) ${delay}ms, transform 520ms var(--mo-ease) ${delay}ms`,
+      transform: entranceReady ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.97)',
+      transition: `opacity 560ms var(--mo-ease) ${delay}ms, transform 560ms var(--mo-ease) ${delay}ms`,
     };
   };
 
@@ -845,7 +886,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
             {isLoading && toplists.length === 0 ? (
               <SkeletonBlock width="100%" height={Math.round(150 * stageScale)} radius={22} />
             ) : (
-              <Spotlight items={toplists.slice(0, 3)} onOpen={openPlaylist} />
+              <Spotlight items={toplists.slice(0, 3)} onOpen={openPlaylist} openId={panelTarget?.id ?? null} />
             )}
           </div>
 
@@ -862,7 +903,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                     </div>
                   </div>
                 ) : (
-                  <MosaicGrid items={playlists.slice(0, 5)} onOpen={openPlaylist} />
+                  <MosaicGrid items={playlists.slice(0, 5)} onOpen={openPlaylist} openId={panelTarget?.id ?? null} />
                 )}
               </div>
 
@@ -913,6 +954,8 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                           artist={track.artist}
                           onOpen={() => void useAudioStore.getState().playTrack(track)}
                           waveRef={waveRefFor('recent', index)}
+                          isCurrent={currentTrackId === track.id}
+                          isPlaying={isPlaying}
                         />
                       </div>
                     ))}
