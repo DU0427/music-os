@@ -126,7 +126,8 @@ music-os/
 - 摘要使用动词并推荐带 scope，例如 `feat(audio): 提取本地音频内嵌封面`；禁止 `update`、`change`、`修改一下`、`WIP` 等模糊标题。
 - 标题下面必须写具体改动，不能只写一句空泛总结；有验证就必须写明命令及结果（如 `build:renderer`、`build:electron`、`smoke:electron`）。
 - 一个提交只表达一个可独立回滚的逻辑单元；跨目录且无强依赖的改动拆成多个提交。
-- 不得擅自 amend、rebase、force-push 或提交到远端，除非用户明确要求。
+- 完成一个可交付单元（源码提交 + 对应的 `build:` 产物提交）后**直接 `git push origin main`**，无需每次询问（用户 2026-09-17 授权）；推送前先 `git status` 确认工作区与本次改动范围。
+- 仍然禁止：`amend`、`rebase`、`force-push`、推送到其它远端或分支（用户当时明确要求除外）。
 
 ### 脏工作区与构建产物
 
