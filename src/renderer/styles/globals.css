@@ -206,6 +206,12 @@ body {
   }
 }
 
+/* 键盘焦点环：只在键盘操作时出现，鼠标点击不显示 */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--mo-accent, #f5f5f7) 62%, transparent);
+  outline-offset: 2px;
+}
+
 /* 载入骨架：一次微光扫过（reduced-motion 时静止） */
 @keyframes mo-skeleton-sheen {
   from {

@@ -446,6 +446,10 @@ function MosaicSmall({
           borderRadius: 10,
           background: playlist.coverUrl ? `url(${playlist.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
           border: '1px solid rgba(255,255,255,0.09)',
+          transform: hovered ? 'scale(1.06)' : 'scale(1)',
+          transitionProperty: 'transform, border-color',
+          transitionDuration: '420ms',
+          transitionTimingFunction: 'var(--mo-ease)',
         }}
       />
       <span className="min-w-0" style={{ display: 'block' }}>
@@ -457,7 +461,8 @@ function MosaicSmall({
             overflow: 'hidden',
             fontSize: Math.max(12, Math.round(13 * s)),
             lineHeight: 1.3,
-            color: CARD_TITLE_COLOR,
+            color: hovered ? accent : CARD_TITLE_COLOR,
+            transition: 'color 240ms var(--mo-ease)',
           }}
         >
           {playlist.title}
@@ -518,12 +523,24 @@ function MosaicGrid({
           gridRow: 'span 2',
           borderRadius: 18,
           border: `1px solid ${hovered ? withAlpha(accent, 0.36) : 'rgba(255,255,255,0.08)'}`,
-          background: big.coverUrl ? `url(${big.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+          background: 'linear-gradient(140deg, rgba(18,20,26,0.7), rgba(8,8,11,0.85))',
           boxShadow: hovered ? `0 26px 64px rgba(0,0,0,0.6), 0 0 40px ${withAlpha(accent, 0.18)}` : '0 20px 54px rgba(0,0,0,0.5)',
           transition: 'border-color 300ms var(--mo-ease), box-shadow 300ms var(--mo-ease)',
           cursor: 'pointer',
+          overflow: 'hidden',
         }}
       >
+        {/* 封面层单独一层，hover 时缓慢放大（Ken Burns 式），文字层不受影响 */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: big.coverUrl ? `url(${big.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+            transform: hovered ? 'scale(1.045)' : 'scale(1)',
+            transition: 'transform 900ms var(--mo-ease)',
+          }}
+        />
         <div
           aria-hidden
           style={{
@@ -639,16 +656,34 @@ function ChartRow({
   );
 }
 
-/** 区块标题（标题 + 计数 + 右侧说明）。 */
+/** 区块标题：左侧标题 + 计数，右侧说明右对齐（排版更收束）。 */
 function SectionHead({ title, count, hint }: { title: string; count: number; hint?: string }) {
   const s = useStageScale();
   return (
-    <div className="flex items-baseline gap-3" style={{ padding: '0 40px', marginBottom: Math.round(14 * s) }}>
-      <h2 style={{ fontSize: Math.max(12.5, Math.round(14.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
-      <span className="font-mono" style={{ fontSize: Math.max(10, Math.round(10.5 * s)), color: 'var(--mo-ink-faint)' }}>
-        {count}
+    <div
+      className="flex items-baseline"
+      style={{ padding: '0 40px', marginBottom: Math.round(14 * s), justifyContent: 'space-between', gap: Math.round(12 * s) }}
+    >
+      <span className="flex items-baseline" style={{ gap: Math.round(10 * s), minWidth: 0 }}>
+        <h2 style={{ fontSize: Math.max(12.5, Math.round(14.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
+        <span className="font-mono" style={{ fontSize: Math.max(10, Math.round(10.5 * s)), color: 'var(--mo-ink-faint)' }}>
+          {count}
+        </span>
       </span>
-      {hint ? <span style={{ fontSize: Math.max(10.5, Math.round(11.5 * s)), color: 'var(--mo-ink-faint)', marginLeft: 4 }}>{hint}</span> : null}
+      {hint ? (
+        <span
+          className="shrink-0"
+          style={{
+            fontSize: Math.max(10.5, Math.round(11.5 * s)),
+            color: 'var(--mo-ink-faint)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {hint}
+        </span>
+      ) : null}
     </div>
   );
 }
