@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
 import NowPlayingCard from '../ui/NowPlayingCard';
 import StageChips from '../ui/StageChips';
 import PlaylistPanel, { type PlaylistPanelTarget } from '../ui/PlaylistPanel';
@@ -19,9 +19,9 @@ const HOME_BOTTOM_RESERVE = 94;
 
 /* 卡面基准尺寸（900px 高窗口下的验收值）：渲染时乘以 useStageScale 的缩放系数。
    轨道内卡片为固定尺寸，右侧露出的半张卡就是「还有更多」的提示。 */
-const PLAYLIST_CARD_WIDTH = 226;
-const PLAYLIST_CARD_HEIGHT = 112;
-const PLAYLIST_ART_BASE = 68;
+
+
+
 const CHART_COVER_BASE = 104;
 const TRACK_CARD_WIDTH = 186;
 const TRACK_COVER_BASE = 48;
@@ -116,128 +116,6 @@ function SkeletonBlock({ width, height, radius = 10 }: { width: number | string;
   return <div aria-hidden className="mo-skeleton" style={{ width, height, borderRadius: radius }} />;
 }
 
-/**
- * 推荐歌单卡：左侧文字层级（label / 标题 / 元信息），右下封面。
- * 结构借鉴 Mineradio 的 home-card（文字在左、封面在右下），视觉沿用黑场：细边 + 封面光晕。
- */
-function PlaylistCard({
-  coverUrl,
-  title,
-  sub,
-  label,
-  onOpen,
-  waveRef,
-}: {
-  coverUrl: string | null;
-  title: string;
-  sub: string;
-  label: string;
-  onOpen: () => void;
-  waveRef?: (el: HTMLSpanElement | null) => void;
-}) {
-  const accent = useDominantColor(coverUrl, '#f5f5f7');
-  const [hovered, setHovered] = useState(false);
-  const s = useStageScale();
-  // 文字块宽度显式算出（卡宽 − 左内边距 − 封面 − 封面右偏移 − 间隙），保证任何 s 下都不与封面重叠
-  const artSize = Math.round(PLAYLIST_ART_BASE * s);
-  const textWidth = Math.round((PLAYLIST_CARD_WIDTH - 18 - PLAYLIST_ART_BASE - 13 - 14) * s);
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="relative shrink-0 overflow-hidden text-left"
-      style={{
-        width: Math.round(PLAYLIST_CARD_WIDTH * s),
-        minHeight: Math.round(PLAYLIST_CARD_HEIGHT * s),
-        padding: Math.round(16 * s),
-        borderRadius: 18,
-        border: `1px solid ${hovered ? withAlpha(accent, 0.4) : 'rgba(255,255,255,0.075)'}`,
-        background: hovered
-          ? `linear-gradient(140deg, ${withAlpha(accent, 0.13)}, rgba(9,9,12,0.72))`
-          : 'linear-gradient(140deg, rgba(20,22,28,0.58), rgba(9,9,12,0.7))',
-        boxShadow: hovered
-          ? `0 24px 60px rgba(0,0,0,0.55), 0 0 34px ${withAlpha(accent, 0.16)}`
-          : '0 16px 44px rgba(0,0,0,0.4)',
-        transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
-        transition:
-          'transform 320ms var(--mo-ease), border-color 320ms var(--mo-ease), box-shadow 320ms var(--mo-ease), background 320ms var(--mo-ease)',
-        cursor: 'pointer',
-      }}
-    >
-      <span
-        className="font-mono"
-        style={{
-          display: 'block',
-          width: textWidth,
-          fontSize: Math.max(10.5, Math.round(11.5 * s)),
-          letterSpacing: '0.16em',
-          textTransform: 'uppercase',
-          color: withAlpha(accent, 0.92),
-        }}
-      >
-        {label}
-      </span>
-      <div
-        style={{
-          marginTop: Math.round(7 * s),
-          width: textWidth,
-          fontSize: Math.max(14, Math.round(16.5 * s)),
-          fontWeight: 500,
-          lineHeight: 1.26,
-          color: CARD_TITLE_COLOR,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-        }}
-      >
-        {title}
-      </div>
-      <div
-        style={{
-          marginTop: Math.round(7 * s),
-          width: textWidth,
-          fontSize: Math.max(11, Math.round(12 * s)),
-          color: CARD_META_COLOR,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {sub}
-      </div>
-      <span
-        aria-hidden
-        style={{
-          position: 'absolute',
-          right: Math.round(13 * s),
-          bottom: Math.round(13 * s),
-          width: artSize,
-          height: artSize,
-          transform: `rotate(${hovered ? 1.5 : 3.5}deg)`,
-          transition: 'transform 320ms var(--mo-ease)',
-          perspective: 700,
-        }}
-      >
-        <CoverGlow accent={accent} hovered={hovered} inset="-26%" blur={20} />
-        <span
-          ref={waveRef}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 20,
-            background: coverUrl ? `url(${coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
-            border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 18px 44px rgba(0,0,0,0.55)',
-            willChange: 'transform',
-          }}
-        />
-      </span>
-    </button>
-  );
-}
 
 /** 榜单卡：等尺寸封面 + 封面内左上角名次徽章 + 下方标题与说明。 */
 function ChartCard({
@@ -415,6 +293,333 @@ function TrackCard({
         </span>
       </span>
     </button>
+  );
+}
+
+/** 焦点大卡：编辑位，手动翻页（不自动播放、不跟随鼠标），底色取自当前封面主色。 */
+function Spotlight({
+  items,
+  onOpen,
+}: {
+  items: ProviderPlaylistSummary[];
+  onOpen: (playlist: ProviderPlaylistSummary) => void;
+}) {
+  const s = useStageScale();
+  const [page, setPage] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const index = items.length > 0 ? Math.min(page, items.length - 1) : 0;
+  const current = items[index] ?? null;
+  const accent = useDominantColor(current?.coverUrl ?? null, '#f5f5f7');
+
+  if (!current) {
+    return null;
+  }
+
+  const art = Math.round(150 * s);
+  const pagerStyle: React.CSSProperties = {
+    width: Math.round(30 * s),
+    height: Math.round(30 * s),
+    border: '1px solid rgba(255,255,255,0.14)',
+    background: 'rgba(255,255,255,0.04)',
+    color: 'rgba(255,255,255,0.75)',
+    cursor: 'pointer',
+    transition: 'background 220ms var(--mo-ease)',
+  };
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(current)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          onOpen(current);
+        }
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="relative overflow-hidden text-left"
+      style={{
+        height: '100%',
+        borderRadius: 22,
+        border: `1px solid ${hovered ? withAlpha(accent, 0.34) : 'rgba(255,255,255,0.075)'}`,
+        background: `linear-gradient(115deg, ${withAlpha(accent, hovered ? 0.2 : 0.13)}, rgba(8, 8, 11, 0.86) 58%)`,
+        boxShadow: hovered
+          ? `0 28px 70px rgba(0,0,0,0.6), 0 0 44px ${withAlpha(accent, 0.18)}`
+          : '0 20px 60px rgba(0,0,0,0.45)',
+        transition: 'border-color 320ms var(--mo-ease), box-shadow 320ms var(--mo-ease), background 320ms var(--mo-ease)',
+        cursor: 'pointer',
+      }}
+    >
+      <div
+        className="flex h-full items-center"
+        style={{ gap: Math.round(18 * s), padding: `${Math.round(16 * s)}px ${Math.round(22 * s)}px` }}
+      >
+        <div className="min-w-0 flex-1">
+          <span
+            className="font-mono"
+            style={{ fontSize: Math.max(10.5, Math.round(11.5 * s)), letterSpacing: '0.16em', textTransform: 'uppercase', color: withAlpha(accent, 0.95) }}
+          >
+            此刻最热 · Top {index + 1}
+          </span>
+          <div
+            style={{
+              marginTop: Math.round(8 * s),
+              fontSize: Math.max(19, Math.round(25 * s)),
+              fontWeight: 300,
+              letterSpacing: '-0.01em',
+              color: CARD_TITLE_COLOR,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {current.title}
+          </div>
+          <div style={{ marginTop: Math.round(6 * s), fontSize: Math.max(11, Math.round(12 * s)), color: CARD_META_COLOR }}>
+            {current.trackCount ? `${current.trackCount} 首歌曲` : '网易云榜单'}
+          </div>
+          <div className="flex items-center" style={{ gap: Math.round(9 * s), marginTop: Math.round(14 * s) }}>
+            <button
+              type="button"
+              aria-label="上一张焦点"
+              className="grid place-items-center rounded-full"
+              style={pagerStyle}
+              onClick={(event) => {
+                event.stopPropagation();
+                setPage((prev) => (prev - 1 + items.length) % items.length);
+              }}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="下一张焦点"
+              className="grid place-items-center rounded-full"
+              style={pagerStyle}
+              onClick={(event) => {
+                event.stopPropagation();
+                setPage((prev) => (prev + 1) % items.length);
+              }}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <div className="flex items-center" style={{ gap: 6, marginLeft: Math.round(6 * s) }}>
+              {items.map((item, dotIndex) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={`焦点第 ${dotIndex + 1} 张`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setPage(dotIndex);
+                  }}
+                  style={{
+                    width: dotIndex === index ? Math.round(20 * s) : Math.round(6 * s),
+                    height: 4,
+                    borderRadius: 999,
+                    border: 'none',
+                    padding: 0,
+                    background: dotIndex === index ? withAlpha(accent, 0.95) : 'rgba(255,255,255,0.22)',
+                    transition: 'width 260ms var(--mo-ease), background 260ms var(--mo-ease)',
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ position: 'relative', width: art, height: art, flexShrink: 0, perspective: 700 }}>
+          <CoverGlow accent={accent} hovered={hovered} inset="-24%" blur={26} base={0.5} />
+          <span
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: 18,
+              background: current.coverUrl ? `url(${current.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 22px 52px rgba(0,0,0,0.55)',
+            }}
+          />
+          <span
+            className="font-mono"
+            style={{
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              padding: '1px 7px',
+              borderRadius: 999,
+              fontSize: Math.max(10.5, Math.round(11.5 * s)),
+              lineHeight: 1.5,
+              color: 'rgba(255,255,255,0.94)',
+              background: 'rgba(6,6,9,0.62)',
+              border: '1px solid rgba(255,255,255,0.16)',
+              opacity: 'calc(0.72 + var(--mo-beat, 0) * 0.5)',
+            }}
+          >
+            {String(index + 1).padStart(2, '0')}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 编辑网格的小卡：一行式（封面 + 两行标题 + 元信息），与左侧大卡构成非对称布局。 */
+function MosaicSmall({
+  playlist,
+  onOpen,
+}: {
+  playlist: ProviderPlaylistSummary;
+  onOpen: (playlist: ProviderPlaylistSummary) => void;
+}) {
+  const s = useStageScale();
+  const accent = useDominantColor(playlist.coverUrl, '#f5f5f7');
+  const [hovered, setHovered] = useState(false);
+  const art = Math.round(46 * s);
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(playlist)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex min-w-0 items-center text-left"
+      style={{
+        gridColumn: 'span 3',
+        gap: Math.round(10 * s),
+        padding: `${Math.round(8 * s)}px ${Math.round(10 * s)}px`,
+        borderRadius: 14,
+        border: `1px solid ${hovered ? withAlpha(accent, 0.3) : 'rgba(255,255,255,0.06)'}`,
+        background: hovered ? 'rgba(255,255,255,0.045)' : 'rgba(255,255,255,0.02)',
+        transition: 'border-color 260ms var(--mo-ease), background 260ms var(--mo-ease)',
+        cursor: 'pointer',
+        overflow: 'hidden',
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: art,
+          height: art,
+          flexShrink: 0,
+          borderRadius: 10,
+          background: playlist.coverUrl ? `url(${playlist.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+          border: '1px solid rgba(255,255,255,0.09)',
+        }}
+      />
+      <span className="min-w-0" style={{ display: 'block' }}>
+        <span
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            fontSize: Math.max(12, Math.round(13 * s)),
+            lineHeight: 1.3,
+            color: CARD_TITLE_COLOR,
+          }}
+        >
+          {playlist.title}
+        </span>
+        <span style={{ display: 'block', marginTop: 3, fontSize: Math.max(11, Math.round(11.5 * s)), color: CARD_META_COLOR }}>
+          {playlistMeta(playlist)}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/** 编辑网格：12 列里 1 张大卡（6×2）+ 4 张小卡（各 3×1），构成非对称编辑布局。 */
+function MosaicGrid({
+  items,
+  onOpen,
+}: {
+  items: ProviderPlaylistSummary[];
+  onOpen: (playlist: ProviderPlaylistSummary) => void;
+}) {
+  const s = useStageScale();
+  const big = items[0];
+  const smalls = items.slice(1, 5);
+  const accent = useDominantColor(big?.coverUrl ?? null, '#f5f5f7');
+  const [hovered, setHovered] = useState(false);
+
+  if (!big) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+        gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
+        gap: Math.round(12 * s),
+        padding: '0 40px',
+        height: Math.round(146 * s),
+      }}
+    >
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpen(big)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            onOpen(big);
+          }
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className="relative overflow-hidden"
+        style={{
+          gridColumn: 'span 6',
+          gridRow: 'span 2',
+          borderRadius: 18,
+          border: `1px solid ${hovered ? withAlpha(accent, 0.36) : 'rgba(255,255,255,0.08)'}`,
+          background: big.coverUrl ? `url(${big.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+          boxShadow: hovered ? `0 26px 64px rgba(0,0,0,0.6), 0 0 40px ${withAlpha(accent, 0.18)}` : '0 20px 54px rgba(0,0,0,0.5)',
+          transition: 'border-color 300ms var(--mo-ease), box-shadow 300ms var(--mo-ease)',
+          cursor: 'pointer',
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.32) 46%, transparent)',
+          }}
+        />
+        <div style={{ position: 'absolute', left: Math.round(16 * s), right: Math.round(16 * s), bottom: Math.round(14 * s) }}>
+          <span
+            className="font-mono"
+            style={{ fontSize: Math.max(10.5, Math.round(11.5 * s)), letterSpacing: '0.16em', textTransform: 'uppercase', color: withAlpha(accent, 0.95) }}
+          >
+            编辑精选
+          </span>
+          <div
+            style={{
+              marginTop: Math.round(6 * s),
+              fontSize: Math.max(14, Math.round(17 * s)),
+              fontWeight: 500,
+              lineHeight: 1.25,
+              color: '#ffffff',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {big.title}
+          </div>
+          <div style={{ marginTop: Math.round(4 * s), fontSize: Math.max(11, Math.round(11.5 * s)), color: 'rgba(255,255,255,0.66)' }}>
+            {playlistMeta(big)}
+          </div>
+        </div>
+      </div>
+      {smalls.map((playlist) => (
+        <MosaicSmall key={playlist.id} playlist={playlist} onOpen={onOpen} />
+      ))}
+    </div>
   );
 }
 
@@ -640,7 +845,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
             style={{
               ...sectionReveal(80),
               display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1.45fr) minmax(0, 1fr)',
+              gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.6fr)',
               gap: Math.round(20 * stageScale),
               padding: '0 40px',
               marginBottom: Math.round(18 * stageScale),
@@ -654,127 +859,34 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                 border: '1px solid rgba(255,255,255,0.07)',
                 background: 'linear-gradient(140deg, rgba(20,22,28,0.55), rgba(9,9,12,0.68))',
                 padding: `${Math.round(16 * stageScale)}px ${Math.round(22 * stageScale)}px`,
-                minHeight: Math.round(140 * stageScale),
+                minHeight: Math.round(136 * stageScale),
               }}
             >
               <NowPlayingCard onDetail={onDetail} />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: Math.round(4 * stageScale) }}>
-              <div
-                className="font-mono"
-                style={{
-                  fontSize: 9.5,
-                  letterSpacing: '0.16em',
-                  textTransform: 'uppercase',
-                  color: 'var(--mo-ink-faint)',
-                  marginBottom: Math.round(3 * stageScale),
-                }}
-              >
-                此刻最热 · Top 3
-              </div>
-              {(toplists.length > 0 ? toplists.slice(0, 3) : []).map((playlist, index) => (
-                <button
-                  key={playlist.id}
-                  type="button"
-                  onClick={() => openPlaylist(playlist)}
-                  className="flex items-center text-left"
-                  style={{
-                    gap: Math.round(11 * stageScale),
-                    padding: `${Math.round(6 * stageScale)}px ${Math.round(8 * stageScale)}px`,
-                    borderRadius: 12,
-                    border: '1px solid transparent',
-                    background: 'transparent',
-                    transition: 'background 240ms var(--mo-ease)',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(event) => {
-                    event.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                  }}
-                  onMouseLeave={(event) => {
-                    event.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  <span
-                    className="font-mono shrink-0"
-                    style={{
-                      fontSize: Math.max(11, Math.round(12 * stageScale)),
-                      color: 'rgba(255,255,255,0.5)',
-                      width: Math.round(20 * stageScale),
-                      opacity: 'calc(0.7 + var(--mo-beat, 0) * 0.6)',
-                    }}
-                  >
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span
-                    aria-hidden
-                    style={{
-                      width: Math.round(38 * stageScale),
-                      height: Math.round(38 * stageScale),
-                      flexShrink: 0,
-                      borderRadius: 10,
-                      background: playlist.coverUrl ? `url(${playlist.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
-                      border: '1px solid rgba(255,255,255,0.09)',
-                    }}
-                  />
-                  <span className="min-w-0" style={{ display: 'block' }}>
-                    <span
-                      style={{
-                        display: 'block',
-                        fontSize: Math.max(12.5, Math.round(13.5 * stageScale)),
-                        color: CARD_TITLE_COLOR,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {playlist.title}
-                    </span>
-                    <span
-                      style={{
-                        display: 'block',
-                        marginTop: 1,
-                        fontSize: Math.max(11, Math.round(11.5 * stageScale)),
-                        color: CARD_META_COLOR,
-                      }}
-                    >
-                      {playlist.trackCount ? `${playlist.trackCount} 首歌曲` : '网易云榜单'}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
+            {isLoading && toplists.length === 0 ? (
+              <SkeletonBlock width="100%" height={Math.round(150 * stageScale)} radius={22} />
+            ) : (
+              <Spotlight items={toplists.slice(0, 3)} onOpen={openPlaylist} />
+            )}
           </div>
 
           {/* 内容轨道：3D 只作用在封面层（各自 perspective），文字层保持 2D 以保证清晰 */}
           <div>
             <div ref={stageRef}>
-              {/* 推荐歌单 */}
+              {/* 编辑精选：非对称马赛克（1 大 + 4 小） */}
               <div style={{ ...sectionReveal(160), marginBottom: Math.round(20 * stageScale) }}>
-                <SectionHead title="推荐歌单" count={playlists.length} hint="横向滚动 · 网易云编辑精选" />
-                <Rail gap={Math.round(16 * stageScale)}>
-                  {isLoading && playlists.length === 0
-                    ? Array.from({ length: 6 }, (_, index) => (
-                        <SkeletonBlock
-                          key={`skeleton-playlist-${index}`}
-                          width={Math.round(PLAYLIST_CARD_WIDTH * stageScale)}
-                          height={Math.round(PLAYLIST_CARD_HEIGHT * stageScale)}
-                          radius={18}
-                        />
-                      ))
-                    : playlists.map((playlist, index) => (
-                        <div key={playlist.id} style={coverReveal(200 + index * 26)}>
-                          <PlaylistCard
-                            coverUrl={playlist.coverUrl}
-                            title={playlist.title}
-                            sub={playlistMeta(playlist)}
-                            label={playlist.kind === 'toplist' ? 'Chart' : 'Playlist'}
-                            onOpen={() => openPlaylist(playlist)}
-                            waveRef={waveRefFor('playlist', index)}
-                          />
-                        </div>
-                      ))}
-                </Rail>
+                <SectionHead title="编辑精选" count={playlists.length} hint="网易云编辑精选" />
+                {isLoading && playlists.length === 0 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: Math.round(12 * stageScale), padding: '0 40px' }}>
+                    <div style={{ gridColumn: 'span 12' }}>
+                      <SkeletonBlock width="100%" height={Math.round(150 * stageScale)} radius={18} />
+                    </div>
+                  </div>
+                ) : (
+                  <MosaicGrid items={playlists.slice(0, 5)} onOpen={openPlaylist} />
+                )}
               </div>
 
               {/* 排行榜 */}

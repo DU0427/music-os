@@ -1,4 +1,4 @@
-import { CanvasTexture } from 'three';
+import { CanvasTexture, LinearFilter, LinearMipmapLinearFilter } from 'three';
 
 /**
  * 粒子柔光贴图：中心亮、边缘平滑衰减。
@@ -23,8 +23,8 @@ export function makeGlowTexture(size = 128): CanvasTexture {
     context.fill();
   }
   const texture = new CanvasTexture(canvas);
-  texture.minFilter = 0x2600; // LinearMipmapLinearFilter
-  texture.magFilter = 0x2601; // LinearFilter
+  texture.minFilter = LinearMipmapLinearFilter;
+  texture.magFilter = LinearFilter;
   texture.generateMipmaps = true;
   texture.needsUpdate = true;
   return texture;
