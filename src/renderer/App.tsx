@@ -88,6 +88,18 @@ export default function AppShell() {
     void useAccountStore.getState().refresh();
   }, []);
 
+  /* ⌘K / Ctrl+K 打开搜索 */
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsSearching(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const isTransitioning = useRuntimeStore((s) => s.isTransitioning);
   const currentTrack = useAudioStore((s) => s.track ?? null);
