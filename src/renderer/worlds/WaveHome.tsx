@@ -22,7 +22,7 @@ const HOME_BOTTOM_RESERVE = 94;
 
 
 
-const CHART_COVER_BASE = 104;
+
 const TRACK_CARD_WIDTH = 186;
 const TRACK_COVER_BASE = 48;
 
@@ -117,102 +117,6 @@ function SkeletonBlock({ width, height, radius = 10 }: { width: number | string;
 }
 
 
-/** 榜单卡：等尺寸封面 + 封面内左上角名次徽章 + 下方标题与说明。 */
-function ChartCard({
-  coverUrl,
-  title,
-  meta,
-  rank,
-  onOpen,
-  waveRef,
-}: {
-  coverUrl: string | null;
-  title: string;
-  meta: string;
-  rank: number;
-  onOpen: () => void;
-  waveRef?: (el: HTMLSpanElement | null) => void;
-}) {
-  const accent = useDominantColor(coverUrl, '#f5f5f7');
-  const [hovered, setHovered] = useState(false);
-  const s = useStageScale();
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="relative shrink-0 text-left"
-      style={{ width: Math.round(CHART_COVER_BASE * s), cursor: 'pointer' }}
-    >
-      <span style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '1 / 1' }}>
-        <span style={{ position: 'absolute', inset: 0, perspective: 700 }}>
-          <CoverGlow accent={accent} hovered={hovered} inset="-30%" blur={22} base={0.64} />
-          <span
-            ref={waveRef}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: 16,
-              background: coverUrl ? `url(${coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
-              border: `1px solid ${hovered ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.09)'}`,
-              boxShadow: hovered
-                ? `0 22px 52px rgba(0,0,0,0.62), 0 0 32px ${withAlpha(accent, 0.34)}`
-                : '0 14px 36px rgba(0,0,0,0.5)',
-              transition: 'box-shadow 340ms var(--mo-ease), border-color 340ms var(--mo-ease)',
-              willChange: 'transform',
-            }}
-          />
-        </span>
-        {/* 名次：封面左上角徽章，放在 3D 变换之外保持清晰，播放时随节拍提亮 */}
-        <span
-          className="font-mono"
-          style={{
-            position: 'absolute',
-            top: 6,
-            left: 6,
-            padding: '1px 7px',
-            borderRadius: 999,
-            fontSize: Math.max(10.5, Math.round(11.5 * s)),
-            lineHeight: 1.5,
-            color: 'rgba(255,255,255,0.94)',
-            background: 'rgba(6,6,9,0.62)',
-            border: '1px solid rgba(255,255,255,0.16)',
-            opacity: 'calc(0.72 + var(--mo-beat, 0) * 0.5)',
-          }}
-        >
-          {String(rank).padStart(2, '0')}
-        </span>
-      </span>
-      <span
-        style={{
-          display: 'block',
-          marginTop: Math.round(9 * s),
-          fontSize: Math.max(12.5, Math.round(13.5 * s)),
-          color: CARD_TITLE_COLOR,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {title}
-      </span>
-      <span
-        style={{
-          display: 'block',
-          marginTop: 2,
-          fontSize: Math.max(11, Math.round(11.5 * s)),
-          color: CARD_META_COLOR,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {meta}
-      </span>
-    </button>
-  );
-}
 
 /** 最近播放卡：封面 + 标题 + 艺术家（你自己的曲目）。 */
 function TrackCard({
@@ -555,7 +459,7 @@ function MosaicGrid({
         gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
         gap: Math.round(12 * s),
         padding: '0 40px',
-        height: Math.round(146 * s),
+        height: Math.round(138 * s),
       }}
     >
       <div
@@ -620,6 +524,72 @@ function MosaicGrid({
         <MosaicSmall key={playlist.id} playlist={playlist} onOpen={onOpen} />
       ))}
     </div>
+  );
+}
+
+/** 榜单行：名次 + 名称 + 曲目数（紧凑目录式，三列排布，避免又一次「封面墙」）。 */
+function ChartRow({
+  playlist,
+  rank,
+  onOpen,
+}: {
+  playlist: ProviderPlaylistSummary;
+  rank: number;
+  onOpen: () => void;
+}) {
+  const s = useStageScale();
+  const accent = useDominantColor(playlist.coverUrl, '#f5f5f7');
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex min-w-0 items-center text-left"
+      style={{
+        gap: Math.round(10 * s),
+        padding: `${Math.round(6 * s)}px ${Math.round(9 * s)}px`,
+        borderRadius: 10,
+        border: `1px solid ${hovered ? withAlpha(accent, 0.28) : 'transparent'}`,
+        background: hovered ? 'rgba(255,255,255,0.04)' : 'transparent',
+        transition: 'border-color 240ms var(--mo-ease), background 240ms var(--mo-ease)',
+        cursor: 'pointer',
+      }}
+    >
+      <span
+        className="font-mono shrink-0"
+        style={{
+          width: Math.round(21 * s),
+          fontSize: Math.max(11.5, Math.round(12.5 * s)),
+          color: hovered ? withAlpha(accent, 1) : 'rgba(255,255,255,0.5)',
+          opacity: 'calc(0.72 + var(--mo-beat, 0) * 0.5)',
+          transition: 'color 240ms var(--mo-ease)',
+        }}
+      >
+        {String(rank).padStart(2, '0')}
+      </span>
+      <span
+        className="min-w-0"
+        style={{
+          display: 'block',
+          flex: 1,
+          fontSize: Math.max(12.5, Math.round(13.5 * s)),
+          color: CARD_TITLE_COLOR,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {playlist.title}
+      </span>
+      <span
+        className="shrink-0 font-mono"
+        style={{ fontSize: Math.max(10.5, Math.round(11 * s)), color: CARD_META_COLOR }}
+      >
+        {playlist.trackCount ? `${playlist.trackCount} 首` : ''}
+      </span>
+    </button>
   );
 }
 
@@ -859,7 +829,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                 border: '1px solid rgba(255,255,255,0.07)',
                 background: 'linear-gradient(140deg, rgba(20,22,28,0.55), rgba(9,9,12,0.68))',
                 padding: `${Math.round(16 * stageScale)}px ${Math.round(22 * stageScale)}px`,
-                minHeight: Math.round(136 * stageScale),
+                minHeight: Math.round(130 * stageScale),
               }}
             >
               <NowPlayingCard onDetail={onDetail} />
@@ -889,33 +859,37 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                 )}
               </div>
 
-              {/* 排行榜 */}
+              {/* 排行榜：紧凑目录（名次 + 名称 + 曲目数，三列），避免与上方马赛克重复成封面墙 */}
               {isLoading || toplists.length > 0 ? (
                 <div style={{ ...sectionReveal(240), marginBottom: Math.round(20 * stageScale) }}>
-                  <SectionHead title="排行榜" count={toplists.length} hint="横向滚动 · 此刻最热" />
-                  <Rail gap={Math.round(14 * stageScale)}>
+                  <SectionHead title="排行榜" count={toplists.length} hint="此刻最热" />
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                      gap: `${Math.round(4 * stageScale)}px ${Math.round(16 * stageScale)}px`,
+                      padding: '0 40px',
+                    }}
+                  >
                     {isLoading && toplists.length === 0
                       ? Array.from({ length: 6 }, (_, index) => (
                           <SkeletonBlock
                             key={`skeleton-chart-${index}`}
-                            width={Math.round(CHART_COVER_BASE * stageScale)}
-                            height={Math.round(CHART_COVER_BASE * stageScale)}
-                            radius={16}
+                            width="100%"
+                            height={Math.round(32 * stageScale)}
+                            radius={10}
                           />
                         ))
                       : toplists.map((playlist, index) => (
                           <div key={playlist.id} style={coverReveal(260 + index * 24)}>
-                            <ChartCard
-                              coverUrl={playlist.coverUrl}
-                              title={playlist.title}
-                              meta={playlist.trackCount ? `${playlist.trackCount} 首歌曲` : '网易云榜单'}
+                            <ChartRow
+                              playlist={playlist}
                               rank={index + 1}
                               onOpen={() => openPlaylist(playlist)}
-                              waveRef={waveRefFor('chart', index)}
                             />
                           </div>
                         ))}
-                  </Rail>
+                  </div>
                 </div>
               ) : null}
 
