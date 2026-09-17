@@ -151,7 +151,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
               background: track?.artworkUrl
                 ? `url("${track.artworkUrl}") center / cover no-repeat`
                 : VINYL_GRADIENT,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.06)',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 calc(4px + var(--mo-beat, 0) * 18px) var(--mo-accent-ghost)',
               border: '1px solid rgba(255,255,255,0.06)',
               transition: 'background var(--mo-duration) var(--mo-ease)',
             }}
@@ -169,7 +169,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
               color: isLoaded && canPlay ? 'var(--mo-accent-contrast)' : 'rgba(255,255,255,0.32)',
               cursor: isLoaded && canPlay ? 'pointer' : 'default',
               display: 'grid', placeItems: 'center',
-              boxShadow: isLoaded && canPlay ? '0 0 24px var(--mo-accent-ghost)' : 'none',
+              boxShadow: isLoaded && canPlay ? '0 0 calc(14px + var(--mo-beat, 0) * 26px) var(--mo-accent-ghost)' : 'none',
               transition: 'transform var(--mo-duration-fast) var(--mo-ease-soft), background var(--mo-duration-fast) var(--mo-ease-soft)',
             }}
             onMouseEnter={(e) => { if (isLoaded && canPlay) e.currentTarget.style.transform = 'scale(1.06)'; }}

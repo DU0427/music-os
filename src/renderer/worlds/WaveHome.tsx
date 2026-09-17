@@ -837,11 +837,12 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
       const t = (now - started) / 1000;
 
       if (stage) {
-        // 节拍接管：每帧只写一次 CSS 变量，封面光晕 / 名次徽章由 CSS 读取，避免逐元素写 style
+        // 节拍接管：每帧只写一次 CSS 变量（写到根元素，播放条等其它表面也能用），
+        // 封面光晕 / 名次徽章 / 底部播放条由 CSS 读取，避免逐元素写 style
         const beat = isPlaying ? metrics.beatPulse : 0;
         if (Math.abs(beat - lastBeat) > 0.008) {
           lastBeat = beat;
-          stage.style.setProperty('--mo-beat', beat.toFixed(3));
+          document.documentElement.style.setProperty('--mo-beat', beat.toFixed(3));
         }
       }
 

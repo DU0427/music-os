@@ -66,6 +66,19 @@ export default function AppShell() {
     return () => window.clearTimeout(timer);
   }, [markBootReady]);
   const currentSpace = useRuntimeStore((s) => s.currentSpace);
+
+  /* 空间切换时点亮过渡帘（240ms 淡入、260ms 后淡出） */
+  const [spaceVeil, setSpaceVeil] = useState(false);
+  const spaceVeilSkipRef = useRef(true);
+  useEffect(() => {
+    if (spaceVeilSkipRef.current) {
+      spaceVeilSkipRef.current = false;
+      return undefined;
+    }
+    setSpaceVeil(true);
+    const timer = setTimeout(() => setSpaceVeil(false), 280);
+    return () => clearTimeout(timer);
+  }, [currentSpace]);
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const isTransitioning = useRuntimeStore((s) => s.isTransitioning);
   const currentTrack = useAudioStore((s) => s.track ?? null);
@@ -211,6 +224,20 @@ export default function AppShell() {
     >
       {/* Background R3F canvas — persistent spatial layer */}
       <WorldManager />
+
+      {/* 空间切换过渡：纯透明度 + 轻模糊，不做位移（避免眩晕）；静止时不挂 backdrop-filter */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          zIndex: 35,
+          background: 'rgba(3,3,5,0.55)',
+          backdropFilter: spaceVeil ? 'blur(10px)' : 'none',
+          WebkitBackdropFilter: spaceVeil ? 'blur(10px)' : 'none',
+          opacity: spaceVeil ? 1 : 0,
+          transition: 'opacity 240ms var(--mo-ease)',
+        }}
+      />
 
       {/* Drag overlay */}
       {isDragging && (
