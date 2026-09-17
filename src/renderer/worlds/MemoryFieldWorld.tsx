@@ -52,6 +52,8 @@ export default function MemoryFieldWorld() {
   const history = useLibraryStore((s) => s.history);
   const refresh = useLibraryStore((s) => s.refresh);
   const trackMap = useMemo(() => new Map(tracks.map((t) => [t.id, t])), [tracks]);
+  const currentTrackId = useAudioStore((s) => s.track?.id ?? null);
+  const isPlaying = useAudioStore((s) => s.isPlaying);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -157,6 +159,7 @@ export default function MemoryFieldWorld() {
                 />
                 {points.map((point, idx) => {
                   const hovered = hoveredId === point.id;
+                  const isCurrent = Boolean(point.trackId) && point.trackId === currentTrackId;
                   const dotSize = 6 + point.weight * 7;
                   return (
                     <motion.button
@@ -187,7 +190,9 @@ export default function MemoryFieldWorld() {
                             height: dotSize,
                             background: WARM,
                             transform: hovered ? 'scale(1.35)' : 'scale(1)',
-                            boxShadow: `0 0 ${6 + point.weight * 16}px ${WARM}`,
+                            boxShadow: isCurrent
+                              ? `0 0 0 2px ${WARM}66, 0 0 ${10 + point.weight * 18}px ${WARM}`
+                              : `0 0 ${6 + point.weight * 16}px ${WARM}`,
                           }}
                         />
                       </span>
@@ -200,8 +205,8 @@ export default function MemoryFieldWorld() {
                           padding: '8px 11px',
                           minWidth: 132,
                           background: 'var(--mo-bg-elevated)',
-                          border: `1px solid ${point.weight >= 0.85 || hovered ? 'rgba(232,194,138,0.4)' : 'var(--mo-line)'}`,
-                          boxShadow: point.weight >= 0.85 ? `0 0 30px ${WARM}1f` : 'var(--mo-shadow-soft)',
+                          border: `1px solid ${isCurrent || point.weight >= 0.85 || hovered ? 'rgba(232,194,138,0.4)' : 'var(--mo-line)'}`,
+                          boxShadow: isCurrent ? `0 0 0 2px ${WARM}33, 0 0 30px ${WARM}26` : point.weight >= 0.85 ? `0 0 30px ${WARM}1f` : 'var(--mo-shadow-soft)',
                         }}
                       >
                         <span
@@ -237,6 +242,17 @@ export default function MemoryFieldWorld() {
                             {point.plays > 0 ? ` · ${point.plays} 次` : ''}
                           </span>
                         </span>
+                        {isCurrent ? (
+                          <span
+                            className="mo-bars"
+                            data-paused={isPlaying ? 'false' : 'true'}
+                            style={{ marginLeft: 2, ...({ '--mo-accent-strong': WARM } as React.CSSProperties) }}
+                          >
+                            <span />
+                            <span />
+                            <span />
+                          </span>
+                        ) : null}
                       </span>
                     </motion.button>
                   );

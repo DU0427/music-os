@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CloudOff, Loader2, RefreshCw } from 'lucide-react';
 import NowPlayingCard from '../ui/NowPlayingCard';
 import StageChips from '../ui/StageChips';
 import PlaylistPanel, { type PlaylistPanelTarget } from '../ui/PlaylistPanel';
 import Rail from '../ui/Rail';
 import { useAudioStore } from '../audio/store';
 import { useLibraryStore } from '../store/library';
+import { useRuntimeStore } from '../store/runtime';
 import { useDominantColor, withAlpha } from '../hooks/useDominantColor';
 import { useStageScale } from '../hooks/useStageScale';
 import type { ProviderHomeContent, ProviderPlaylistSummary } from '../../shared/music/providers';
@@ -1032,30 +1033,62 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
 
           {/* 载入 / 错误 */}
           {isLoading || loadError ? (
-            <div className="flex flex-col items-center gap-3" style={{ padding: '28px 40px 0' }}>
+            <div className="flex flex-col items-center" style={{ padding: '24px 40px 0' }}>
               {isLoading ? (
                 <div className="flex items-center gap-2" style={{ color: 'var(--mo-ink-faint)' }}>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span style={{ fontSize: 12 }}>正在连接网易云…</span>
                 </div>
               ) : (
-                <>
-                  <span style={{ fontSize: 12, color: 'var(--mo-ink-faint)' }}>{loadError}</span>
-                  <button
-                    type="button"
-                    onClick={() => void loadContent()}
-                    className="flex items-center gap-2 rounded-full px-4 py-2"
-                    style={{
-                      fontSize: 12,
-                      color: 'var(--mo-ink)',
-                      background: 'var(--mo-bg-elevated)',
-                      border: '1px solid var(--mo-line)',
-                    }}
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    重试
-                  </button>
-                </>
+                <div
+                  className="flex flex-col items-center text-center"
+                  style={{
+                    maxWidth: 420,
+                    gap: 10,
+                    padding: '22px 26px',
+                    borderRadius: 18,
+                    background: 'var(--mo-bg-elevated-strong)',
+                    border: '1px solid var(--mo-line)',
+                    boxShadow: 'var(--mo-shadow-glass), inset 0 1px 0 rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <CloudOff className="h-5 w-5" style={{ color: 'var(--mo-ink-muted)' }} />
+                  <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--mo-ink)' }}>内容暂时不可用</div>
+                  <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--mo-ink-faint)' }}>{loadError}</div>
+                  <div className="flex items-center" style={{ gap: 10, marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => void loadContent()}
+                      className="flex items-center gap-2 rounded-full"
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: 12,
+                        color: 'var(--mo-accent-contrast)',
+                        background: 'var(--mo-accent)',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      重试
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => useRuntimeStore.getState().requestSpace('library')}
+                      className="rounded-full"
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: 12,
+                        color: 'var(--mo-ink-soft)',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid var(--mo-line)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      打开本地曲库
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           ) : null}
