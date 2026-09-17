@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Search } from 'lucide-react';
+import { Search, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useRuntimeStore } from '../store/runtime';
+import { useAccountStore } from '../store/account';
 
 const SPACE_TITLE: Record<string, string> = {
   home: 'stage',
@@ -39,7 +40,9 @@ function NavIcon({ icon: Icon, label, onClick }: { icon: typeof Search; label: s
   );
 }
 
-export default function TopBar({ onSearch }: { onSearch?: () => void }) {
+export default function TopBar({ onSearch, onAccount }: { onSearch?: () => void; onAccount?: () => void }) {
+  const loggedIn = useAccountStore((s) => s.loggedIn);
+  const account = useAccountStore((s) => s.account);
   const currentSpace = useRuntimeStore((s) => s.currentSpace);
 
   return (
@@ -82,9 +85,28 @@ export default function TopBar({ onSearch }: { onSearch?: () => void }) {
         </AnimatePresence>
       </div>
 
-      {/* Right: search only */}
+      {/* Right: account + search */}
       <div className="flex items-center gap-1 relative">
         <NavIcon icon={Search} label="搜索" onClick={onSearch} />
+        <button
+          type="button"
+          aria-label={loggedIn ? '账号' : '登录'}
+          onClick={onAccount}
+          className="pointer-events-auto grid shrink-0 place-items-center overflow-hidden rounded-full transition-colors"
+          style={{
+            width: 32,
+            height: 32,
+            background: loggedIn ? 'transparent' : 'rgba(255,255,255,0.04)',
+            border: '1px solid var(--mo-line)',
+            cursor: 'pointer',
+          }}
+        >
+          {loggedIn && account?.avatarUrl ? (
+            <img src={account.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <UserRound className="h-3.5 w-3.5" style={{ color: 'var(--mo-ink-muted)' }} />
+          )}
+        </button>
       </div>
     </motion.header>
   );

@@ -8,6 +8,8 @@ import WaveHome from './worlds/WaveHome';
 import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
 import MemoryFieldWorld from './worlds/MemoryFieldWorld';
 import SearchOrbital from './ui/SearchOrbital';
+import AccountPanel from './ui/AccountPanel';
+import { useAccountStore } from './store/account';
 import DetailOrbital from './ui/DetailOrbital';
 import { useLibraryStore } from './store/library';
 import { useMoodStore } from './store/mood';
@@ -31,6 +33,7 @@ const showDeveloperControls = showDiagnostics || import.meta.env.VITE_MUSIC_OS_S
 export default function AppShell() {
   const [status, setStatus] = useState<string>('booting...');
   const [isSearching, setIsSearching] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   /* ——— 启动 curtain：遮住 IPC ready 与播放恢复耗时，就绪后自动退场 ——— */
@@ -79,6 +82,12 @@ export default function AppShell() {
     const timer = setTimeout(() => setSpaceVeil(false), 280);
     return () => clearTimeout(timer);
   }, [currentSpace]);
+
+  /* 启动时同步一次网易云登录态（顶栏头像 / 账号面板） */
+  useEffect(() => {
+    void useAccountStore.getState().refresh();
+  }, []);
+
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const isTransitioning = useRuntimeStore((s) => s.isTransitioning);
   const currentTrack = useAudioStore((s) => s.track ?? null);
@@ -250,7 +259,7 @@ export default function AppShell() {
       )}
 
       {/* Top navigation — prototype style */}
-      <TopBar onSearch={() => setIsSearching(true)} />
+      <TopBar onSearch={() => setIsSearching(true)} onAccount={() => setIsAccountOpen(true)} />
 
       {/* Home：走廊（内容优先，滚动推进） */}
       {currentSpace === 'home' && <WaveHome onDetail={() => setIsDetailOpen(true)} />}
@@ -261,6 +270,7 @@ export default function AppShell() {
 
       {/* Search / Detail orbitals — top-level modals */}
       <SearchOrbital isOpen={isSearching} onClose={() => setIsSearching(false)} />
+      <AccountPanel isOpen={isAccountOpen} onClose={() => setIsAccountOpen(false)} />
       <DetailOrbital isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} />
 
       {/* Audio dock — 仅在存在曲目时出现（空态保持干净的黑场） */}

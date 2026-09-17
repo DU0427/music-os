@@ -11,6 +11,7 @@ import Rail from '../ui/Rail';
 import { useAudioStore } from '../audio/store';
 import { useLibraryStore } from '../store/library';
 import { useRuntimeStore } from '../store/runtime';
+import { useAccountStore } from '../store/account';
 import { useDominantColor, withAlpha } from '../hooks/useDominantColor';
 import { useStageScale } from '../hooks/useStageScale';
 import type { ProviderHomeContent, ProviderPlaylistSummary } from '../../shared/music/providers';
@@ -787,6 +788,14 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   useEffect(() => {
     void loadContent();
   }, [loadContent]);
+
+  /* 登录后重新拉一次内容（解锁个性化推荐） */
+  const accountLoggedIn = useAccountStore((s) => s.loggedIn);
+  useEffect(() => {
+    if (accountLoggedIn) {
+      void loadContent();
+    }
+  }, [accountLoggedIn, loadContent]);
 
   const playlists = (content?.playlists ?? []).slice(0, 12);
   const toplists = (content?.toplists ?? []).slice(0, 12);
