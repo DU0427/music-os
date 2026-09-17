@@ -42,6 +42,17 @@ export default function LibraryGalaxyWorld() {
         <span className="font-sans tracking-[0.14em] text-[11px] uppercase">返回</span>
       </button>
 
+      {/* 头部 */}
+      <div className="absolute left-10 right-10 flex items-baseline" style={{ top: 124, justifyContent: 'space-between' }}>
+        <span className="flex items-baseline" style={{ gap: 10 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>曲库</h2>
+          <span className="font-mono mo-tabular" style={{ fontSize: 11, color: 'var(--mo-ink-faint)' }}>
+            {tracks.length}
+          </span>
+        </span>
+        <span style={{ fontSize: 11.5, color: 'var(--mo-ink-faint)' }}>点击封面查看详情 · 双击播放</span>
+      </div>
+
       {/* 封面场：真实封面网格 */}
       <div className="absolute inset-0 overflow-y-auto pointer-events-auto">
         <div className="min-h-full flex items-center justify-center">
@@ -53,9 +64,9 @@ export default function LibraryGalaxyWorld() {
             <div
               className="grid gap-3"
               style={{
-                gridTemplateColumns: 'repeat(auto-fill, minmax(124px, 1fr))',
-                width: 'min(920px, calc(100vw - 96px))',
-                padding: '120px 0 140px',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))',
+                width: 'min(1120px, calc(100vw - 80px))',
+                padding: '168px 0 150px',
               }}
             >
               {tracks.map((track) => (
@@ -68,6 +79,7 @@ export default function LibraryGalaxyWorld() {
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setSelected(track)}
+                  onDoubleClick={() => void handlePlay(track)}
                   className="relative aspect-square rounded-[12px] overflow-hidden group cursor-pointer"
                   style={{
                     background: track.artworkUrl

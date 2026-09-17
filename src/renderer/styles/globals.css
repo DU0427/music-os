@@ -206,6 +206,26 @@ body {
   }
 }
 
+/* 记忆轨迹：now 节点脉冲环（reduced-motion 时静止） */
+@keyframes mo-node-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.55);
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mo-node-pulse,
+  [style*='mo-node-pulse'] {
+    animation: none !important;
+  }
+}
+
 /* 数字等宽（名次 / 计数 / 时钟对齐不跳动） */
 .mo-tabular {
   font-variant-numeric: tabular-nums;
