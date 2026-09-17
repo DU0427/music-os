@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Play, X } from 'lucide-react';
+import { ArrowLeft, Pause, Play, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRuntimeStore } from '../store/runtime';
 import { useLibraryStore } from '../store/library';
@@ -34,6 +34,8 @@ export default function LibraryGalaxyWorld() {
   const tracks = useLibraryStore((s) => s.tracks);
   const refresh = useLibraryStore((s) => s.refresh);
   const history = useLibraryStore((s) => s.history);
+  const currentTrackId = useAudioStore((s) => s.track?.id ?? null);
+  const isPlaying = useAudioStore((s) => s.isPlaying);
   const [selected, setSelected] = useState<TrackRecord | null>(null);
 
   useEffect(() => {
@@ -97,7 +99,9 @@ export default function LibraryGalaxyWorld() {
                 padding: '168px 0 150px',
               }}
             >
-              {tracks.map((track) => (
+              {tracks.map((track) => {
+                const isCurrent = currentTrackId === track.id;
+                return (
                 <motion.button
                   key={track.id}
                   type="button"
@@ -113,18 +117,34 @@ export default function LibraryGalaxyWorld() {
                     background: track.artworkUrl
                       ? `url("${track.artworkUrl}") center / cover no-repeat`
                       : VINYL_GRADIENT,
-                    border: '1px solid var(--mo-line-subtle)',
-                    boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+                    border: `1px solid ${isCurrent ? 'rgba(255,255,255,0.4)' : 'var(--mo-line-subtle)'}`,
+                    boxShadow: isCurrent
+                      ? '0 0 0 2px var(--mo-accent-ghost), 0 8px 28px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.14)'
+                      : '0 8px 28px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.1)',
                   }}
                 >
                   {/* hover 微亮 + 曲名浮现 */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-300" />
+                  {/* 正在播放：左下角音条指示 */}
+                  {isCurrent ? (
+                    <span
+                      className="absolute left-2 bottom-2 rounded-full"
+                      style={{ padding: '2px 5px', background: 'rgba(6,6,9,0.62)', border: '1px solid rgba(255,255,255,0.16)' }}
+                    >
+                      <span className="mo-bars" data-paused={isPlaying ? 'false' : 'true'}>
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    </span>
+                  ) : null}
                   <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2 pt-6 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="text-[11px] text-white/90 truncate text-left">{track.title}</div>
                     <div className="text-[9px] text-white/50 truncate text-left mt-0.5">{track.artist}</div>
                   </div>
                 </motion.button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -211,7 +231,15 @@ export default function LibraryGalaxyWorld() {
 
             <button
               type="button"
-              onClick={() => void handlePlay(selected)}
+              onClick={() => {
+                if (selected.id === currentTrackId) {
+                  if (isPlaying) {
+                    useAudioStore.getState().pause();
+                    return;
+                  }
+                }
+                void handlePlay(selected);
+              }}
               className="mt-auto flex items-center justify-center gap-2 rounded-full py-3"
               style={{
                 background: 'var(--mo-accent)',
@@ -220,8 +248,17 @@ export default function LibraryGalaxyWorld() {
                 fontWeight: 600,
               }}
             >
-              <Play className="w-3.5 h-3.5" fill="currentColor" strokeWidth={0} />
-              播放
+              {selected.id === currentTrackId && isPlaying ? (
+                <>
+                  <Pause className="w-3.5 h-3.5" fill="currentColor" strokeWidth={0} />
+                  暂停
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5" fill="currentColor" strokeWidth={0} />
+                  {selected.id === currentTrackId ? '继续播放' : '播放'}
+                </>
+              )}
             </button>
           </motion.aside>
         )}
