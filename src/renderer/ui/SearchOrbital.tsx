@@ -1,151 +1,318 @@
 'use client';
 
 import { motion, AnimatePresence } from 'motion/react';
-import { Search as SearchIcon, X } from 'lucide-react';
+import { Search as SearchIcon, X, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useLibraryStore } from '../store/library';
 import { useAudioStore } from '../audio/store';
+import { useDominantColor, withAlpha } from '../hooks/useDominantColor';
+import type { ProviderTrack, ProviderTrackReference } from '../../shared/music/providers';
+
+const COVER_FALLBACK =
+  'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)';
+
+const SUGGESTIONS = ['后摇', '粤语', '电子', '深夜', '学习', '女声'];
+
+/** 结果行：封面 + 标题/艺术家 + 来源标签，悬停整行微亮。 */
+function ResultRow({
+  coverUrl,
+  title,
+  sub,
+  tag,
+  loading,
+  onClick,
+}: {
+  coverUrl: string | null;
+  title: string;
+  sub: string;
+  tag: string;
+  loading?: boolean;
+  onClick: () => void;
+}) {
+  const accent = useDominantColor(coverUrl, '#f5f5f7');
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex w-full items-center text-left"
+      style={{
+        gap: 12,
+        padding: '9px 12px',
+        borderRadius: 12,
+        border: `1px solid ${hovered ? withAlpha(accent, 0.28) : 'transparent'}`,
+        background: hovered ? 'rgba(255,255,255,0.045)' : 'transparent',
+        transition: 'border-color 220ms var(--mo-ease), background 220ms var(--mo-ease)',
+        cursor: 'pointer',
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 38,
+          height: 38,
+          flexShrink: 0,
+          borderRadius: 9,
+          background: coverUrl ? `url("${coverUrl}") center / cover no-repeat` : COVER_FALLBACK,
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12)',
+        }}
+      />
+      <span className="min-w-0" style={{ display: 'block', flex: 1 }}>
+        <span
+          style={{
+            display: 'block',
+            fontSize: 13.5,
+            color: 'var(--mo-ink)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {title}
+        </span>
+        <span
+          style={{
+            display: 'block',
+            marginTop: 2,
+            fontSize: 11.5,
+            color: 'var(--mo-ink-faint)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {sub}
+        </span>
+      </span>
+      {loading ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: 'var(--mo-ink-faint)' }} />
+      ) : (
+        <span className="font-mono shrink-0" style={{ fontSize: 10, color: 'var(--mo-ink-faint)', letterSpacing: '0.08em' }}>
+          {tag}
+        </span>
+      )}
+    </button>
+  );
+}
 
 export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const tracks = useLibraryStore((s) => s.tracks);
   const [query, setQuery] = useState('');
-  const [providerResults, setProviderResults] = useState<Array<{ title: string; artist: string; ref: any }>>([]);
+  const [providerResults, setProviderResults] = useState<ProviderTrack[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [loadingRef, setLoadingRef] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) setTimeout(() => inputRef.current?.focus(), 120);
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 120);
+    } else {
+      setQuery('');
+    }
   }, [isOpen]);
 
   useEffect(() => {
-    if (!query.trim()) {
+    const q = query.trim();
+    if (!q) {
       setProviderResults([]);
-      return;
+      setIsSearching(false);
+      return undefined;
     }
-    if (typeof window.musicOS?.searchMusic !== 'function') return;
+    if (typeof window.musicOS?.searchMusic !== 'function') {
+      return undefined;
+    }
     setIsSearching(true);
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
-        const res = await window.musicOS.searchMusic(query.trim(), 'mock' as any);
-        const arr = Array.isArray(res?.tracks) ? res.tracks : [];
-        setProviderResults(arr.slice(0, 6).map((p: any) => ({ title: p.title, artist: p.artist?.name ?? '', ref: p.reference })));
+        const res = await window.musicOS.searchMusic(q, 'netease');
+        setProviderResults(Array.isArray(res?.tracks) ? res.tracks.slice(0, 8) : []);
       } catch {
         setProviderResults([]);
       } finally {
         setIsSearching(false);
       }
     }, 320);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [query]);
 
   const q = query.trim().toLowerCase();
   const localResults = q
-    ? tracks
-        .filter((t) => `${t.title} ${t.artist} ${t.album ?? ''}`.toLowerCase().includes(q))
-        .slice(0, 6)
+    ? tracks.filter((t) => `${t.title} ${t.artist} ${t.album ?? ''}`.toLowerCase().includes(q)).slice(0, 5)
     : [];
 
   const handleLocalPlay = async (trackId: string) => {
     const track = tracks.find((t) => t.id === trackId);
-    if (!track) return;
+    if (!track) {
+      return;
+    }
     await useAudioStore.getState().playTrack(track);
     onClose();
   };
 
-  const handleProviderPlay = async (ref: any) => {
-    await useAudioStore.getState().loadProviderTrack(ref);
-    onClose();
+  const handleProviderPlay = async (track: ProviderTrack) => {
+    setLoadingRef(track.reference.platformTrackId);
+    try {
+      await useAudioStore.getState().loadProviderTrack(track.reference as ProviderTrackReference);
+      onClose();
+    } finally {
+      setLoadingRef(null);
+    }
   };
+
+  const hasResults = localResults.length > 0 || providerResults.length > 0;
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {isOpen ? (
         <motion.div
-          className="absolute inset-0 z-30 flex flex-col items-center pt-28 pointer-events-auto"
-          initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-          animate={{ opacity: 1, backdropFilter: 'blur(16px)' }}
-          exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-          transition={{ duration: 0.45 }}
+          className="absolute inset-0 z-30 flex flex-col items-center pointer-events-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.32 }}
+          style={{ paddingTop: 96 }}
         >
-          <div className="absolute inset-0 bg-black/55" onClick={onClose} />
+          <div
+            className="absolute inset-0"
+            onClick={onClose}
+            style={{ background: 'rgba(3,3,5,0.72)', backdropFilter: 'blur(18px) saturate(1.1)', WebkitBackdropFilter: 'blur(18px) saturate(1.1)' }}
+          />
 
           <motion.div
-            className="relative z-10 w-full max-w-xl px-8"
+            className="relative z-10 w-full"
             initial={{ y: -14, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.14, ease: 'easeOut' }}
+            exit={{ y: -10, opacity: 0 }}
+            transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
+            style={{ maxWidth: 560, padding: '0 24px' }}
           >
-            <div className="relative">
-              <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/35" />
+            {/* 搜索框 */}
+            <div
+              className="flex items-center"
+              style={{
+                gap: 10,
+                padding: '12px 14px',
+                borderRadius: 16,
+                background: 'var(--mo-bg-elevated-strong)',
+                border: '1px solid var(--mo-line)',
+                boxShadow: 'var(--mo-shadow-glass), inset 0 1px 0 rgba(255,255,255,0.06)',
+              }}
+            >
+              <SearchIcon className="h-4 w-4" style={{ color: 'var(--mo-ink-muted)' }} />
               <input
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜索你的音乐宇宙…"
-                className="w-full bg-white/[0.06] border border-white/10 rounded-full py-4 pl-12 pr-12 text-white/90 placeholder:text-white/25 outline-none focus:border-[rgba(110,168,255,0.35)] focus:shadow-[0_0_24px_rgba(110,168,255,0.12)] transition-all font-sans tracking-wide text-[14px]"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="搜索歌曲、歌手、歌单…"
+                className="flex-1 bg-transparent outline-none"
+                style={{ fontSize: 14.5, color: 'var(--mo-ink)', fontFamily: 'var(--mo-font-sans)' }}
               />
-              <button className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/80 p-1" onClick={onClose}>
-                <X className="w-4 h-4" />
+              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--mo-ink-faint)' }} /> : null}
+              <button
+                type="button"
+                aria-label="关闭"
+                onClick={onClose}
+                className="grid place-items-center rounded-full transition-colors"
+                style={{ width: 24, height: 24, color: 'var(--mo-ink-muted)' }}
+              >
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mt-6 flex justify-center gap-2 flex-wrap">
-              {['hot', 'ambient', 'vocal', 'night', 'calm'].map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => setQuery(tag)}
-                  className="px-3 py-1.5 rounded-full border border-white/10 text-white/45 text-[11px] font-sans hover:bg-white/5 hover:text-white/80 transition-colors"
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-
-            {/* results as orbital list */}
-            {(localResults.length > 0 || providerResults.length > 0) && (
-              <div className="mt-8 grid gap-2 max-h-[42vh] overflow-y-auto pr-1">
-                {localResults.map((t) => (
+            {/* 建议词 */}
+            {!query ? (
+              <div className="flex flex-wrap justify-center" style={{ marginTop: 20, gap: 8 }}>
+                {SUGGESTIONS.map((tag) => (
                   <button
-                    key={t.id}
-                    onClick={() => void handleLocalPlay(t.id)}
-                    className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-white/8 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/15 transition-colors"
+                    key={tag}
+                    type="button"
+                    onClick={() => setQuery(tag)}
+                    className="rounded-full transition-colors"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: 12,
+                      color: 'var(--mo-ink-soft)',
+                      border: '1px solid var(--mo-line)',
+                      background: 'rgba(255,255,255,0.02)',
+                      cursor: 'pointer',
+                    }}
                   >
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-[11px]">♪</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] text-white/85 truncate">{t.title}</div>
-                      <div className="text-[11px] text-white/35 truncate">{t.artist} {t.album ? `· ${t.album}` : ''}</div>
-                    </div>
-                    <span className="text-[10px] text-white/25">本地</span>
-                  </button>
-                ))}
-                {providerResults.map((p, i) => (
-                  <button
-                    key={`${p.title}-${i}`}
-                    onClick={() => void handleProviderPlay(p.ref)}
-                    className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-white/8 bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-[#6EA8FF]/15 flex items-center justify-center text-white/60 text-[11px]">✦</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] text-white/85 truncate">{p.title}</div>
-                      <div className="text-[11px] text-white/35 truncate">{p.artist}</div>
-                    </div>
-                    <span className="text-[10px] text-white/25">示例</span>
+                    {tag}
                   </button>
                 ))}
               </div>
-            )}
+            ) : null}
 
-            {query && localResults.length === 0 && providerResults.length === 0 && !isSearching && (
-              <div className="mt-10 text-center text-white/30 font-sans text-[12px] tracking-wide">未找到与“{query}”相关的轨道</div>
-            )}
-            {isSearching && <div className="mt-6 text-center text-white/25 text-[11px] tracking-wide">搜索中…</div>}
-            {!query && (
-              <div className="mt-10 text-center text-white/25 font-sans text-[11px] tracking-[0.14em] uppercase">输入以开始探索</div>
-            )}
+            {/* 结果 */}
+            {query && hasResults ? (
+              <div
+                className="mo-no-scrollbar"
+                style={{
+                  marginTop: 16,
+                  maxHeight: '46vh',
+                  overflowY: 'auto',
+                  padding: 6,
+                  borderRadius: 16,
+                  background: 'rgba(16,16,20,0.72)',
+                  border: '1px solid var(--mo-line)',
+                }}
+              >
+                {localResults.length > 0 ? (
+                  <>
+                    <div className="font-mono" style={{ padding: '6px 12px', fontSize: 10, letterSpacing: '0.14em', color: 'var(--mo-ink-faint)' }}>
+                      本地
+                    </div>
+                    {localResults.map((track) => (
+                      <ResultRow
+                        key={track.id}
+                        coverUrl={track.artworkUrl}
+                        title={track.title}
+                        sub={`${track.artist}${track.album ? ` · ${track.album}` : ''}`}
+                        tag="本地"
+                        onClick={() => void handleLocalPlay(track.id)}
+                      />
+                    ))}
+                  </>
+                ) : null}
+                {providerResults.length > 0 ? (
+                  <>
+                    <div className="font-mono" style={{ padding: '6px 12px', fontSize: 10, letterSpacing: '0.14em', color: 'var(--mo-ink-faint)' }}>
+                      网易云
+                    </div>
+                    {providerResults.map((track) => (
+                      <ResultRow
+                        key={track.reference.platformTrackId}
+                        coverUrl={track.artworkUrl}
+                        title={track.title}
+                        sub={`${track.artist.name}${track.album ? ` · ${track.album.title}` : ''}`}
+                        tag="网易云"
+                        loading={loadingRef === track.reference.platformTrackId}
+                        onClick={() => void handleProviderPlay(track)}
+                      />
+                    ))}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+
+            {query && !hasResults && !isSearching ? (
+              <div className="text-center" style={{ marginTop: 28, fontSize: 12, color: 'var(--mo-ink-faint)' }}>
+                没有找到「{query}」相关的结果
+              </div>
+            ) : null}
+
+            {!query ? (
+              <div className="text-center font-mono" style={{ marginTop: 26, fontSize: 10.5, letterSpacing: '0.16em', color: 'var(--mo-ink-faint)' }}>
+                输入关键词开始搜索 · Esc 关闭
+              </div>
+            ) : null}
           </motion.div>
         </motion.div>
-      )}
+      ) : null}
     </AnimatePresence>
   );
 }
