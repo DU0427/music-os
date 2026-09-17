@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAudioStore } from '../audio/store';
 import type { ProviderTrack } from '../../shared/music/providers';
 import { Play, Pause, Upload } from 'lucide-react';
@@ -149,7 +149,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
               width: 42, height: 42, flexShrink: 0,
               borderRadius: 10,
               background: track?.artworkUrl
-                ? `url(${track.artworkUrl}) center / cover no-repeat`
+                ? `url("${track.artworkUrl}") center / cover no-repeat`
                 : VINYL_GRADIENT,
               boxShadow: '0 4px 14px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.06)',

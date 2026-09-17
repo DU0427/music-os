@@ -71,7 +71,7 @@ export default function LibraryGalaxyWorld() {
                   className="relative aspect-square rounded-[12px] overflow-hidden group cursor-pointer"
                   style={{
                     background: track.artworkUrl
-                      ? `url(${track.artworkUrl}) center / cover no-repeat`
+                      ? `url("${track.artworkUrl}") center / cover no-repeat`
                       : VINYL_GRADIENT,
                     border: '1px solid var(--mo-line-subtle)',
                     boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
@@ -118,7 +118,7 @@ export default function LibraryGalaxyWorld() {
               className="mt-10 aspect-square w-full rounded-[14px] mb-8"
               style={{
                 background: selected.artworkUrl
-                  ? `url(${selected.artworkUrl}) center / cover no-repeat`
+                  ? `url("${selected.artworkUrl}") center / cover no-repeat`
                   : VINYL_GRADIENT,
                 border: '1px solid var(--mo-line-subtle)',
                 boxShadow: '0 24px 80px rgba(0,0,0,0.6)',

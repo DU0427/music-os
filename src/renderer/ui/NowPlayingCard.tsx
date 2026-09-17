@@ -115,7 +115,7 @@ export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) 
               width: coverSize,
               height: coverSize,
               borderRadius: 10,
-              background: `url(${heroArtwork}) center / cover no-repeat`,
+              background: `url("${heroArtwork}") center / cover no-repeat`,
               border: '1px solid rgba(255,255,255,0.08)',
               boxShadow: '0 18px 48px rgba(0,0,0,0.6)',
             }}

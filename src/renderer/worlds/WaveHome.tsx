@@ -171,7 +171,7 @@ function TrackCard({
             position: 'absolute',
             inset: 0,
             borderRadius: 12,
-            background: coverUrl ? `url(${coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+            background: coverUrl ? `url("${coverUrl}") center / cover no-repeat` : COVER_FALLBACK,
             border: `1px solid ${isCurrent ? withAlpha(accent, 0.55) : hovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'}`,
             boxShadow: isCurrent
               ? `0 0 0 2px ${withAlpha(accent, 0.35)}, 0 10px 26px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.16)`
@@ -375,7 +375,7 @@ function Spotlight({
               position: 'absolute',
               inset: 0,
               borderRadius: 18,
-              background: current.coverUrl ? `url(${current.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+              background: current.coverUrl ? `url("${current.coverUrl}") center / cover no-repeat` : COVER_FALLBACK,
               border: '1px solid rgba(255,255,255,0.1)',
               boxShadow: '0 22px 52px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.14)',
             }}
@@ -446,7 +446,7 @@ function MosaicSmall({
           height: art,
           flexShrink: 0,
           borderRadius: 10,
-          background: playlist.coverUrl ? `url(${playlist.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+          background: playlist.coverUrl ? `url("${playlist.coverUrl}") center / cover no-repeat` : COVER_FALLBACK,
           border: '1px solid rgba(255,255,255,0.09)',
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14)',
           transform: hovered ? 'scale(1.06)' : 'scale(1)',
@@ -539,7 +539,7 @@ function MosaicGrid({
           style={{
             position: 'absolute',
             inset: 0,
-            background: big.coverUrl ? `url(${big.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+            background: big.coverUrl ? `url("${big.coverUrl}") center / cover no-repeat` : COVER_FALLBACK,
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12)',
             transform: hovered ? 'scale(1.045)' : 'scale(1)',
             transition: 'transform 900ms var(--mo-ease)',

@@ -103,7 +103,7 @@ export default function PlaylistPanel({ target, onClose }: PlaylistPanelProps) {
                 height: 84,
                 borderRadius: 12,
                 background: target.coverUrl
-                  ? `url(${target.coverUrl}) center / cover no-repeat`
+                  ? `url("${target.coverUrl}") center / cover no-repeat`
                   : 'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 boxShadow: '0 16px 44px rgba(0,0,0,0.55)',
@@ -184,7 +184,7 @@ export default function PlaylistPanel({ target, onClose }: PlaylistPanelProps) {
                           height: 36,
                           borderRadius: 8,
                           background: track.artworkUrl
-                            ? `url(${track.artworkUrl}) center / cover no-repeat`
+                            ? `url("${track.artworkUrl}") center / cover no-repeat`
                             : 'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)',
                           border: '1px solid rgba(255,255,255,0.06)',
                         }}
