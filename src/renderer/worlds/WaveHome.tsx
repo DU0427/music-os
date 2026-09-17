@@ -64,10 +64,10 @@ function Clock() {
   const date = `${now.getMonth() + 1}月${now.getDate()}日`;
   return (
     <div className="absolute bottom-10 right-10 text-right pointer-events-none select-none z-30">
-      <div className="font-mono tracking-[0.08em]" style={{ fontSize: 15, color: 'var(--mo-ink-faint)' }}>
+      <div className="font-mono mo-tabular tracking-[0.08em]" style={{ fontSize: 15, color: 'var(--mo-ink-faint)' }}>
         {time}
       </div>
-      <div className="font-mono tracking-[0.12em] mt-1" style={{ fontSize: 10, color: 'var(--mo-ink-faint)', opacity: 0.7 }}>
+      <div className="font-mono mo-tabular tracking-[0.12em] mt-1" style={{ fontSize: 10, color: 'var(--mo-ink-faint)', opacity: 0.7 }}>
         {date}
       </div>
     </div>
@@ -173,7 +173,9 @@ function TrackCard({
             borderRadius: 12,
             background: coverUrl ? `url(${coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
             border: `1px solid ${isCurrent ? withAlpha(accent, 0.55) : hovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'}`,
-            boxShadow: isCurrent ? `0 0 0 2px ${withAlpha(accent, 0.35)}, 0 10px 26px rgba(0,0,0,0.5)` : '0 10px 26px rgba(0,0,0,0.5)',
+            boxShadow: isCurrent
+              ? `0 0 0 2px ${withAlpha(accent, 0.35)}, 0 10px 26px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.16)`
+              : '0 10px 26px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)',
             willChange: 'transform',
           }}
         />
@@ -375,7 +377,7 @@ function Spotlight({
               borderRadius: 18,
               background: current.coverUrl ? `url(${current.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
               border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 22px 52px rgba(0,0,0,0.55)',
+              boxShadow: '0 22px 52px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.14)',
             }}
           />
           <span
@@ -446,6 +448,7 @@ function MosaicSmall({
           borderRadius: 10,
           background: playlist.coverUrl ? `url(${playlist.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
           border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14)',
           transform: hovered ? 'scale(1.06)' : 'scale(1)',
           transitionProperty: 'transform, border-color',
           transitionDuration: '420ms',
@@ -503,7 +506,7 @@ function MosaicGrid({
         gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
         gap: Math.round(12 * s),
         padding: '0 40px',
-        height: Math.round(138 * s),
+        height: Math.round(134 * s),
       }}
     >
       <div
@@ -537,6 +540,7 @@ function MosaicGrid({
             position: 'absolute',
             inset: 0,
             background: big.coverUrl ? `url(${big.coverUrl}) center / cover no-repeat` : COVER_FALLBACK,
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12)',
             transform: hovered ? 'scale(1.045)' : 'scale(1)',
             transition: 'transform 900ms var(--mo-ease)',
           }}
@@ -621,7 +625,7 @@ function ChartRow({
       }}
     >
       <span
-        className="font-mono shrink-0"
+        className="font-mono mo-tabular shrink-0"
         style={{
           width: Math.round(21 * s),
           fontSize: Math.max(11.5, Math.round(12.5 * s)),
@@ -638,7 +642,8 @@ function ChartRow({
           display: 'block',
           flex: 1,
           fontSize: Math.max(12.5, Math.round(13.5 * s)),
-          color: CARD_TITLE_COLOR,
+          color: hovered ? accent : CARD_TITLE_COLOR,
+          transition: 'color 240ms var(--mo-ease)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -666,7 +671,7 @@ function SectionHead({ title, count, hint }: { title: string; count: number; hin
     >
       <span className="flex items-baseline" style={{ gap: Math.round(10 * s), minWidth: 0 }}>
         <h2 style={{ fontSize: Math.max(12.5, Math.round(14.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
-        <span className="font-mono" style={{ fontSize: Math.max(10, Math.round(10.5 * s)), color: 'var(--mo-ink-faint)' }}>
+        <span className="font-mono mo-tabular" style={{ fontSize: Math.max(10, Math.round(10.5 * s)), color: 'var(--mo-ink-faint)' }}>
           {count}
         </span>
       </span>
@@ -702,6 +707,8 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   const history = useLibraryStore((s) => s.history);
   const currentTrackId = useAudioStore((s) => s.track?.id ?? null);
   const isPlaying = useAudioStore((s) => s.isPlaying);
+  const currentArtworkUrl = useAudioStore((s) => s.track?.artworkUrl ?? null);
+  const greetingAccent = useDominantColor(currentArtworkUrl, '#f5f5f7');
 
   const stageScale = useStageScale();
   const stageRef = useRef<HTMLDivElement>(null);
@@ -884,13 +891,28 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
       <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden">
         <div style={{ padding: `${Math.round(Math.max(52, 48 * stageScale))}px 0 ${HOME_BOTTOM_RESERVE}px` }}>
           {/* 问候语 */}
-          <div style={{ ...sectionReveal(0), padding: '0 40px', marginBottom: Math.round(12 * stageScale) }}>
+          <div style={{ ...sectionReveal(0), padding: '0 40px', marginBottom: Math.round(8 * stageScale) }}>
             <h1 style={{ fontSize: Math.max(19, Math.round(30 * stageScale)), fontWeight: 300, letterSpacing: '-0.02em', color: 'var(--mo-ink)' }}>
               {greeting}
             </h1>
             <p className="mt-1.5" style={{ fontSize: Math.max(12.5, Math.round(13.5 * stageScale)), color: 'var(--mo-ink-faint)' }}>
               {greetingSub}
             </p>
+            {/* 问候语强调线：入场后从左展开，颜色取当前封面主色 */}
+            <span
+              aria-hidden
+              style={{
+                display: 'block',
+                width: Math.round(30 * stageScale),
+                height: 2,
+                marginTop: Math.round(10 * stageScale),
+                borderRadius: 999,
+                background: withAlpha(greetingAccent, 0.85),
+                transform: entranceReady ? 'scaleX(1)' : 'scaleX(0)',
+                transformOrigin: 'left center',
+                transition: 'transform 640ms var(--mo-ease) 260ms',
+              }}
+            />
           </div>
 
           {/* Split 主视觉：左侧继续听 / 正在播放，右侧榜单前三快捷直达 */}

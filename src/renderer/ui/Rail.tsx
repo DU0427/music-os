@@ -160,7 +160,7 @@ export default function Rail({
             <ChevronRight className="w-4 h-4" />
           </button>
           {/* 方向对齐的进度条：长度 = 可视比例，位置 = 滚动进度 */}
-          <div style={{ height: 2, margin: '10px 40px 0', borderRadius: 999, background: 'rgba(255,255,255,0.07)' }}>
+          <div style={{ height: 2, margin: '8px 40px 0', borderRadius: 999, background: 'rgba(255,255,255,0.07)' }}>
             <div
               style={{
                 width: `${thumbPercent}%`,
