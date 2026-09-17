@@ -496,7 +496,13 @@ function MosaicGrid({
         <div style={{ position: 'absolute', left: Math.round(16 * s), right: Math.round(16 * s), bottom: Math.round(14 * s) }}>
           <span
             className="font-mono"
-            style={{ fontSize: Math.max(10.5, Math.round(11.5 * s)), letterSpacing: '0.16em', textTransform: 'uppercase', color: withAlpha(accent, 0.95) }}
+            style={{
+              fontSize: Math.max(10.5, Math.round(11.5 * s)),
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.92)',
+              textShadow: '0 1px 14px rgba(0,0,0,0.85)',
+            }}
           >
             编辑精选
           </span>
@@ -511,6 +517,7 @@ function MosaicGrid({
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
+              textShadow: '0 2px 18px rgba(0,0,0,0.65)',
             }}
           >
             {big.title}
@@ -894,7 +901,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
               ) : null}
 
               {/* 最近播放（你自己的曲目） */}
-              {recentTracks.length >= 3 ? (
+              {recentTracks.length > 0 ? (
                 <div style={sectionReveal(330)}>
                   <SectionHead title="最近播放" count={recentTracks.length} hint="横向滚动 · 继续听" />
                   <Rail gap={Math.round(12 * stageScale)}>
@@ -910,6 +917,13 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                       </div>
                     ))}
                   </Rail>
+                </div>
+              ) : !isLoading && !loadError ? (
+                <div style={{ ...sectionReveal(330), padding: '0 40px' }}>
+                  <SectionHead title="最近播放" count={0} hint="继续听" />
+                  <div style={{ fontSize: 12, color: 'var(--mo-ink-faint)', padding: '2px 0 0' }}>
+                    播放几首歌后，这里会出现你的最近播放。
+                  </div>
                 </div>
               ) : null}
             </div>
