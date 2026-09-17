@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Play, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRuntimeStore } from '../store/runtime';
 import { useLibraryStore } from '../store/library';
 import { useAudioStore } from '../audio/store';
@@ -18,15 +18,43 @@ function formatDuration(seconds: number) {
   return `${minutes}:${remainder}`;
 }
 
+/** 最近播放时间：今天显示时刻，其余显示日期。 */
+function formatWhen(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso.slice(0, 10);
+  }
+  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  const sameDay = date.toDateString() === new Date().toDateString();
+  return sameDay ? `今天 ${time}` : `${date.getMonth() + 1}月${date.getDate()}日 ${time}`;
+}
+
 export default function LibraryGalaxyWorld() {
   const requestSpace = useRuntimeStore((s) => s.requestSpace);
   const tracks = useLibraryStore((s) => s.tracks);
   const refresh = useLibraryStore((s) => s.refresh);
+  const history = useLibraryStore((s) => s.history);
   const [selected, setSelected] = useState<TrackRecord | null>(null);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /** 当前选中曲目的聆听统计（次数 + 最近一次）。 */
+  const selectedStats = useMemo(() => {
+    if (!selected) {
+      return { plays: 0, lastAt: null as string | null };
+    }
+    const records = history.filter((record) => record.trackId === selected.id);
+    if (records.length === 0) {
+      return { plays: 0, lastAt: null as string | null };
+    }
+    const lastAt = records.reduce((latest, record) =>
+      new Date(record.startedAt).getTime() > new Date(latest).getTime() ? record.startedAt : latest,
+      records[0].startedAt,
+    );
+    return { plays: records.length, lastAt };
+  }, [history, selected]);
 
   const handlePlay = async (track: TrackRecord) => {
     await useAudioStore.getState().playTrack(track);
@@ -147,26 +175,39 @@ export default function LibraryGalaxyWorld() {
               {selected.artist}{selected.album ? ` · ${selected.album}` : ''}
             </div>
 
-            <div className="mt-8 space-y-3" style={{ fontSize: 12, color: 'var(--mo-ink-faint)' }}>
-              <div className="flex items-center gap-2">
-                <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10 }}>时长</span>
-                <span>{formatDuration(selected.durationSeconds)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10 }}>来源</span>
-                <span>{selected.providerId === 'local-file' ? '本地文件' : selected.providerId}</span>
-              </div>
-              {selected.worldContext?.moodTags?.length ? (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10 }}>氛围</span>
-                  {selected.worldContext.moodTags.map((tag) => (
-                    <span key={tag} className="px-2 py-0.5 rounded-full" style={{ background: 'var(--mo-accent-ghost)', color: 'var(--mo-accent)' }}>
-                      {tag}
-                    </span>
-                  ))}
+            {/* 聆听统计：把稀疏的元信息收进一张卡 */}
+            <div className="mt-7" style={{ borderRadius: 14, border: '1px solid var(--mo-line)', background: 'rgba(255,255,255,0.02)', padding: '2px 14px' }}>
+              {[
+                ['时长', formatDuration(selected.durationSeconds)],
+                ['来源', selected.providerId === 'local-file' ? '本地文件' : selected.providerId],
+                ['聆听次数', selectedStats.plays > 0 ? `${selectedStats.plays} 次` : '还没听过'],
+                ['最近播放', selectedStats.lastAt ? formatWhen(selectedStats.lastAt) : '—'],
+              ].map(([label, value], index) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between"
+                  style={{ padding: '10px 0', borderTop: index > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
+                >
+                  <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>
+                    {label}
+                  </span>
+                  <span className="mo-tabular truncate" style={{ fontSize: 12.5, color: 'var(--mo-ink-soft)', marginLeft: 12 }}>
+                    {value}
+                  </span>
                 </div>
-              ) : null}
+              ))}
             </div>
+
+            {selected.worldContext?.moodTags?.length ? (
+              <div className="mt-4 flex items-center gap-2 flex-wrap">
+                <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>氛围</span>
+                {selected.worldContext.moodTags.map((tag) => (
+                  <span key={tag} className="px-2 py-0.5 rounded-full" style={{ background: 'var(--mo-accent-ghost)', color: 'var(--mo-accent)' }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
 
             <button
               type="button"
