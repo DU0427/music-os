@@ -61,7 +61,66 @@ function mixWithBase(rgb: string, amount: number): string {
 }
 
 /** 应用内不透明度：Mineradio 的应用内同样靠 state.opacity 压暗，避免抢内容焦点。 */
-const FIELD_OPACITY = 0.34;
+const FIELD_OPACITY = 0.5;
+
+/**
+ * 从封面取 5 个代表色（去掉近黑/近白），让尘埃像 Mineradio 一样是多色点阵而不是单色雾。
+ * 返回 rgb 字符串数组；无封面时返回空数组（调用方回退到 accent 三色）。
+ */
+function sampleCoverPalette(image: HTMLImageElement): string[] {
+  try {
+    const size = 16;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return [];
+    }
+    ctx.drawImage(image, 0, 0, size, size);
+    const data = ctx.getImageData(0, 0, size, size).data;
+    const buckets: Array<{ r: number; g: number; b: number; score: number }> = [];
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const lum = r * 0.2126 + g * 0.7152 + b * 0.0722;
+      if (lum <= 22 || lum >= 238) {
+        continue;
+      }
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const saturation = max === 0 ? 0 : (max - min) / max;
+      buckets.push({ r, g, b, score: saturation * 0.7 + (lum / 255) * 0.3 });
+    }
+    if (buckets.length === 0) {
+      return [];
+    }
+    buckets.sort((a, b) => b.score - a.score);
+    const picked: string[] = [];
+    for (const bucket of buckets) {
+      const tooClose = picked.some((existing) => {
+        const match = /rgb\((\d+),(\d+),(\d+)\)/.exec(existing);
+        if (!match) {
+          return false;
+        }
+        const dr = Number(match[1]) - bucket.r;
+        const dg = Number(match[2]) - bucket.g;
+        const db = Number(match[3]) - bucket.b;
+        return Math.sqrt(dr * dr + dg * dg + db * db) < 60;
+      });
+      if (!tooClose) {
+        picked.push(`rgb(${bucket.r},${bucket.g},${bucket.b})`);
+      }
+      if (picked.length >= 5) {
+        break;
+      }
+    }
+    return picked;
+  } catch {
+    return [];
+  }
+}
 
 export default function AmbientDustField() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -73,6 +132,7 @@ export default function AmbientDustField() {
   accentRef.current = accent;
   const paletteRef = useRef(buildPalette(accent));
   const coverRef = useRef<{ src: string; image: HTMLImageElement | null }>({ src: '', image: null });
+  const coverPaletteRef = useRef<string[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -92,7 +152,7 @@ export default function AmbientDustField() {
     let disposed = false;
 
     const ensureParticles = () => {
-      const target = Math.min(760, Math.max(420, Math.round((window.innerWidth * window.innerHeight) / 4200)));
+      const target = Math.min(1800, Math.max(1200, Math.round((window.innerWidth * window.innerHeight) / 900)));
       while (particles.length < target) {
         const index = particles.length + 1;
         particles.push({
@@ -101,7 +161,7 @@ export default function AmbientDustField() {
           y: rand(index * 2.7),
           lane: rand(index * 5.9),
           z: rand(index * 8.1),
-          size: 0.6 + rand(index * 4.2) * 2.4,
+          size: 0.5 + rand(index * 4.2) * 1.1,
         });
       }
       if (particles.length > target + 80) {
@@ -120,46 +180,36 @@ export default function AmbientDustField() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       particles = [];
       ensureParticles();
+      ensureCoverPalette();
     };
 
-    const drawCover = (now: number) => {
+    /** 只负责给尘埃取色：加载封面并提取 5 色调色板（不再把封面本身画进背景）。 */
+    const ensureCoverPalette = () => {
       const desired = artworkUrl ?? '';
       const holder = coverRef.current;
-      if (holder.src !== desired) {
-        holder.src = desired;
-        holder.image = null;
-        if (desired) {
-          const image = new Image();
-          image.onload = () => {
-            if (coverRef.current.src === desired) {
-              coverRef.current.image = image;
-            }
-          };
-          image.onerror = () => {
-            if (coverRef.current.src === desired) {
-              coverRef.current.image = null;
-            }
-          };
-          image.src = desired;
-        }
-      }
-      const image = holder.image;
-      if (!image) {
+      if (holder.src === desired) {
         return;
       }
-      const uiWidth = window.innerWidth;
-      const uiHeight = window.innerHeight;
-      const side = Math.min(uiWidth, uiHeight) * (0.42 + Math.sin(now * 0.21) * 0.012);
-      const x = uiWidth * 0.5 - side * 0.5;
-      const y = uiHeight * 0.5 - side * 0.5 + Math.sin(now * 0.37) * 8;
-      ctx.save();
-      ctx.globalAlpha = 0.14 * FIELD_OPACITY * 2;
-      ctx.filter = 'blur(28px) saturate(1.2)';
-      ctx.drawImage(image, x - side * 0.12, y - side * 0.12, side * 1.24, side * 1.24);
-      ctx.filter = 'none';
-      ctx.globalAlpha = 0.16 * FIELD_OPACITY * 2;
-      ctx.drawImage(image, x, y, side, side);
-      ctx.restore();
+      holder.src = desired;
+      holder.image = null;
+      coverPaletteRef.current = [];
+      if (!desired) {
+        return;
+      }
+      const image = new Image();
+      image.onload = () => {
+        if (coverRef.current.src === desired) {
+          coverRef.current.image = image;
+          // 与 Mineradio 一致：尘埃颜色取自封面本身（多彩），而不是单色雾
+          coverPaletteRef.current = sampleCoverPalette(image);
+        }
+      };
+      image.onerror = () => {
+        if (coverRef.current.src === desired) {
+          coverRef.current.image = null;
+        }
+      };
+      image.src = desired;
     };
 
     const draw = (nowMs: number) => {
@@ -170,6 +220,7 @@ export default function AmbientDustField() {
       const uiWidth = window.innerWidth;
       const uiHeight = window.innerHeight;
       ensureParticles();
+      ensureCoverPalette();
 
       const palette = paletteRef.current;
       const metrics = useAudioStore.getState().metrics;
@@ -185,8 +236,6 @@ export default function AmbientDustField() {
       ctx.globalAlpha = 1;
       ctx.fillStyle = background;
       ctx.fillRect(0, 0, uiWidth, uiHeight);
-
-      drawCover(now);
 
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -204,9 +253,17 @@ export default function AmbientDustField() {
         const x = cx + Math.cos(angle) * rx * ring + Math.sin(now * 0.11 + p.seed) * 24;
         const y = cy + Math.sin(angle * (1 + rand(p.seed * 2) * 0.16)) * ry * ring + wobble;
         const twinkle = Math.pow(0.5 + 0.5 * Math.sin(now * (0.5 + rand(p.seed) * 0.42) + p.seed), 4);
-        const radius = Math.max(0.7, p.size * (0.8 + twinkle * 1.2));
-        ctx.globalAlpha = Math.min(1, (0.045 + twinkle * 0.18 + boost) * FIELD_OPACITY * 3.4);
-        ctx.fillStyle = twinkle > 0.74 ? palette.highlight : p.lane > 0.55 ? palette.secondary : palette.primary;
+        const radius = Math.max(0.5, p.size * (0.75 + twinkle * 0.9));
+        ctx.globalAlpha = Math.min(1, (0.045 + twinkle * 0.18 + boost) * FIELD_OPACITY * 2.2);
+        const coverPalette = coverPaletteRef.current;
+        ctx.fillStyle =
+          coverPalette.length > 0
+            ? coverPalette[Math.floor(rand(p.seed * 1.7) * coverPalette.length) % coverPalette.length]
+            : twinkle > 0.74
+              ? palette.highlight
+              : p.lane > 0.55
+                ? palette.secondary
+                : palette.primary;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fill();

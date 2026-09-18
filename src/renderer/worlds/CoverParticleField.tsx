@@ -25,8 +25,8 @@ const GRID_SPACING = PLANE_W / (GRID - 1);
 const COVER_SIZE = GRID_SPACING * 0.62;
 
 // —— 无封面模式：散点星尘（更多更小的点 + 柔光衰减 = 细尘埃而非粗糙噪点） ——
-const AMBIENT_COUNT = 900;
-const AMBIENT_SIZE = 0.038;
+const AMBIENT_COUNT = 1400;
+const AMBIENT_SIZE = 0.014;
 
 const NO_TRACK_RGB = new Color('#0A0A0C');
 
@@ -284,7 +284,7 @@ export default function CoverParticleField() {
         : 0.16 + energy * 0.04;
     } else {
       // 星尘模式：点径随节拍轻微跳动，保持「细尘」而不是「大颗粒」
-      material.size = AMBIENT_SIZE + beat * 0.035 + bass * 0.018 + treble * 0.012;
+      material.size = AMBIENT_SIZE + beat * 0.012 + bass * 0.006 + treble * 0.004;
       material.opacity = isPlaying
         ? Math.min(0.28 + energy * 0.09 + beat * 0.1, 0.42)
         : 0.16 + energy * 0.03;
