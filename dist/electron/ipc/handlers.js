@@ -182,6 +182,10 @@ function registerAppHandlers(repository, providers) {
         return true;
     });
     electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseHome, async () => (0, content_1.getNeteaseHomeContent)());
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseDaily, async (_event, limit) => {
+        const requested = typeof limit === 'number' && limit > 0 && limit <= 50 ? Math.floor(limit) : 12;
+        return (0, content_1.getNeteaseDailySongs)(requested);
+    });
     electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteasePlaylistTracks, async (_event, playlistId) => {
         if (typeof playlistId !== 'string' || playlistId.trim() === '') {
             return [];

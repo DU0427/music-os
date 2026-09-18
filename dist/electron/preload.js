@@ -30,6 +30,7 @@ const APP_IPC_CHANNELS = (() => {
         neteaseAuthStatus: 'music:netease:auth-status',
         neteaseLogout: 'music:netease:logout',
         neteaseHome: 'music:netease:home',
+        neteaseDaily: 'music:netease:daily',
         neteasePlaylistTracks: 'music:netease:playlist-tracks',
     };
     try {
@@ -92,6 +93,7 @@ const api = {
     pollNeteaseQrLogin: (key) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseQrPoll, key),
     getNeteaseAuthStatus: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseAuthStatus),
     logoutNetease: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseLogout),
+    getNeteaseDailySongs: (limit) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseDaily, limit),
     getNeteaseHomeContent: () => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseHome),
     getNeteasePlaylistTracks: (playlistId) => electron_1.ipcRenderer.invoke(APP_IPC_CHANNELS.neteasePlaylistTracks, playlistId),
 };
