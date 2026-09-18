@@ -663,6 +663,133 @@ function ChartRow({
   );
 }
 
+/** 每日推荐卡：中等封面 + 序号徽章 + 两行标题（与「最近播放」的紧凑行区分开）。 */
+function DailyCard({
+  coverUrl,
+  title,
+  artist,
+  rank,
+  onOpen,
+  waveRef,
+  isCurrent = false,
+  isPlaying = false,
+}: {
+  coverUrl: string | null;
+  title: string;
+  artist: string;
+  rank: number;
+  onOpen: () => void;
+  waveRef?: (el: HTMLSpanElement | null) => void;
+  isCurrent?: boolean;
+  isPlaying?: boolean;
+}) {
+  const accent = useDominantColor(coverUrl, '#f5f5f7');
+  const [hovered, setHovered] = useState(false);
+  const s = useStageScale();
+  const size = Math.round(96 * s);
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="shrink-0 text-left"
+      style={{ width: size, cursor: 'pointer' }}
+    >
+      <span style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '1 / 1' }}>
+        <span style={{ position: 'absolute', inset: 0, perspective: 700 }}>
+          <CoverGlow accent={accent} hovered={hovered || isCurrent} inset="-26%" blur={20} base={isCurrent ? 0.72 : 0.52} />
+          <span
+            ref={waveRef}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: 12,
+              background: coverUrl ? `url("${coverUrl}") center / cover no-repeat` : COVER_FALLBACK,
+              border: `1px solid ${isCurrent ? withAlpha(accent, 0.5) : hovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.09)'}`,
+              boxShadow: isCurrent
+                ? `0 0 0 2px ${withAlpha(accent, 0.35)}, 0 14px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14)`
+                : '0 14px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)',
+              transform: hovered ? 'scale(1.04)' : 'scale(1)',
+              transitionProperty: 'transform, border-color, box-shadow',
+              transitionDuration: '380ms',
+              transitionTimingFunction: 'var(--mo-ease)',
+              willChange: 'transform',
+            }}
+          />
+        </span>
+        {/* 序号徽章 */}
+        <span
+          className="font-mono mo-tabular"
+          style={{
+            position: 'absolute',
+            top: 6,
+            left: 6,
+            padding: '1px 6px',
+            borderRadius: 999,
+            fontSize: Math.max(10, Math.round(11 * s)),
+            lineHeight: 1.5,
+            color: 'rgba(255,255,255,0.94)',
+            background: 'rgba(6,6,9,0.62)',
+            border: '1px solid rgba(255,255,255,0.16)',
+            opacity: 'calc(0.72 + var(--mo-beat, 0) * 0.5)',
+          }}
+        >
+          {rank}
+        </span>
+        {isCurrent ? (
+          <span
+            style={{
+              position: 'absolute',
+              right: 6,
+              bottom: 6,
+              padding: '2px 5px',
+              borderRadius: 999,
+              background: 'rgba(6,6,9,0.62)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              ...({ '--mo-accent-strong': accent } as React.CSSProperties),
+            }}
+          >
+            <span className="mo-bars" data-paused={isPlaying ? 'false' : 'true'}>
+              <span />
+              <span />
+              <span />
+            </span>
+          </span>
+        ) : null}
+      </span>
+      <span
+        style={{
+          display: '-webkit-box',
+          marginTop: Math.round(9 * s),
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          fontSize: Math.max(12, Math.round(12.5 * s)),
+          lineHeight: 1.35,
+          color: isCurrent ? accent : hovered ? CARD_TITLE_COLOR : 'rgba(255,255,255,0.86)',
+          transition: 'color 240ms var(--mo-ease)',
+        }}
+      >
+        {title}
+      </span>
+      <span
+        style={{
+          display: 'block',
+          marginTop: 3,
+          fontSize: Math.max(10.5, Math.round(11 * s)),
+          color: CARD_META_COLOR,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {artist}
+      </span>
+    </button>
+  );
+}
+
 /** 区块标题：左侧标题 + 计数，右侧说明右对齐（排版更收束）。 */
 function SectionHead({ title, count, hint }: { title: string; count: number; hint?: string }) {
   const s = useStageScale();
@@ -808,6 +935,17 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     void loadDaily();
   }, [accountLoggedIn]);
 
+  /* 常驻件（左下入口 / 时钟）：滚动时淡出，避免压住滚动中的卡片 */
+  const [chromeHidden, setChromeHidden] = useState(false);
+  const chromeTimerRef = useRef<number | null>(null);
+  const handleScroll = useCallback(() => {
+    setChromeHidden(true);
+    if (chromeTimerRef.current !== null) {
+      window.clearTimeout(chromeTimerRef.current);
+    }
+    chromeTimerRef.current = window.setTimeout(() => setChromeHidden(false), 650);
+  }, []);
+
   /* 登录后重新拉一次内容（解锁个性化推荐） */
   useEffect(() => {
     if (accountLoggedIn) {
@@ -917,7 +1055,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
 
   return (
     <div className="absolute inset-0 z-10">
-      <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden">
+      <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden" onScroll={handleScroll}>
         <div style={{ padding: `${Math.round(Math.max(52, 48 * stageScale))}px 0 ${HOME_BOTTOM_RESERVE}px` }}>
           {/* 问候语 */}
           <div style={{ ...sectionReveal(0), padding: '0 40px', marginBottom: Math.round(8 * stageScale) }}>
@@ -1038,10 +1176,11 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                   <Rail gap={Math.round(12 * stageScale)}>
                     {dailyTracks.map((track, index) => (
                       <div key={track.reference.platformTrackId} style={coverReveal(320 + index * 24)}>
-                        <TrackCard
+                        <DailyCard
                           coverUrl={track.artworkUrl}
                           title={track.title}
                           artist={track.artist.name}
+                          rank={index + 1}
                           onOpen={() => void useAudioStore.getState().loadProviderTrack(track.reference)}
                           waveRef={waveRefFor('daily', index)}
                           isCurrent={currentProviderTrackId === track.reference.platformTrackId}
@@ -1148,8 +1287,18 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
         </div>
       </div>
 
-      <StageChips />
-      <Clock />
+      {/* 常驻件：滚动时淡出（避免压住内容），停止滚动 650ms 后淡入 */}
+      <div
+        data-mo-chrome="1"
+        style={{
+          transition: 'opacity 260ms var(--mo-ease)',
+          opacity: chromeHidden ? 0 : 1,
+          pointerEvents: chromeHidden ? 'none' : undefined,
+        }}
+      >
+        <StageChips />
+        <Clock />
+      </div>
       {/* 面板挂到 body：WaveHome 的 z-10 容器会建立层叠上下文，直接内联会被顶部栏盖住 */}
       {createPortal(
         <PlaylistPanel target={panelTarget} onClose={() => setPanelTarget(null)} />,
