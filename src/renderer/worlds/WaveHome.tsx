@@ -948,7 +948,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
         return;
       }
       try {
-        const list = await window.musicOS.getNeteaseDailySongs(12);
+        const list = await window.musicOS.getNeteaseDailySongs(8);
         setDailyTracks(Array.isArray(list) ? list : []);
       } catch {
         setDailyTracks([]);
@@ -1174,7 +1174,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                             radius={10}
                           />
                         ))
-                      : toplists.map((playlist, index) => (
+                      : toplists.slice(0, 6).map((playlist, index) => (
                           <div key={playlist.id} style={coverReveal(260 + index * 24)}>
                             <ChartRow
                               playlist={playlist}
@@ -1220,7 +1220,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                 <div style={sectionReveal(330)}>
                   <SectionHead title="最近播放" count={recentTracks.length} hint="继续听" />
                   <Rail gap={Math.round(12 * stageScale)}>
-                    {recentTracks.map((track, index) => (
+                    {recentTracks.slice(0, 6).map((track, index) => (
                       <div key={track.id} style={coverReveal(360 + index * 24)}>
                         <TrackCard
                           coverUrl={track.artworkUrl}

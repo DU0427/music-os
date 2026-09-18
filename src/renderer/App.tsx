@@ -3,6 +3,7 @@ import { useRuntimeStore } from './store/runtime';
 import AudioDock from './ui/AudioDock';
 import BootSplash from './ui/BootSplash';
 import WorldManager from './worlds/WorldManager';
+import AmbientDustField from './worlds/AmbientDustField';
 import TopBar from './ui/TopBar';
 import WaveHome from './worlds/WaveHome';
 import LibraryGalaxyWorld from './worlds/LibraryGalaxyWorld';
@@ -245,6 +246,9 @@ export default function AppShell() {
     >
       {/* Background R3F canvas — persistent spatial layer */}
       <WorldManager />
+
+      {/* 背景星尘云（2D canvas，机制对齐 Mineradio 的 wallpaper，配色取当前封面主色） */}
+      <AmbientDustField />
 
       {/* 空间切换过渡：纯透明度 + 轻模糊，不做位移（避免眩晕）；静止时不挂 backdrop-filter */}
       <div
