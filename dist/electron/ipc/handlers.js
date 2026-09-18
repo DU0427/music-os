@@ -6,6 +6,7 @@ const channels_1 = require("./channels");
 const cover_1 = require("../audio/cover");
 const file_data_1 = require("../audio/file-data");
 const auth_1 = require("../providers/netease/auth");
+const login_window_1 = require("../providers/netease/login-window");
 const content_1 = require("../providers/netease/content");
 function isRecord(value) {
     return typeof value === 'object' && value !== null;
@@ -141,6 +142,16 @@ function registerAppHandlers(repository, providers) {
         return (0, file_data_1.readAudioFileData)(filePath);
     });
     /* ——— 网易云：扫码登录与内容入口 ——— */
+    electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseLoginWindow, async (event) => {
+        const parent = electron_1.BrowserWindow.fromWebContents(event.sender);
+        try {
+            return await (0, login_window_1.openNeteaseLoginWindow)(parent);
+        }
+        catch (error) {
+            console.warn('[netease-login] window failed:', error instanceof Error ? error.message : String(error));
+            return null;
+        }
+    });
     electron_1.ipcMain.handle(channels_1.APP_IPC_CHANNELS.neteaseQrCreate, async () => {
         try {
             return await (0, auth_1.createQrLogin)();
