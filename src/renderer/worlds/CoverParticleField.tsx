@@ -16,7 +16,7 @@ import type { TrackIdentity } from '../../shared/ipc/music';
    ———————————————————————————————— */
 
 // —— 封面模式：网格采样 ——
-const GRID = 56;
+const GRID = 112;
 const GRID_COUNT = GRID * GRID;
 const PLANE_W = 8.2;
 const PLANE_H = 8.2;
@@ -210,6 +210,7 @@ export default function CoverParticleField() {
   const basePositionsRef = useRef<Float32Array | null>(null);
   const jitterDirRef = useRef<Float32Array | null>(null);
   const phaseRef = useRef<Float32Array | null>(null);
+  const radialPhaseRef = useRef<Float32Array | null>(null);
 
   const particleCount = hasArtwork ? GRID_COUNT : AMBIENT_COUNT;
 
@@ -228,8 +229,13 @@ export default function CoverParticleField() {
       dir[i * 3 + 2] = rz / len;
       phase[i] = pseudoRandom(i * 5 + 11);
     }
+    const radial = new Float32Array(particleCount);
+    for (let i = 0; i < particleCount; i += 1) {
+      radial[i] = Math.hypot(data.positions[i * 3], data.positions[i * 3 + 1]) * 2.2;
+    }
     jitterDirRef.current = dir;
     phaseRef.current = phase;
+    radialPhaseRef.current = radial;
     // 复位到基准
     const attrs = geometry.attributes.position;
     if (attrs) {
@@ -238,7 +244,7 @@ export default function CoverParticleField() {
     }
   }, [data, particleCount, geometry]);
 
-  useFrame(() => {
+  useFrame((state) => {
     if (currentSpace !== 'home' && currentSpace !== 'library') {
       return;
     }
@@ -261,17 +267,31 @@ export default function CoverParticleField() {
     const base = basePositionsRef.current;
     const dir = jitterDirRef.current;
     const phase = phaseRef.current;
+    const radial = radialPhaseRef.current;
     const attrs = geometry.attributes.position;
     if (base && dir && phase && attrs) {
       const pos = attrs.array as Float32Array;
       const count = particleCount;
-      for (let i = 0; i < count; i += 1) {
-        const p = phase[i];
-        // 错峰：每粒子有随机相位，节拍来时在前峰一波弹跳
-        const k = Math.max(0, dance - p * 0.5) * amp * 6;
-        pos[i * 3] = base[i * 3] + dir[i * 3] * k;
-        pos[i * 3 + 1] = base[i * 3 + 1] + dir[i * 3 + 1] * k;
-        pos[i * 3 + 2] = base[i * 3 + 2] + dir[i * 3 + 2] * k;
+      if (hasArtwork && radial) {
+        // 封面模式：从中心向外的径向波纹（beat / bass 驱动），像布料一样起伏
+        const wave = (beat * 0.9 + bass * 0.35) * (isPlaying ? 1 : 0.25);
+        const elapsed = state.clock.elapsedTime;
+        for (let i = 0; i < count; i += 1) {
+          const ripple = Math.sin(radial[i] - elapsed * 4.2) * wave;
+          const scale = 1 + ripple * 0.05;
+          pos[i * 3] = base[i * 3] * scale;
+          pos[i * 3 + 1] = base[i * 3 + 1] * scale;
+          pos[i * 3 + 2] = base[i * 3 + 2] + ripple * 0.5;
+        }
+      } else {
+        for (let i = 0; i < count; i += 1) {
+          const p = phase[i];
+          // 错峰：每粒子有随机相位，节拍来时在前峰一波弹跳
+          const k = Math.max(0, dance - p * 0.5) * amp * 6;
+          pos[i * 3] = base[i * 3] + dir[i * 3] * k;
+          pos[i * 3 + 1] = base[i * 3 + 1] + dir[i * 3 + 1] * k;
+          pos[i * 3 + 2] = base[i * 3 + 2] + dir[i * 3 + 2] * k;
+        }
       }
       attrs.needsUpdate = true;
     }
@@ -280,8 +300,8 @@ export default function CoverParticleField() {
       // 封面模式：点径随节拍弹跳（不糊），透明度稳定 + 节拍微闪
       material.size = COVER_SIZE + beat * 0.05 + bass * 0.03;
       material.opacity = isPlaying
-        ? Math.min(0.34 + energy * 0.12 + beat * 0.1, 0.5)
-        : 0.16 + energy * 0.04;
+        ? Math.min(0.5 + energy * 0.15 + beat * 0.15, 0.78)
+        : 0.22 + energy * 0.05;
     } else {
       // 星尘模式：点径随节拍轻微跳动，保持「细尘」而不是「大颗粒」
       material.size = AMBIENT_SIZE + beat * 0.012 + bass * 0.006 + treble * 0.004;

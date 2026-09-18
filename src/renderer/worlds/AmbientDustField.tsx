@@ -60,6 +60,23 @@ function mixWithBase(rgb: string, amount: number): string {
   return `rgb(${mixed[0]},${mixed[1]},${mixed[2]})`;
 }
 
+/** 把封面降采样成 grid×grid 的像素色（播放时用来拼「封面点阵」）。 */
+function sampleCoverPixels(image: HTMLImageElement, grid: number): Uint8ClampedArray | null {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = grid;
+    canvas.height = grid;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return null;
+    }
+    ctx.drawImage(image, 0, 0, grid, grid);
+    return ctx.getImageData(0, 0, grid, grid).data;
+  } catch {
+    return null;
+  }
+}
+
 /** 应用内不透明度：Mineradio 的应用内同样靠 state.opacity 压暗，避免抢内容焦点。 */
 const FIELD_OPACITY = 0.5;
 
@@ -133,13 +150,15 @@ export default function AmbientDustField() {
   const paletteRef = useRef(buildPalette(accent));
   const coverRef = useRef<{ src: string; image: HTMLImageElement | null }>({ src: '', image: null });
   const coverPaletteRef = useRef<string[]>([]);
+  const coverPixelsRef = useRef<{ grid: number; data: Uint8ClampedArray } | null>(null);
+  const playMixRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
       return undefined;
     }
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) {
       return undefined;
     }
@@ -193,6 +212,7 @@ export default function AmbientDustField() {
       holder.src = desired;
       holder.image = null;
       coverPaletteRef.current = [];
+      coverPixelsRef.current = null;
       if (!desired) {
         return;
       }
@@ -202,6 +222,8 @@ export default function AmbientDustField() {
           coverRef.current.image = image;
           // 与 Mineradio 一致：尘埃颜色取自封面本身（多彩），而不是单色雾
           coverPaletteRef.current = sampleCoverPalette(image);
+          const pixels = sampleCoverPixels(image, 88);
+          coverPixelsRef.current = pixels ? { grid: 88, data: pixels } : null;
         }
       };
       image.onerror = () => {
@@ -228,14 +250,16 @@ export default function AmbientDustField() {
       const boost = isPlaying ? 0.035 + metrics.beatPulse * 0.05 : 0;
       const speedBoost = isPlaying ? 0.010 + metrics.energy * 0.012 : 0;
 
-      const background = ctx.createLinearGradient(0, 0, uiWidth, uiHeight);
-      background.addColorStop(0, '#050608');
-      background.addColorStop(0.52, mixWithBase(palette.primary, 0.1 * FIELD_OPACITY));
-      background.addColorStop(1, mixWithBase(palette.secondary, 0.1 * FIELD_OPACITY));
+      // 播放时把「封面点阵」淡入（暂停时淡出），同时压暗环境尘埃给点阵让位
+      // 测试缝隙：window.__moForcePainting = true 可强制进入点阵态（供自动化截图验证）
+      const forced = typeof window !== 'undefined' && Boolean((window as unknown as Record<string, unknown>).__moForcePainting);
+      playMixRef.current += ((isPlaying || forced ? 1 : 0) - playMixRef.current) * 0.07;
+      const playMix = playMixRef.current;
+
+      // 透明层：黑场由 R3F 提供，这里只画尘埃（否则会盖住封面光点画）
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
-      ctx.fillStyle = background;
-      ctx.fillRect(0, 0, uiWidth, uiHeight);
+      ctx.clearRect(0, 0, uiWidth, uiHeight);
 
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -243,6 +267,44 @@ export default function AmbientDustField() {
       const cy = uiHeight * 0.5 + Math.sin(now * 0.28) * uiHeight * 0.018;
       const rx = uiWidth * 0.4;
       const ry = uiHeight * 0.3;
+
+      /* 封面点阵：播放时用粒子（取自封面像素色）拼出封面，并随节拍产生径向波纹 */
+      const painting = coverPixelsRef.current;
+      if (painting && playMix > 0.01) {
+        const grid = painting.grid;
+        const side = Math.min(uiWidth * 0.62, uiHeight * 0.86);
+        const cell = side / grid;
+        const radius = Math.max(0.8, cell * 0.36);
+        const originX = uiWidth * 0.5 - side * 0.5;
+        const originY = uiHeight * 0.5 - side * 0.5 + Math.sin(now * 0.3) * 6;
+        const wave = (metrics.beatPulse * 0.85 + metrics.bass * 0.4) * 9;
+        const halfDiagonal = Math.sqrt(side * side + side * side) * 0.5;
+        for (let gy = 0; gy < grid; gy += 1) {
+          for (let gx = 0; gx < grid; gx += 1) {
+            const index = (gy * grid + gx) * 4;
+            const r = painting.data[index];
+            const g = painting.data[index + 1];
+            const b = painting.data[index + 2];
+            const lum = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255;
+            if (lum < 0.025) {
+              continue;
+            }
+            const px = originX + (gx + 0.5) * cell;
+            const py = originY + (gy + 0.5) * cell;
+            const dx = px - uiWidth * 0.5;
+            const dy = py - uiHeight * 0.5;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            // 边缘柔化：越靠外越淡，避免方块硬边压在内容上
+            const edgeFade = Math.max(0, 1 - Math.max(0, dist / halfDiagonal - 0.72) / 0.28);
+            const ripple = Math.sin(dist * 0.05 - now * 4.6) * wave;
+            ctx.globalAlpha = Math.min(1, playMix * (0.2 + lum * 0.5) * edgeFade);
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.beginPath();
+            ctx.arc(px + (dx / dist) * ripple, py + (dy / dist) * ripple, radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
 
       for (let i = 0; i < particles.length; i += 1) {
         const p = particles[i];
@@ -254,7 +316,7 @@ export default function AmbientDustField() {
         const y = cy + Math.sin(angle * (1 + rand(p.seed * 2) * 0.16)) * ry * ring + wobble;
         const twinkle = Math.pow(0.5 + 0.5 * Math.sin(now * (0.5 + rand(p.seed) * 0.42) + p.seed), 4);
         const radius = Math.max(0.5, p.size * (0.75 + twinkle * 0.9));
-        ctx.globalAlpha = Math.min(1, (0.045 + twinkle * 0.18 + boost) * FIELD_OPACITY * 2.2);
+        ctx.globalAlpha = Math.min(1, (0.045 + twinkle * 0.18 + boost) * FIELD_OPACITY * 2.2 * (1 - playMix * 0.55));
         const coverPalette = coverPaletteRef.current;
         ctx.fillStyle =
           coverPalette.length > 0
