@@ -6,7 +6,7 @@ import type {
   ProviderQrStatus,
 } from '../../../src/shared/music/providers';
 import { ProviderError } from '../errors';
-import { clearNeteaseSession, neteaseRequest } from './http';
+import { clearNeteaseSession, neteaseRequest, neteaseWebApi } from './http';
 
 const QR_LOGIN_PAGE = 'https://music.163.com/login?codekey=';
 
@@ -39,7 +39,8 @@ interface AccountResponse {
 
 /** 生成登录二维码（返回 data URL，渲染进程直接展示）。 */
 export async function createQrLogin(): Promise<ProviderQrLoginSession> {
-  const data = await neteaseRequest<QrKeyResponse>('/api/login/qrcode/unikey?type=1');
+  // 走 weapi（官方网页 surface）：明文 /api 二维码接口会被服务端判为旧客户端并返回 8821
+  const data = await neteaseWebApi<QrKeyResponse>('/weapi/login/qrcode/unikey', { type: 1 });
   if (data.code !== 200 || !data.unikey) {
     throw new ProviderError('netease', 'UNAVAILABLE', '无法获取网易云登录二维码，请稍后重试。', true, 5_000);
   }
@@ -53,13 +54,13 @@ export async function createQrLogin(): Promise<ProviderQrLoginSession> {
 
 /** 轮询扫码状态；授权成功后会话内已带上 Cookie。 */
 export async function pollQrLogin(key: string): Promise<ProviderQrPollResult> {
-  const data = await neteaseRequest<QrPollResponse>(
-    `/api/login/qrcode/client/login?key=${encodeURIComponent(key)}&type=1`,
-  );
+  const data = await neteaseWebApi<QrPollResponse>('/weapi/login/qrcode/client/login', { key, type: 1 });
   const status = QR_STATUS_BY_CODE[data.code];
   if (!status) {
-    // 便于定位「登录状态异常」：记录非常规返回码（不含任何凭据）
-    console.warn(`[netease-qr] unexpected poll code=${String(data.code)} message=${String(data.message ?? '')}`);
+    // 便于定位「登录状态异常」：记录非常规返回码与完整字段（不含凭据），例如安全验证要求
+    console.warn(
+      `[netease-qr] unexpected poll code=${String(data.code)} message=${String(data.message ?? '')} raw=${JSON.stringify(data).slice(0, 240)}`,
+    );
     return { status: 'error', account: null };
   }
   if (status === 'confirmed') {

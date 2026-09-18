@@ -1,16 +1,23 @@
 'use client';
 
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, Loader2, LogIn, LogOut, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Check, Loader2, LogOut, RefreshCw, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccountStore } from '../store/account';
 
-type Phase = 'idle' | 'loading' | 'confirmed' | 'error';
+type Phase = 'idle' | 'loading' | 'waiting' | 'scanned' | 'retrying' | 'expired' | 'error' | 'confirmed';
+
+const STATUS_TEXT: Record<string, string> = {
+  waiting: '打开网易云音乐 App 扫描二维码',
+  scanned: '已扫码，请在手机上确认（如有「选择网络环境」按其提示选择即可）',
+  confirmed: '登录成功',
+  expired: '二维码已过期',
+  error: '登录状态异常，请重试',
+};
 
 /**
- * 账号面板：打开网易云官方登录窗口完成扫码与安全验证
- * （官方会要求「选择网络环境」等步骤，直接调 /api 登录会被判为不支持的旧客户端并返回 8821），
- * Cookie 落在同一持久化分区，登录后显示头像/昵称与退出。
+ * 账号面板：应用内扫码登录（走 weapi，与官方网页同一接口族）。
+ * 若服务端仍要求额外验证，可切换到官方登录窗口（备用入口）。登录后显示头像/昵称与退出。
  */
 export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const loggedIn = useAccountStore((s) => s.loggedIn);
@@ -19,35 +26,119 @@ export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onC
   const logout = useAccountStore((s) => s.logout);
 
   const [phase, setPhase] = useState<Phase>('idle');
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [isOpeningWindow, setIsOpeningWindow] = useState(false);
+  const pollTimerRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setPhase('idle');
-      return;
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current !== null) {
+      window.clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
     }
-    void refresh();
-  }, [isOpen, refresh]);
+  }, []);
 
-  const openLoginWindow = async () => {
-    if (typeof window.musicOS?.openNeteaseLoginWindow !== 'function') {
+  const createQr = useCallback(async () => {
+    if (typeof window.musicOS?.createNeteaseQrLogin !== 'function') {
       setPhase('error');
       return;
     }
     setPhase('loading');
+    setQrDataUrl(null);
+    stopPolling();
+    try {
+      const session = await window.musicOS.createNeteaseQrLogin();
+      if (!session?.qrDataUrl) {
+        setPhase('error');
+        return;
+      }
+      setQrDataUrl(session.qrDataUrl);
+      setPhase('waiting');
+
+      let transientFailures = 0;
+      const poll = async () => {
+        if (typeof window.musicOS?.pollNeteaseQrLogin !== 'function') {
+          return;
+        }
+        try {
+          const result = await window.musicOS.pollNeteaseQrLogin(session.key);
+          if (result.status === 'confirmed') {
+            await refresh();
+            setPhase('confirmed');
+            window.setTimeout(() => onClose(), 900);
+            return;
+          }
+          if (result.status === 'expired') {
+            setPhase('expired');
+            return;
+          }
+          if (result.status === 'error') {
+            transientFailures += 1;
+            if (transientFailures <= 3) {
+              setPhase('retrying');
+              pollTimerRef.current = window.setTimeout(poll, 1600);
+              return;
+            }
+            setPhase('error');
+            return;
+          }
+          transientFailures = 0;
+          setPhase(result.status === 'scanned' ? 'scanned' : 'waiting');
+          pollTimerRef.current = window.setTimeout(poll, 1600);
+        } catch {
+          transientFailures += 1;
+          if (transientFailures <= 3) {
+            setPhase('retrying');
+            pollTimerRef.current = window.setTimeout(poll, 1600);
+            return;
+          }
+          setPhase('error');
+        }
+      };
+      pollTimerRef.current = window.setTimeout(poll, 1200);
+    } catch {
+      setPhase('error');
+    }
+  }, [onClose, refresh, stopPolling]);
+
+  const openLoginWindow = async () => {
+    if (typeof window.musicOS?.openNeteaseLoginWindow !== 'function') {
+      return;
+    }
+    setIsOpeningWindow(true);
     try {
       const result = await window.musicOS.openNeteaseLoginWindow();
       if (result) {
         await refresh();
         setPhase('confirmed');
-        window.setTimeout(() => onClose(), 1000);
-        return;
+        window.setTimeout(() => onClose(), 900);
       }
-      // 未完成登录（关窗 / 超时）→ 回到待登录态
-      setPhase('idle');
-    } catch {
-      setPhase('error');
+    } finally {
+      setIsOpeningWindow(false);
     }
   };
+
+  useEffect(() => {
+    if (!isOpen) {
+      stopPolling();
+      setPhase('idle');
+      setQrDataUrl(null);
+      return;
+    }
+    void refresh();
+  }, [isOpen, refresh, stopPolling]);
+
+  useEffect(() => {
+    if (isOpen && !loggedIn && phase === 'idle') {
+      void createQr();
+    }
+  }, [isOpen, loggedIn, phase, createQr]);
+
+  const statusText =
+    phase === 'loading'
+      ? '正在获取二维码…'
+      : phase === 'retrying'
+        ? '网络波动，正在重试…'
+        : STATUS_TEXT[phase] ?? STATUS_TEXT.waiting;
 
   return (
     <AnimatePresence>
@@ -72,7 +163,7 @@ export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onC
             exit={{ y: 8, opacity: 0 }}
             transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
             style={{
-              width: 360,
+              width: 352,
               padding: '22px 24px 24px',
               borderRadius: 20,
               background: 'var(--mo-bg-elevated-strong)',
@@ -86,7 +177,7 @@ export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onC
                   网易云账号
                 </div>
                 <div style={{ marginTop: 6, fontSize: 16, fontWeight: 500, color: 'var(--mo-ink)' }}>
-                  {loggedIn ? '已登录' : '登录'}
+                  {loggedIn ? '已登录' : '扫码登录'}
                 </div>
               </div>
               <button
@@ -137,57 +228,62 @@ export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onC
               <div className="flex flex-col items-center" style={{ gap: 12 }}>
                 <div
                   className="grid place-items-center"
-                  style={{
-                    width: 96,
-                    height: 96,
-                    borderRadius: 24,
-                    background: 'linear-gradient(140deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015))',
-                    border: '1px solid var(--mo-line)',
-                  }}
+                  style={{ width: 188, height: 188, borderRadius: 16, background: 'rgba(255,255,255,0.96)', border: '1px solid var(--mo-line)' }}
                 >
-                  <LogIn className="h-7 w-7" style={{ color: 'var(--mo-ink-muted)' }} />
+                  {qrDataUrl ? (
+                    <img src={qrDataUrl} alt="登录二维码" style={{ width: 164, height: 164 }} />
+                  ) : (
+                    <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#0a0a0c' }} />
+                  )}
                 </div>
+
+                <div className="flex items-center" style={{ gap: 6 }}>
+                  {phase === 'confirmed' ? (
+                    <Check className="h-3.5 w-3.5" style={{ color: 'var(--mo-accent)' }} />
+                  ) : phase === 'loading' || phase === 'retrying' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: 'var(--mo-ink-muted)' }} />
+                  ) : null}
+                  <span style={{ fontSize: 12, color: phase === 'confirmed' ? 'var(--mo-accent)' : 'var(--mo-ink-soft)', textAlign: 'center' }}>
+                    {statusText}
+                  </span>
+                </div>
+
+                {phase === 'expired' || phase === 'error' ? (
+                  <button
+                    type="button"
+                    onClick={() => void createQr()}
+                    className="flex items-center justify-center gap-2 rounded-full"
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: 12,
+                      color: 'var(--mo-accent-contrast)',
+                      background: 'var(--mo-accent)',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    刷新二维码
+                  </button>
+                ) : null}
 
                 <button
                   type="button"
                   onClick={() => void openLoginWindow()}
-                  disabled={phase === 'loading' || phase === 'confirmed'}
-                  className="flex items-center justify-center"
+                  disabled={isOpeningWindow}
+                  className="rounded-full"
                   style={{
-                    gap: 8,
-                    marginTop: 4,
-                    padding: '10px 20px',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: 'var(--mo-accent-contrast)',
-                    background: 'var(--mo-accent)',
-                    border: 'none',
-                    borderRadius: 999,
-                    cursor: phase === 'loading' ? 'default' : 'pointer',
-                    opacity: phase === 'loading' ? 0.75 : 1,
+                    padding: '7px 14px',
+                    fontSize: 11.5,
+                    color: 'var(--mo-ink-soft)',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid var(--mo-line)',
+                    cursor: isOpeningWindow ? 'default' : 'pointer',
+                    opacity: isOpeningWindow ? 0.7 : 1,
                   }}
                 >
-                  {phase === 'loading' ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : phase === 'confirmed' ? (
-                    <Check className="h-3.5 w-3.5" />
-                  ) : (
-                    <LogIn className="h-3.5 w-3.5" />
-                  )}
-                  {phase === 'loading' ? '在窗口中完成登录…' : phase === 'confirmed' ? '登录成功' : '打开登录窗口'}
+                  {isOpeningWindow ? '窗口登录中…' : '扫码不行？用官方窗口登录'}
                 </button>
-
-                <div style={{ fontSize: 11.5, color: 'var(--mo-ink-faint)', textAlign: 'center', lineHeight: 1.7 }}>
-                  弹出的是网易云官方登录页：请扫码，并按提示完成
-                  <span style={{ color: 'var(--mo-ink-soft)' }}>「选择网络环境」</span>
-                  等安全验证；完成后本应用会自动登录。
-                </div>
-
-                {phase === 'error' ? (
-                  <div style={{ fontSize: 11.5, color: 'var(--mo-warm)', textAlign: 'center', lineHeight: 1.6 }}>
-                    登录窗口打开失败，请重试；仍失败时可先用匿名模式（推荐歌单 / 榜单 / 搜索不受影响）。
-                  </div>
-                ) : null}
 
                 <div style={{ fontSize: 11, color: 'var(--mo-ink-faint)', textAlign: 'center', lineHeight: 1.6 }}>
                   登录态只保存在本机 Electron 分区，不会写入仓库或日志。

@@ -1,4 +1,5 @@
 import { net, session } from 'electron';
+import { weapiBody } from './crypto';
 import type { Session } from 'electron';
 
 /**
@@ -81,6 +82,43 @@ export async function neteaseRequest<T>(pathOrUrl: string, init: NeteaseRequestI
     if (formBody) {
       request.write(formBody);
     }
+    request.end();
+  });
+}
+
+/** 发起网易云 weapi 请求（官方网页 surface）：参数加密后 POST。 */
+export async function neteaseWebApi<T>(path: string, payload: Record<string, unknown>): Promise<T> {
+  const targetSession = getNeteaseSession();
+  await ensureDirectProxy(targetSession);
+  const url = `${NETEASE_BASE_URL}${path}`;
+  const formBody = weapiBody(payload);
+
+  return new Promise<T>((resolve, reject) => {
+    const request = net.request({
+      url,
+      session: targetSession,
+      method: 'POST',
+      useSessionCookies: true,
+    });
+    request.setHeader('Referer', NETEASE_REFERER);
+    request.setHeader('Origin', NETEASE_BASE_URL);
+    request.setHeader('User-Agent', NETEASE_USER_AGENT);
+    request.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+    const chunks: Buffer[] = [];
+    request.on('response', (response) => {
+      response.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      response.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        try {
+          resolve(JSON.parse(text) as T);
+        } catch {
+          reject(new Error(`网易云返回了非 JSON 响应（HTTP ${response.statusCode}）。`));
+        }
+      });
+    });
+    request.on('error', (error) => reject(error));
+    request.write(formBody);
     request.end();
   });
 }
