@@ -2,8 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getNeteaseSession = getNeteaseSession;
 exports.neteaseRequest = neteaseRequest;
+exports.neteaseWebApi = neteaseWebApi;
 exports.clearNeteaseSession = clearNeteaseSession;
 const electron_1 = require("electron");
+const crypto_1 = require("./crypto");
 /**
  * 网易云请求层：使用专用持久化分区（persist:music-os-netease），
  * Cookie 由 Chromium 会话自动保存与携带（Windows 上由系统凭据加密），主进程之外不可见。
@@ -73,6 +75,41 @@ async function neteaseRequest(pathOrUrl, init = {}) {
         if (formBody) {
             request.write(formBody);
         }
+        request.end();
+    });
+}
+/** 发起网易云 weapi 请求（官方网页 surface）：参数加密后 POST。 */
+async function neteaseWebApi(path, payload) {
+    const targetSession = getNeteaseSession();
+    await ensureDirectProxy(targetSession);
+    const url = `${NETEASE_BASE_URL}${path}`;
+    const formBody = (0, crypto_1.weapiBody)(payload);
+    return new Promise((resolve, reject) => {
+        const request = electron_1.net.request({
+            url,
+            session: targetSession,
+            method: 'POST',
+            useSessionCookies: true,
+        });
+        request.setHeader('Referer', NETEASE_REFERER);
+        request.setHeader('Origin', NETEASE_BASE_URL);
+        request.setHeader('User-Agent', NETEASE_USER_AGENT);
+        request.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+        const chunks = [];
+        request.on('response', (response) => {
+            response.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+            response.on('end', () => {
+                const text = Buffer.concat(chunks).toString('utf8');
+                try {
+                    resolve(JSON.parse(text));
+                }
+                catch {
+                    reject(new Error(`网易云返回了非 JSON 响应（HTTP ${response.statusCode}）。`));
+                }
+            });
+        });
+        request.on('error', (error) => reject(error));
+        request.write(formBody);
         request.end();
     });
 }

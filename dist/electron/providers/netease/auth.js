@@ -20,7 +20,8 @@ const QR_STATUS_BY_CODE = {
 };
 /** 生成登录二维码（返回 data URL，渲染进程直接展示）。 */
 async function createQrLogin() {
-    const data = await (0, http_1.neteaseRequest)('/api/login/qrcode/unikey?type=1');
+    // 走 weapi（官方网页 surface）：明文 /api 二维码接口会被服务端判为旧客户端并返回 8821
+    const data = await (0, http_1.neteaseWebApi)('/weapi/login/qrcode/unikey', { type: 1 });
     if (data.code !== 200 || !data.unikey) {
         throw new errors_1.ProviderError('netease', 'UNAVAILABLE', '无法获取网易云登录二维码，请稍后重试。', true, 5_000);
     }
@@ -33,11 +34,11 @@ async function createQrLogin() {
 }
 /** 轮询扫码状态；授权成功后会话内已带上 Cookie。 */
 async function pollQrLogin(key) {
-    const data = await (0, http_1.neteaseRequest)(`/api/login/qrcode/client/login?key=${encodeURIComponent(key)}&type=1`);
+    const data = await (0, http_1.neteaseWebApi)('/weapi/login/qrcode/client/login', { key, type: 1 });
     const status = QR_STATUS_BY_CODE[data.code];
     if (!status) {
-        // 便于定位「登录状态异常」：记录非常规返回码（不含任何凭据）
-        console.warn(`[netease-qr] unexpected poll code=${String(data.code)} message=${String(data.message ?? '')}`);
+        // 便于定位「登录状态异常」：记录非常规返回码与完整字段（不含凭据），例如安全验证要求
+        console.warn(`[netease-qr] unexpected poll code=${String(data.code)} message=${String(data.message ?? '')} raw=${JSON.stringify(data).slice(0, 240)}`);
         return { status: 'error', account: null };
     }
     if (status === 'confirmed') {
