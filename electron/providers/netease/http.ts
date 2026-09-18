@@ -12,6 +12,7 @@ const NETEASE_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 let cachedSession: Session | null = null;
+let directProxyConfigured = false;
 
 export function getNeteaseSession(): Session {
   if (!cachedSession) {
@@ -20,13 +21,33 @@ export function getNeteaseSession(): Session {
   return cachedSession;
 }
 
+/**
+ * 网易云流量走直连：全局代理/VPN 出口会触发账号风控（8821 请切换其他登录方式、-462 网络环境风险），
+ * 导致扫码登录被拒。这里只让 netease 分区绕开系统代理，其它流量不受影响。
+ * 若网络本身必须经由代理才能访问网易云（罕见），会退化为请求失败，此时应改回跟随系统代理。
+ */
+async function ensureDirectProxy(target: Session): Promise<void> {
+  if (directProxyConfigured) {
+    return;
+  }
+  directProxyConfigured = true;
+  try {
+    await target.setProxy({ mode: 'direct' });
+  } catch {
+    // 设置失败则沿用系统代理，不阻塞请求
+  }
+}
+
 export interface NeteaseRequestInit {
   method?: 'GET' | 'POST';
   form?: Record<string, string>;
 }
 
 /** 发起网易云 Web API 请求并解析 JSON。路径以 / 开头时拼到 music.163.com。 */
-export function neteaseRequest<T>(pathOrUrl: string, init: NeteaseRequestInit = {}): Promise<T> {
+export async function neteaseRequest<T>(pathOrUrl: string, init: NeteaseRequestInit = {}): Promise<T> {
+  const targetSession = getNeteaseSession();
+  await ensureDirectProxy(targetSession);
+
   const url = pathOrUrl.startsWith('http') ? pathOrUrl : `${NETEASE_BASE_URL}${pathOrUrl}`;
   const method = init.method ?? 'GET';
   const formBody = init.form ? new URLSearchParams(init.form).toString() : null;
@@ -34,7 +55,7 @@ export function neteaseRequest<T>(pathOrUrl: string, init: NeteaseRequestInit = 
   return new Promise<T>((resolve, reject) => {
     const request = net.request({
       url,
-      session: getNeteaseSession(),
+      session: targetSession,
       method,
       useSessionCookies: true,
     });
