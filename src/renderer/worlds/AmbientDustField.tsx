@@ -278,7 +278,6 @@ export default function AmbientDustField() {
         const originX = uiWidth * 0.5 - side * 0.5;
         const originY = uiHeight * 0.5 - side * 0.5 + Math.sin(now * 0.3) * 6;
         const wave = (metrics.beatPulse * 0.85 + metrics.bass * 0.4) * 9;
-        const halfDiagonal = Math.sqrt(side * side + side * side) * 0.5;
         for (let gy = 0; gy < grid; gy += 1) {
           for (let gx = 0; gx < grid; gx += 1) {
             const index = (gy * grid + gx) * 4;
@@ -294,8 +293,9 @@ export default function AmbientDustField() {
             const dx = px - uiWidth * 0.5;
             const dy = py - uiHeight * 0.5;
             const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-            // 边缘柔化：越靠外越淡，避免方块硬边压在内容上
-            const edgeFade = Math.max(0, 1 - Math.max(0, dist / halfDiagonal - 0.72) / 0.28);
+            // 边缘柔化：按方形边界（而不是到中心的距离）淡出，四边才不会硬切
+            const edge = Math.max(Math.abs(dx), Math.abs(dy)) / (side * 0.5);
+            const edgeFade = Math.max(0, 1 - Math.max(0, edge - 0.7) / 0.3);
             const ripple = Math.sin(dist * 0.05 - now * 4.6) * wave;
             ctx.globalAlpha = Math.min(1, playMix * (0.2 + lum * 0.5) * edgeFade);
             ctx.fillStyle = `rgb(${r},${g},${b})`;

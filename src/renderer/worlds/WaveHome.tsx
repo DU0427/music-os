@@ -958,6 +958,15 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   }, [accountLoggedIn]);
 
   /* 常驻件（左下入口 / 时钟）：滚动时淡出，避免压住滚动中的卡片 */
+  /* 播放态：整块内容让位（含 QA 测试缝隙：window.__moForcePainting + mo-force-playing 事件） */
+  const [forcedPlaying, setForcedPlaying] = useState(false);
+  useEffect(() => {
+    const onForce = () => setForcedPlaying(Boolean((window as unknown as Record<string, unknown>).__moForcePainting));
+    window.addEventListener('mo-force-playing', onForce);
+    return () => window.removeEventListener('mo-force-playing', onForce);
+  }, []);
+  const stagePlaying = isPlaying || forcedPlaying;
+
   const [chromeHidden, setChromeHidden] = useState(false);
   const chromeTimerRef = useRef<number | null>(null);
   const handleScroll = useCallback(() => {
@@ -1136,8 +1145,20 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
             )}
           </div>
 
-          {/* 内容轨道：3D 只作用在封面层（各自 perspective），文字层保持 2D 以保证清晰 */}
-          <div>
+          {/* 内容轨道：3D 只作用在封面层（各自 perspective），文字层保持 2D 以保证清晰；
+              播放时整块淡出并收起（播放态接管：舞台让给封面点阵与 hero） */}
+          <div
+            style={{
+              opacity: stagePlaying ? 0 : 1,
+              maxHeight: stagePlaying ? 0 : 5200,
+              overflow: 'hidden',
+              transform: stagePlaying ? 'translateY(10px)' : 'translateY(0)',
+              filter: stagePlaying ? 'blur(6px)' : 'blur(0px)',
+              transition:
+                'opacity 460ms var(--mo-ease), max-height 560ms var(--mo-ease), transform 460ms var(--mo-ease), filter 460ms var(--mo-ease)',
+              pointerEvents: stagePlaying ? 'none' : 'auto',
+            }}
+          >
             <div ref={stageRef}>
               {/* 编辑精选：非对称马赛克（1 大 + 4 小） */}
               <div style={{ ...sectionReveal(160), marginBottom: Math.round(20 * stageScale) }}>
