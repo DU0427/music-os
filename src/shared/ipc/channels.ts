@@ -46,6 +46,7 @@ export const APP_IPC_CHANNELS = {
   neteaseAuthStatus: 'music:netease:auth-status',
   neteaseLogout: 'music:netease:logout',
   neteaseHome: 'music:netease:home',
+  neteaseDaily: 'music:netease:daily',
   neteasePlaylistTracks: 'music:netease:playlist-tracks',
 } as const;
 
@@ -105,6 +106,8 @@ export interface MusicOsApi {
   logoutNetease(): Promise<boolean>;
   /** 网易云：内容入口（推荐歌单 + 排行榜）。 */
   getNeteaseHomeContent(): Promise<ProviderHomeContent>;
+  /** 每日推荐（登录后个性化，未登录为通用推荐）。 */
+  getNeteaseDailySongs(limit?: number): Promise<ProviderTrack[]>;
   /** 网易云：歌单/榜单曲目列表。 */
   getNeteasePlaylistTracks(playlistId: string): Promise<ProviderTrack[]>;
 }

@@ -55,12 +55,13 @@ export default function Rail({
       return undefined;
     }
     const onWheel = (event: WheelEvent) => {
-      // 只把纵向滚轮转成横向滚动；触控板横向滑动保持原生
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX) || el.scrollWidth <= el.clientWidth) {
+      // 只有横向意图才驱动轨道（Shift+滚轮 / 触控板横向滑动）；纵向滚轮留给页面滚动
+      const horizontalIntent = event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY);
+      if (!horizontalIntent || el.scrollWidth <= el.clientWidth) {
         return;
       }
       event.preventDefault();
-      el.scrollLeft += event.deltaY;
+      el.scrollLeft += Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);

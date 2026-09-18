@@ -3,7 +3,7 @@ import type {
   ProviderPlaylistSummary,
   ProviderTrack,
 } from '../../../src/shared/music/providers';
-import { neteaseRequest } from './http';
+import { neteaseRequest, neteaseWebApi } from './http';
 import { mapSong, type NeteaseSongPayload } from './map';
 
 interface PersonalizedPlaylistResponse {
@@ -51,6 +51,32 @@ export async function getNeteasePlaylistTracks(playlistId: string): Promise<Prov
   );
   const tracks = data.result?.tracks ?? [];
   return tracks.map(mapSong);
+}
+
+interface DailySongsResponse {
+  code: number;
+  data?: { dailySongs?: NeteaseSongPayload[] };
+}
+
+/**
+ * 每日推荐：登录后按口味个性化，未登录也能拿到通用推荐。
+ * 走 weapi（官方网页 surface），返回结构为 v3 的 ar/al/dt，mapSong 已兼容。
+ */
+export async function getNeteaseDailySongs(limit = 12): Promise<ProviderTrack[]> {
+  try {
+    const data = await neteaseWebApi<DailySongsResponse>('/weapi/v3/discovery/recommend/songs', {
+      limit,
+      offset: 0,
+      total: true,
+      n: 1000,
+    });
+    if (data.code !== 200) {
+      return [];
+    }
+    return (data.data?.dailySongs ?? []).slice(0, limit).map(mapSong);
+  } catch {
+    return [];
+  }
 }
 
 async function fetchRecommendedPlaylists(): Promise<ProviderPlaylistSummary[]> {

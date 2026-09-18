@@ -48,6 +48,7 @@ const APP_IPC_CHANNELS = (() => {
     neteaseAuthStatus: 'music:netease:auth-status',
     neteaseLogout: 'music:netease:logout',
     neteaseHome: 'music:netease:home',
+    neteaseDaily: 'music:netease:daily',
     neteasePlaylistTracks: 'music:netease:playlist-tracks',
   } as const;
 
@@ -123,6 +124,8 @@ const api: MusicOsApi = {
       account: ProviderAccount | null;
     }>,
   logoutNetease: () => ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseLogout) as Promise<boolean>,
+  getNeteaseDailySongs: (limit?: number) =>
+    ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseDaily, limit) as Promise<ProviderTrack[]>,
   getNeteaseHomeContent: () =>
     ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseHome) as Promise<ProviderHomeContent>,
   getNeteasePlaylistTracks: (playlistId: string) =>

@@ -14,7 +14,7 @@ import { useRuntimeStore } from '../store/runtime';
 import { useAccountStore } from '../store/account';
 import { useDominantColor, withAlpha } from '../hooks/useDominantColor';
 import { useStageScale } from '../hooks/useStageScale';
-import type { ProviderHomeContent, ProviderPlaylistSummary } from '../../shared/music/providers';
+import type { ProviderHomeContent, ProviderPlaylistSummary, ProviderTrack } from '../../shared/music/providers';
 import type { TrackRecord } from '../../shared/ipc/music';
 
 /* 底部固定预留：左下入口（曲库/记忆/情绪）区域高度，保证末行文字不压入口。 */
@@ -710,6 +710,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   const currentTrackId = useAudioStore((s) => s.track?.id ?? null);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const currentArtworkUrl = useAudioStore((s) => s.track?.artworkUrl ?? null);
+  const currentProviderTrackId = useAudioStore((s) => s.track?.providerTrackId ?? null);
   const greetingAccent = useDominantColor(currentArtworkUrl, '#f5f5f7');
 
   const stageScale = useStageScale();
@@ -789,8 +790,25 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     void loadContent();
   }, [loadContent]);
 
-  /* 登录后重新拉一次内容（解锁个性化推荐） */
+  /* 每日推荐：登录后为个性化，未登录为通用推荐 */
   const accountLoggedIn = useAccountStore((s) => s.loggedIn);
+  const [dailyTracks, setDailyTracks] = useState<ProviderTrack[]>([]);
+  useEffect(() => {
+    const loadDaily = async () => {
+      if (typeof window.musicOS?.getNeteaseDailySongs !== 'function') {
+        return;
+      }
+      try {
+        const list = await window.musicOS.getNeteaseDailySongs(12);
+        setDailyTracks(Array.isArray(list) ? list : []);
+      } catch {
+        setDailyTracks([]);
+      }
+    };
+    void loadDaily();
+  }, [accountLoggedIn]);
+
+  /* 登录后重新拉一次内容（解锁个性化推荐） */
   useEffect(() => {
     if (accountLoggedIn) {
       void loadContent();
@@ -1009,10 +1027,36 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                 </div>
               ) : null}
 
+              {/* 每日推荐（登录后个性化，未登录为通用推荐） */}
+              {dailyTracks.length > 0 ? (
+                <div style={{ ...sectionReveal(300), marginBottom: Math.round(20 * stageScale) }}>
+                  <SectionHead
+                    title="每日推荐"
+                    count={dailyTracks.length}
+                    hint={accountLoggedIn ? '根据你的口味' : '登录后更懂你'}
+                  />
+                  <Rail gap={Math.round(12 * stageScale)}>
+                    {dailyTracks.map((track, index) => (
+                      <div key={track.reference.platformTrackId} style={coverReveal(320 + index * 24)}>
+                        <TrackCard
+                          coverUrl={track.artworkUrl}
+                          title={track.title}
+                          artist={track.artist.name}
+                          onOpen={() => void useAudioStore.getState().loadProviderTrack(track.reference)}
+                          waveRef={waveRefFor('daily', index)}
+                          isCurrent={currentProviderTrackId === track.reference.platformTrackId}
+                          isPlaying={isPlaying}
+                        />
+                      </div>
+                    ))}
+                  </Rail>
+                </div>
+              ) : null}
+
               {/* 最近播放（你自己的曲目） */}
               {recentTracks.length > 0 ? (
                 <div style={sectionReveal(330)}>
-                  <SectionHead title="最近播放" count={recentTracks.length} hint="横向滚动 · 继续听" />
+                  <SectionHead title="最近播放" count={recentTracks.length} hint="继续听" />
                   <Rail gap={Math.round(12 * stageScale)}>
                     {recentTracks.map((track, index) => (
                       <div key={track.id} style={coverReveal(360 + index * 24)}>
