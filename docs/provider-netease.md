@@ -26,6 +26,26 @@
 | 账号 | `GET /api/nuser/account/get` | 未登录返回空 profile |
 | 退出 | `/api/logout` + 清空分区 Cookie | |
 
+## 登录（2026-09-17 更新）
+
+- **应用内扫码登录**：走 **weapi 加密接口族**（与官方网页同一 surface）：
+  - `POST /weapi/login/qrcode/unikey`（加密 body：`type=1`）→ `unikey`
+  - `POST /weapi/login/qrcode/client/login`（加密 body：`key`, `type=1`）→ 800/801/802/803
+  - 参数加密见 `electron/providers/netease/crypto.ts`（明文 → AES-128-CBC(nonce) → AES-128-CBC(secKey) → `params`；
+    secKey → RSA → `encSecKey`）；`electron/providers/netease/http.ts` 的 `neteaseWebApi()` 负责 POST。
+- **官方登录窗口（备用）**：`electron/providers/netease/login-window.ts` 打开官方登录页（同持久化分区），
+  自动点开扫码弹层，检测到 `MUSIC_U` 即视为成功——用于服务端要求额外验证（如「选择网络环境」）的场景。
+- **网络**：netease 分区在首个请求前设置 `setProxy({ mode: 'direct' })`，绕开系统全局代理/VPN；
+  代理出口会触发风控（`-462 检测到您的网络环境存在风险`、`8821 请切换其他登录方式`）。
+
+### 踩坑记录（务必保留）
+
+| 现象 | 原因 | 结论 |
+|---|---|---|
+| 扫码确认后 `8821 请切换其他登录方式或升级新版本再试` | 明文接口族 `/api/login/qrcode/*` 被服务端判为「不支持的旧客户端」 | **必须用 weapi**；官方网页能登录就是因为它走加密 surface |
+| 带上 `os=pc` Cookie 后 unikey 直接 `-462`（`verifyType:50`、`blockText:检测到您的网络环境存在风险`） | 该 Cookie 会让服务端认为请求来自网页客户端，进而要求安全验证 | 不要手工加 `os=pc`；保持默认请求头 |
+| 登录窗口 `loadURL` 报 `ERR_ABORTED(-3)` 且显示首页 | 官方登录页做 hash 路由跳转；`/login` 会重定向到 `#/login` 且只显示首页 | 忽略 `ERR_ABORTED`；加载后自动点一次「登录」打开扫码弹层 |
+
 ## 错误映射（不伪造播放能力）
 
 - 无播放地址且**未登录** → `AUTH_REQUIRED`（提示登录）。
