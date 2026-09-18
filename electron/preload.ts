@@ -42,6 +42,7 @@ const APP_IPC_CHANNELS = (() => {
     providerPlayable: 'music:provider:playable-source',
     audioCover: 'audio:cover',
     audioFileData: 'audio:file-data',
+    neteaseLoginWindow: 'music:netease:login-window',
     neteaseQrCreate: 'music:netease:qr-create',
     neteaseQrPoll: 'music:netease:qr-poll',
     neteaseAuthStatus: 'music:netease:auth-status',
@@ -110,6 +111,8 @@ const api: MusicOsApi = {
   getAudioCover: (filePath: string) => ipcRenderer.invoke(APP_IPC_CHANNELS.audioCover, filePath) as Promise<string | null>,
   getAudioFileData: (filePath: string) =>
     ipcRenderer.invoke(APP_IPC_CHANNELS.audioFileData, filePath) as Promise<Uint8Array | null>,
+  openNeteaseLoginWindow: () =>
+    ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseLoginWindow) as Promise<ProviderAccount | null>,
   createNeteaseQrLogin: () =>
     ipcRenderer.invoke(APP_IPC_CHANNELS.neteaseQrCreate) as Promise<ProviderQrLoginSession | null>,
   pollNeteaseQrLogin: (key: string) =>

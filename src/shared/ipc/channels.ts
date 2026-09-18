@@ -40,6 +40,7 @@ export const APP_IPC_CHANNELS = {
   providerPlayable: 'music:provider:playable-source',
   audioCover: 'audio:cover',
   audioFileData: 'audio:file-data',
+  neteaseLoginWindow: 'music:netease:login-window',
   neteaseQrCreate: 'music:netease:qr-create',
   neteaseQrPoll: 'music:netease:qr-poll',
   neteaseAuthStatus: 'music:netease:auth-status',
@@ -93,6 +94,8 @@ export interface MusicOsApi {
   /** 回读本地音频文件字节，用于重启后恢复本地播放源（失败返回 null）。 */
   getAudioFileData(filePath: string): Promise<Uint8Array | null>;
   /** 网易云：生成扫码登录二维码（data URL）。 */
+  /** 打开官方登录窗口（同分区），完成扫码 / 安全验证后返回账号。 */
+  openNeteaseLoginWindow(): Promise<ProviderAccount | null>;
   createNeteaseQrLogin(): Promise<ProviderQrLoginSession | null>;
   /** 网易云：轮询扫码状态。 */
   pollNeteaseQrLogin(key: string): Promise<ProviderQrPollResult>;

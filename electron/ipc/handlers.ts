@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
 import { APP_IPC_CHANNELS } from './channels';
 import type { AppReadyPayload, ErrorPayload, PingPayload } from './channels';
 import type {
@@ -13,6 +13,7 @@ import { ProviderRegistry } from '../providers';
 import { readAudioCover } from '../audio/cover';
 import { readAudioFileData } from '../audio/file-data';
 import { createQrLogin, fetchAccount, logoutNetease, pollQrLogin } from '../providers/netease/auth';
+import { openNeteaseLoginWindow } from '../providers/netease/login-window';
 import { getNeteaseHomeContent, getNeteasePlaylistTracks } from '../providers/netease/content';
 import type { MusicProviderId, ProviderTrackReference } from '../../src/shared/music/providers';
 
@@ -170,6 +171,16 @@ export function registerAppHandlers(repository: MusicRepository, providers: Prov
   });
 
   /* ——— 网易云：扫码登录与内容入口 ——— */
+
+  ipcMain.handle(APP_IPC_CHANNELS.neteaseLoginWindow, async (event) => {
+    const parent = BrowserWindow.fromWebContents(event.sender);
+    try {
+      return await openNeteaseLoginWindow(parent);
+    } catch (error) {
+      console.warn('[netease-login] window failed:', error instanceof Error ? error.message : String(error));
+      return null;
+    }
+  });
 
   ipcMain.handle(APP_IPC_CHANNELS.neteaseQrCreate, async () => {
     try {
