@@ -56,7 +56,12 @@ export async function pollQrLogin(key: string): Promise<ProviderQrPollResult> {
   const data = await neteaseRequest<QrPollResponse>(
     `/api/login/qrcode/client/login?key=${encodeURIComponent(key)}&type=1`,
   );
-  const status = QR_STATUS_BY_CODE[data.code] ?? 'error';
+  const status = QR_STATUS_BY_CODE[data.code];
+  if (!status) {
+    // 便于定位「登录状态异常」：记录非常规返回码（不含任何凭据）
+    console.warn(`[netease-qr] unexpected poll code=${String(data.code)} message=${String(data.message ?? '')}`);
+    return { status: 'error', account: null };
+  }
   if (status === 'confirmed') {
     const account = await fetchAccount();
     return { status, account };

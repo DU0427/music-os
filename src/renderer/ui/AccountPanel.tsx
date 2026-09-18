@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccountStore } from '../store/account';
 import type { ProviderQrStatus } from '../../shared/music/providers';
 
-type Phase = 'idle' | 'loading' | 'waiting' | 'scanned' | 'expired' | 'error' | 'confirmed';
+type Phase = 'idle' | 'loading' | 'waiting' | 'scanned' | 'retrying' | 'expired' | 'error' | 'confirmed';
 
 const STATUS_TEXT: Record<ProviderQrStatus, string> = {
   waiting: '打开网易云音乐 App，扫描二维码登录',
@@ -54,6 +54,7 @@ export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onC
       setQrDataUrl(session.qrDataUrl);
       setPhase('waiting');
 
+      let transientFailures = 0;
       const poll = async () => {
         if (typeof window.musicOS?.pollNeteaseQrLogin !== 'function') {
           return;
@@ -66,13 +67,31 @@ export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onC
             window.setTimeout(() => onClose(), 900);
             return;
           }
-          if (result.status === 'expired' || result.status === 'error') {
-            setPhase(result.status === 'expired' ? 'expired' : 'error');
+          if (result.status === 'expired') {
+            setPhase('expired');
             return;
           }
+          if (result.status === 'error') {
+            // 网络波动 / 非常规返回：先重试几次，避免把瞬时失败显示成「状态异常」
+            transientFailures += 1;
+            if (transientFailures <= 3) {
+              setPhase('retrying');
+              pollTimerRef.current = window.setTimeout(poll, 1600);
+              return;
+            }
+            setPhase('error');
+            return;
+          }
+          transientFailures = 0;
           setPhase(result.status === 'scanned' ? 'scanned' : 'waiting');
           pollTimerRef.current = window.setTimeout(poll, 1600);
         } catch {
+          transientFailures += 1;
+          if (transientFailures <= 3) {
+            setPhase('retrying');
+            pollTimerRef.current = window.setTimeout(poll, 1600);
+            return;
+          }
           setPhase('error');
         }
       };
@@ -98,7 +117,20 @@ export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onC
     }
   }, [isOpen, loggedIn, phase, createQr]);
 
-  const statusKey: ProviderQrStatus = phase === 'confirmed' ? 'confirmed' : phase === 'scanned' ? 'scanned' : phase === 'expired' ? 'expired' : phase === 'error' ? 'error' : 'waiting';
+  const statusText =
+    phase === 'loading'
+      ? '正在获取二维码…'
+      : phase === 'confirmed'
+        ? STATUS_TEXT.confirmed
+        : phase === 'scanned'
+          ? STATUS_TEXT.scanned
+          : phase === 'retrying'
+            ? '网络波动，正在重试…'
+            : phase === 'expired'
+              ? STATUS_TEXT.expired
+              : phase === 'error'
+                ? STATUS_TEXT.error
+                : STATUS_TEXT.waiting;
 
   return (
     <AnimatePresence>
@@ -209,7 +241,7 @@ export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onC
                     <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: 'var(--mo-ink-muted)' }} />
                   ) : null}
                   <span style={{ fontSize: 12, color: phase === 'confirmed' ? 'var(--mo-accent)' : 'var(--mo-ink-soft)' }}>
-                    {phase === 'loading' ? '正在获取二维码…' : STATUS_TEXT[statusKey]}
+                    {statusText}
                   </span>
                 </div>
                 {phase === 'expired' || phase === 'error' ? (

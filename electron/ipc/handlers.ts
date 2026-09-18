@@ -185,7 +185,9 @@ export function registerAppHandlers(repository: MusicRepository, providers: Prov
     }
     try {
       return await pollQrLogin(key);
-    } catch {
+    } catch (error) {
+      // 记录失败原因（网络 / 非 JSON / 超时），不含任何凭据
+      console.warn('[netease-qr] poll failed:', error instanceof Error ? error.message : String(error));
       return { status: 'error', account: null };
     }
   });
