@@ -1,19 +1,13 @@
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { Search, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useRuntimeStore } from '../store/runtime';
 import { useAccountStore } from '../store/account';
 
-const SPACE_TITLE: Record<string, string> = {
-  home: 'stage',
-  library: 'library',
-  memory: 'memory',
-};
 
 export default function TopBar({ onSearch, onAccount }: { onSearch?: () => void; onAccount?: () => void }) {
   const loggedIn = useAccountStore((s) => s.loggedIn);
   const account = useAccountStore((s) => s.account);
-  const currentSpace = useRuntimeStore((s) => s.currentSpace);
 
   return (
     <motion.header
@@ -36,29 +30,6 @@ export default function TopBar({ onSearch, onAccount }: { onSearch?: () => void;
         <div className="font-sans font-medium text-[13px] text-white/80 group-hover:text-white transition-colors tracking-wide">
           music os
         </div>
-      </div>
-
-      {/* Center space title：状态胶囊 */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSpace}
-            initial={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="rounded-full"
-            style={{
-              padding: '5px 14px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--mo-line)',
-            }}
-          >
-            <span className="font-mono text-[10.5px] tracking-[0.16em] lowercase" style={{ color: 'var(--mo-ink-soft)' }}>
-              {SPACE_TITLE[currentSpace] ?? currentSpace}
-            </span>
-          </motion.div>
-        </AnimatePresence>
       </div>
 
       {/* Right: search pill + account */}

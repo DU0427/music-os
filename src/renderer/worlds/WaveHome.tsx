@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, CloudOff, Loader2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CloudOff, Home, Loader2, RefreshCw } from 'lucide-react';
 import NowPlayingCard from '../ui/NowPlayingCard';
 import StageChips from '../ui/StageChips';
 import PlaylistPanel, { type PlaylistPanelTarget } from '../ui/PlaylistPanel';
@@ -54,26 +54,6 @@ function playlistMeta(playlist: ProviderPlaylistSummary): string {
     parts.push(`${plays} 播放`);
   }
   return parts.length > 0 ? parts.join(' · ') : '网易云歌单';
-}
-
-function Clock() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const date = `${now.getMonth() + 1}月${now.getDate()}日`;
-  return (
-    <div className="absolute bottom-10 right-10 text-right pointer-events-none select-none z-30">
-      <div className="font-mono mo-tabular tracking-[0.08em]" style={{ fontSize: 15, color: 'var(--mo-ink-faint)' }}>
-        {time}
-      </div>
-      <div className="font-mono mo-tabular tracking-[0.12em] mt-1" style={{ fontSize: 10, color: 'var(--mo-ink-faint)', opacity: 0.7 }}>
-        {date}
-      </div>
-    </div>
-  );
 }
 
 /* 卡片文字层级（结构借鉴 Mineradio 的 label / title / sub，配色沿用黑场三段灰） */
@@ -848,7 +828,7 @@ function SectionHead({ title, count, hint }: { title: string; count: number; hin
  * 首页：问候语 + 现在播放 + 推荐歌单 + 排行榜（榜单语言）+ 最近播放。
  * 波场（3D 视差 + 起伏 + 音乐律动）保留；不同区块用不同排版语言区分层次。
  */
-export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
+export default function WaveHome({ onDetail, bootReady = true }: { onDetail?: () => void; bootReady?: boolean }) {
   const [content, setContent] = useState<ProviderHomeContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -858,9 +838,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
   const history = useLibraryStore((s) => s.history);
   const currentTrackId = useAudioStore((s) => s.track?.id ?? null);
   const isPlaying = useAudioStore((s) => s.isPlaying);
-  const currentArtworkUrl = useAudioStore((s) => s.track?.artworkUrl ?? null);
   const currentProviderTrackId = useAudioStore((s) => s.track?.providerTrackId ?? null);
-  const greetingAccent = useDominantColor(currentArtworkUrl, '#f5f5f7');
 
   const stageScale = useStageScale();
   const stageRef = useRef<HTMLDivElement>(null);
@@ -965,7 +943,23 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     window.addEventListener('mo-force-playing', onForce);
     return () => window.removeEventListener('mo-force-playing', onForce);
   }, []);
-  const stagePlaying = isPlaying || forcedPlaying;
+  /* 沉浸态：播放开始即进入；暂停不自动退出，点「回到首页」才回到内容视图 */
+  const [immersive, setImmersive] = useState(false);
+  useEffect(() => {
+    if (isPlaying || forcedPlaying) {
+      setImmersive(true);
+    }
+  }, [isPlaying, forcedPlaying]);
+  const collapseWhenImmersive = (): React.CSSProperties => ({
+    opacity: immersive ? 0 : 1,
+    maxHeight: immersive ? 0 : 6000,
+    overflow: 'hidden',
+    transform: immersive ? 'translateY(10px)' : 'translateY(0)',
+    filter: immersive ? 'blur(6px)' : 'blur(0px)',
+    transition:
+      'opacity 460ms var(--mo-ease), max-height 620ms var(--mo-ease), transform 460ms var(--mo-ease), filter 460ms var(--mo-ease)',
+    pointerEvents: immersive ? 'none' : 'auto',
+  });
 
   const [chromeHidden, setChromeHidden] = useState(false);
   const chromeTimerRef = useRef<number | null>(null);
@@ -1007,19 +1001,6 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     }
     return result;
   }, [history, tracks]);
-
-  /* 问候语 */
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 6) return '夜深了';
-    if (hour < 11) return '早上好';
-    if (hour < 14) return '中午好';
-    if (hour < 18) return '下午好';
-    return '晚上好';
-  }, []);
-  const greetingSub = recentTracks.length
-    ? `上次听到「${recentTracks[0].title}」`
-    : '今天想听点什么？';
 
   /* 律动推进：只由音频指标驱动（无鼠标跟随、无持续位移） */
   useEffect(() => {
@@ -1088,32 +1069,8 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
     <div className="absolute inset-0 z-10">
       <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden" onScroll={handleScroll}>
         <div style={{ padding: `${Math.round(Math.max(52, 48 * stageScale))}px 0 ${HOME_BOTTOM_RESERVE}px` }}>
-          {/* 问候语 */}
-          <div style={{ ...sectionReveal(0), padding: '0 40px', marginBottom: Math.round(8 * stageScale) }}>
-            <h1 style={{ fontSize: Math.max(19, Math.round(30 * stageScale)), fontWeight: 300, letterSpacing: '-0.02em', color: 'var(--mo-ink)' }}>
-              {greeting}
-            </h1>
-            <p className="mt-1.5" style={{ fontSize: Math.max(12.5, Math.round(13.5 * stageScale)), color: 'var(--mo-ink-faint)' }}>
-              {greetingSub}
-            </p>
-            {/* 问候语强调线：入场后从左展开，颜色取当前封面主色 */}
-            <span
-              aria-hidden
-              style={{
-                display: 'block',
-                width: Math.round(30 * stageScale),
-                height: 2,
-                marginTop: Math.round(10 * stageScale),
-                borderRadius: 999,
-                background: withAlpha(greetingAccent, 0.85),
-                transform: entranceReady ? 'scaleX(1)' : 'scaleX(0)',
-                transformOrigin: 'left center',
-                transition: 'transform 640ms var(--mo-ease) 260ms',
-              }}
-            />
-          </div>
-
-          {/* Split 主视觉：左侧继续听 / 正在播放，右侧榜单前三快捷直达 */}
+          {/* Split 主视觉（沉浸态随内容一起收起）：左侧继续听 / 正在播放，右侧榜单前三快捷直达 */}
+          <div style={collapseWhenImmersive()}>
           <div
             style={{
               ...sectionReveal(80),
@@ -1144,21 +1101,11 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
               <Spotlight items={toplists.slice(0, 3)} onOpen={openPlaylist} openId={panelTarget?.id ?? null} />
             )}
           </div>
+          </div>
 
           {/* 内容轨道：3D 只作用在封面层（各自 perspective），文字层保持 2D 以保证清晰；
-              播放时整块淡出并收起（播放态接管：舞台让给封面点阵与 hero） */}
-          <div
-            style={{
-              opacity: stagePlaying ? 0 : 1,
-              maxHeight: stagePlaying ? 0 : 5200,
-              overflow: 'hidden',
-              transform: stagePlaying ? 'translateY(10px)' : 'translateY(0)',
-              filter: stagePlaying ? 'blur(6px)' : 'blur(0px)',
-              transition:
-                'opacity 460ms var(--mo-ease), max-height 560ms var(--mo-ease), transform 460ms var(--mo-ease), filter 460ms var(--mo-ease)',
-              pointerEvents: stagePlaying ? 'none' : 'auto',
-            }}
-          >
+              沉浸态（播放中）整块淡出并收起，舞台让给封面点阵与播放条 */}
+          <div style={collapseWhenImmersive()}>
             <div ref={stageRef}>
               {/* 编辑精选：非对称马赛克（1 大 + 4 小） */}
               <div style={{ ...sectionReveal(160), marginBottom: Math.round(20 * stageScale) }}>
@@ -1341,8 +1288,32 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
         }}
       >
         <StageChips />
-        <Clock />
       </div>
+
+      {/* 沉浸态：只留一个「回到首页」入口（暂停不会自动退出） */}
+      {immersive ? (
+        <button
+          type="button"
+          onClick={() => setImmersive(false)}
+          className="absolute z-30 flex items-center rounded-full"
+          style={{
+            top: 88,
+            right: 32,
+            gap: 8,
+            padding: '8px 14px',
+            fontSize: 12,
+            color: 'var(--mo-ink-soft)',
+            background: 'rgba(10,10,13,0.6)',
+            border: '1px solid var(--mo-line)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            cursor: 'pointer',
+          }}
+        >
+          <Home className="h-3.5 w-3.5" />
+          回到首页
+        </button>
+      ) : null}
       {/* 面板挂到 body：WaveHome 的 z-10 容器会建立层叠上下文，直接内联会被顶部栏盖住 */}
       {createPortal(
         <PlaylistPanel target={panelTarget} onClose={() => setPanelTarget(null)} />,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAudioStore } from '../audio/store';
 import { useDominantColor } from '../hooks/useDominantColor';
 
@@ -152,6 +152,7 @@ export default function AmbientDustField() {
   const coverPaletteRef = useRef<string[]>([]);
   const coverPixelsRef = useRef<{ grid: number; data: Uint8ClampedArray } | null>(null);
   const playMixRef = useRef(0);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -351,12 +352,14 @@ export default function AmbientDustField() {
 
     window.addEventListener('resize', resize);
     resize();
+    const fadeIn = window.setTimeout(() => setVisible(true), 60);
     raf = requestAnimationFrame(draw);
 
     return () => {
       disposed = true;
       cancelAnimationFrame(raf);
       window.clearInterval(paletteTimer);
+      window.clearTimeout(fadeIn);
       window.removeEventListener('resize', resize);
     };
   }, [artworkUrl]);
@@ -365,7 +368,15 @@ export default function AmbientDustField() {
     <canvas
       ref={canvasRef}
       aria-hidden
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 1200ms var(--mo-ease)',
+      }}
     />
   );
 }

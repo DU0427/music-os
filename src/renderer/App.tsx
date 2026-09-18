@@ -278,7 +278,7 @@ export default function AppShell() {
       <TopBar onSearch={() => setIsSearching(true)} onAccount={() => setIsAccountOpen(true)} />
 
       {/* Home：走廊（内容优先，滚动推进） */}
-      {currentSpace === 'home' && <WaveHome onDetail={() => setIsDetailOpen(true)} />}
+      {currentSpace === 'home' && <WaveHome onDetail={() => setIsDetailOpen(true)} bootReady={bootPhase === 'done'} />}
 
       {/* Library / Memory DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
