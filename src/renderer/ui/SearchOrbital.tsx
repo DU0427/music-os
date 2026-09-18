@@ -19,6 +19,7 @@ function ResultRow({
   title,
   sub,
   tag,
+  vip = false,
   loading,
   onClick,
 }: {
@@ -26,6 +27,7 @@ function ResultRow({
   title: string;
   sub: string;
   tag: string;
+  vip?: boolean;
   loading?: boolean;
   onClick: () => void;
 }) {
@@ -87,6 +89,21 @@ function ResultRow({
           {sub}
         </span>
       </span>
+      {vip ? (
+        <span
+          className="font-mono shrink-0"
+          style={{
+            padding: '1px 5px',
+            borderRadius: 6,
+            fontSize: 9.5,
+            letterSpacing: '0.06em',
+            color: 'var(--mo-ink-muted)',
+            border: '1px solid var(--mo-line-strong)',
+          }}
+        >
+          VIP
+        </span>
+      ) : null}
       {loading ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: 'var(--mo-ink-faint)' }} />
       ) : (
@@ -290,6 +307,7 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
                         title={track.title}
                         sub={`${track.artist.name}${track.album ? ` · ${track.album.title}` : ''}`}
                         tag="网易云"
+                        vip={Boolean(track.requiresVip)}
                         loading={loadingRef === track.reference.platformTrackId}
                         onClick={() => void handleProviderPlay(track)}
                       />

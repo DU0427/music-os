@@ -673,6 +673,7 @@ function DailyCard({
   waveRef,
   isCurrent = false,
   isPlaying = false,
+  requiresVip = false,
 }: {
   coverUrl: string | null;
   title: string;
@@ -682,6 +683,7 @@ function DailyCard({
   waveRef?: (el: HTMLSpanElement | null) => void;
   isCurrent?: boolean;
   isPlaying?: boolean;
+  requiresVip?: boolean;
 }) {
   const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
@@ -737,6 +739,26 @@ function DailyCard({
         >
           {rank}
         </span>
+        {/* 付费/VIP 标注：避免「点了才知道播不了」 */}
+        {requiresVip ? (
+          <span
+            className="font-mono"
+            style={{
+              position: 'absolute',
+              left: 6,
+              bottom: 6,
+              padding: '1px 5px',
+              borderRadius: 6,
+              fontSize: 9.5,
+              letterSpacing: '0.08em',
+              color: 'rgba(255,255,255,0.86)',
+              background: 'rgba(6,6,9,0.66)',
+              border: '1px solid rgba(255,255,255,0.16)',
+            }}
+          >
+            VIP
+          </span>
+        ) : null}
         {isCurrent ? (
           <span
             style={{
@@ -1181,6 +1203,7 @@ export default function WaveHome({ onDetail }: { onDetail?: () => void }) {
                           title={track.title}
                           artist={track.artist.name}
                           rank={index + 1}
+                          requiresVip={Boolean(track.requiresVip)}
                           onOpen={() => void useAudioStore.getState().loadProviderTrack(track.reference)}
                           waveRef={waveRefFor('daily', index)}
                           isCurrent={currentProviderTrackId === track.reference.platformTrackId}

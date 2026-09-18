@@ -10,6 +10,15 @@ export interface NeteaseSongPayload {
   album?: { id: number; name: string; picUrl?: string } | null;
   artists?: Array<{ id: number; name: string }>;
   duration?: number;
+  /** 0 免费 / 1 VIP / 4 购买专辑 / 8 低音质免费 */
+  fee?: number;
+  privilege?: { fee?: number } | null;
+}
+
+/** 平台是否标注为需付费/VIP（fee：1 VIP、4 购买专辑）。 */
+function requiresVip(song: NeteaseSongPayload): boolean {
+  const fee = song.fee ?? song.privilege?.fee ?? 0;
+  return fee === 1 || fee === 4;
 }
 
 /** 把网易云歌曲载荷映射为统一的 ProviderTrack（兼容两种字段结构）。 */
@@ -26,5 +35,6 @@ export function mapSong(song: NeteaseSongPayload): ProviderTrack {
       : null,
     durationSeconds: durationMs > 0 ? durationMs / 1000 : 0,
     artworkUrl: album?.picUrl ?? null,
+    requiresVip: requiresVip(song),
   };
 }

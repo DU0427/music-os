@@ -31,6 +31,8 @@ export interface ProviderTrack {
   album: ProviderAlbum | null;
   durationSeconds: number;
   artworkUrl: string | null;
+  /** 平台标注为付费/VIP 或需购买专辑（不可播时不伪造能力，UI 用于提前标注）。 */
+  requiresVip?: boolean;
 }
 
 export interface ProviderTrackDetail extends ProviderTrack {

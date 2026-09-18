@@ -334,6 +334,21 @@ export default function PlaylistPanel({ target, onClose }: PlaylistPanelProps) {
                           <span />
                         </span>
                       ) : null}
+                      {track.requiresVip ? (
+                        <span
+                          className="font-mono shrink-0"
+                          style={{
+                            padding: '1px 5px',
+                            borderRadius: 6,
+                            fontSize: 9.5,
+                            letterSpacing: '0.06em',
+                            color: 'var(--mo-ink-muted)',
+                            border: '1px solid var(--mo-line-strong)',
+                          }}
+                        >
+                          VIP
+                        </span>
+                      ) : null}
                       <span className="mo-tabular shrink-0 font-mono" style={{ fontSize: 10.5, color: 'var(--mo-ink-faint)' }}>
                         {formatDuration(track.durationSeconds)}
                       </span>
