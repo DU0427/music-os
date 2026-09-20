@@ -799,29 +799,38 @@ function SectionHead({ title, count, hint }: { title: string; count: number; hin
   const s = useStageScale();
   return (
     <div
-      className="flex items-baseline"
-      style={{ padding: '0 40px', marginBottom: Math.round(14 * s), justifyContent: 'space-between', gap: Math.round(12 * s) }}
+      style={{ padding: '0 40px', marginBottom: Math.round(14 * s) }}
     >
-      <span className="flex items-baseline" style={{ gap: Math.round(10 * s), minWidth: 0 }}>
-        <h2 style={{ fontSize: Math.max(12.5, Math.round(14.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
-        <span className="font-mono mo-tabular" style={{ fontSize: Math.max(10, Math.round(10.5 * s)), color: 'var(--mo-ink-faint)' }}>
-          {count}
+      <div className="flex items-baseline" style={{ justifyContent: 'space-between', gap: Math.round(12 * s) }}>
+        <span className="flex items-baseline" style={{ gap: Math.round(10 * s), minWidth: 0 }}>
+          <h2 style={{ fontSize: Math.max(12.5, Math.round(14.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
+          <span className="font-mono mo-tabular" style={{ fontSize: Math.max(10, Math.round(10.5 * s)), color: 'var(--mo-ink-faint)' }}>
+            {count}
+          </span>
         </span>
-      </span>
-      {hint ? (
-        <span
-          className="shrink-0"
-          style={{
-            fontSize: Math.max(10.5, Math.round(11.5 * s)),
-            color: 'var(--mo-ink-faint)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {hint}
-        </span>
-      ) : null}
+        {hint ? (
+          <span
+            className="shrink-0"
+            style={{
+              fontSize: Math.max(10.5, Math.round(11.5 * s)),
+              color: 'var(--mo-ink-faint)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {hint}
+          </span>
+        ) : null}
+      </div>
+      <div
+        aria-hidden
+        style={{
+          marginTop: Math.round(9 * s),
+          height: 1,
+          background: 'linear-gradient(90deg, var(--mo-line-strong), transparent 72%)',
+        }}
+      />
     </div>
   );
 }

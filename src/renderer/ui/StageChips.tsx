@@ -68,7 +68,7 @@ function StageOrb({
           border: `1px solid ${active ? withAlpha(activeColor ?? '#f5f5f7', 0.35) : 'var(--mo-line)'}`,
           backdropFilter: 'blur(22px) saturate(1.15)',
           WebkitBackdropFilter: 'blur(22px) saturate(1.15)',
-          boxShadow: active ? `0 0 24px ${withAlpha(activeColor ?? '#f5f5f7', 0.3)}` : 'none',
+          boxShadow: active ? `0 0 24px ${withAlpha(activeColor ?? '#f5f5f7', 0.3)}` : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 22px rgba(0,0,0,0.35)',
           color: active ? (activeColor ?? '#f5f5f7') : 'var(--mo-ink-muted)',
           transition: 'color 300ms var(--mo-ease), box-shadow 300ms var(--mo-ease)',
         }}

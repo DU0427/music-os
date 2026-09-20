@@ -122,6 +122,7 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
   const [providerResults, setProviderResults] = useState<ProviderTrack[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [loadingRef, setLoadingRef] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -211,11 +212,14 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
               className="flex items-center"
               style={{
                 gap: 10,
-                padding: '12px 14px',
-                borderRadius: 16,
+                padding: '13px 14px 13px 16px',
+                borderRadius: 18,
                 background: 'var(--mo-bg-elevated-strong)',
-                border: '1px solid var(--mo-line)',
-                boxShadow: 'var(--mo-shadow-glass), inset 0 1px 0 rgba(255,255,255,0.06)',
+                border: `1px solid ${focused ? 'var(--mo-accent-ghost)' : 'var(--mo-line)'}`,
+                boxShadow: focused
+                  ? 'var(--mo-shadow-glass), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 32px var(--mo-accent-ghost)'
+                  : 'var(--mo-shadow-glass), inset 0 1px 0 rgba(255,255,255,0.06)',
+                transition: 'border-color 260ms var(--mo-ease), box-shadow 260ms var(--mo-ease)',
               }}
             >
               <SearchIcon className="h-4 w-4" style={{ color: 'var(--mo-ink-muted)' }} />
@@ -225,10 +229,25 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="搜索歌曲、歌手、歌单…"
-                className="flex-1 bg-transparent outline-none"
-                style={{ fontSize: 14.5, color: 'var(--mo-ink)', fontFamily: 'var(--mo-font-sans)' }}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                className="flex-1 bg-transparent"
+                style={{ fontSize: 15, color: 'var(--mo-ink)', fontFamily: 'var(--mo-font-sans)', outline: 'none', border: 'none', background: 'transparent' }}
               />
               {isSearching ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--mo-ink-faint)' }} /> : null}
+              <span
+                className="font-mono shrink-0"
+                style={{
+                  fontSize: 10,
+                  padding: '2px 6px',
+                  borderRadius: 7,
+                  border: '1px solid var(--mo-line)',
+                  color: 'var(--mo-ink-faint)',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                ESC
+              </span>
               <button
                 type="button"
                 aria-label="关闭"
@@ -280,8 +299,9 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
               >
                 {localResults.length > 0 ? (
                   <>
-                    <div className="font-mono" style={{ padding: '6px 12px', fontSize: 10, letterSpacing: '0.14em', color: 'var(--mo-ink-faint)' }}>
-                      本地
+                    <div className="flex items-center" style={{ padding: '6px 12px 4px', gap: 8 }}>
+                      <span className="font-mono" style={{ fontSize: 10, letterSpacing: '0.14em', color: 'var(--mo-ink-faint)' }}>本地</span>
+                      <span aria-hidden style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, var(--mo-line), transparent)' }} />
                     </div>
                     {localResults.map((track) => (
                       <ResultRow
@@ -297,8 +317,9 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
                 ) : null}
                 {providerResults.length > 0 ? (
                   <>
-                    <div className="font-mono" style={{ padding: '6px 12px', fontSize: 10, letterSpacing: '0.14em', color: 'var(--mo-ink-faint)' }}>
-                      网易云
+                    <div className="flex items-center" style={{ padding: '6px 12px 4px', gap: 8 }}>
+                      <span className="font-mono" style={{ fontSize: 10, letterSpacing: '0.14em', color: 'var(--mo-ink-faint)' }}>网易云</span>
+                      <span aria-hidden style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, var(--mo-line), transparent)' }} />
                     </div>
                     {providerResults.map((track) => (
                       <ResultRow
@@ -325,7 +346,7 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
 
             {!query ? (
               <div className="text-center font-mono" style={{ marginTop: 26, fontSize: 10.5, letterSpacing: '0.16em', color: 'var(--mo-ink-faint)' }}>
-                输入关键词开始搜索 · Esc 关闭
+                输入关键词开始搜索
               </div>
             ) : null}
           </motion.div>
