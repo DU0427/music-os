@@ -78,6 +78,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
   const [isSearchingProvider, setIsSearchingProvider] = useState(false);
   const [isLoadingProviderTrack, setIsLoadingProviderTrack] = useState(false);
   const [localLoadMessage, setLocalLoadMessage] = useState<string | null>(null);
+  const [progressHover, setProgressHover] = useState(false);
 
   const statusText = track ? (isPlaying ? '播放中' : canPlay ? '已就绪' : '仅元数据') : '未加载曲目';
 
@@ -121,7 +122,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
       <div
         style={{
           position: 'absolute',
-          left: '50%', bottom: 22, zIndex: 11,
+          left: '50%', bottom: 22, zIndex: 24,
           transform: 'translateX(-50%)',
           width: 'min(var(--mo-dock-width), calc(100vw - 32px))',
           pointerEvents: 'auto',
@@ -241,45 +242,85 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
 
           <input ref={inputRef} type="file" accept="audio/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) await loadLocalFile(f); e.target.value=''; }} />
 
-          {/* 进度 hairline —— accent 流动 */}
+          {/* 进度条：可点击/拖拽 seek（命中区 16px 全在容器内，悬停/拖拽时变粗并显示 thumb） */}
           <div
             style={{
-              position: 'absolute', left: 0, right: 0, bottom: 0, height: 2,
-              background: 'rgba(255,255,255,0.06)',
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 16,
+              display: 'flex',
+              alignItems: 'flex-end',
+              cursor: duration ? 'pointer' : 'default',
             }}
           >
             <div
               style={{
-                height: '100%',
-                width: `${progressPct}%`,
-                background: 'linear-gradient(90deg, var(--mo-accent), var(--mo-accent-ghost))',
-                boxShadow: '0 0 16px var(--mo-accent-ghost)',
-                transition: 'width 120ms linear',
+                position: 'relative',
+                width: '100%',
+                height: progressHover ? 4 : 2,
+                background: 'rgba(255,255,255,0.08)',
+                transition: 'height 180ms var(--mo-ease)',
               }}
-            />
-            {isPlaying && duration > 0 ? (
+            >
               <div
                 style={{
-                  position: 'absolute', top: '50%', transform: 'translateY(-50%)',
-                  left: `calc(${progressPct}% - 3px)`,
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: 'var(--mo-accent)',
-                  boxShadow: '0 0 12px var(--mo-accent)',
-                  transition: 'left 120ms linear',
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: `${progressPct}%`,
+                  background: 'linear-gradient(90deg, var(--mo-accent), var(--mo-accent-ghost))',
+                  boxShadow: '0 0 16px var(--mo-accent-ghost)',
+                  transition: 'width 120ms linear',
                 }}
               />
-            ) : null}
+              <div
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: `${progressPct}%`,
+                  width: 10,
+                  height: 10,
+                  marginLeft: -5,
+                  marginTop: -5,
+                  borderRadius: '50%',
+                  background: 'var(--mo-accent)',
+                  boxShadow: '0 0 12px var(--mo-accent)',
+                  opacity: progressHover ? 1 : 0.85,
+                  transition: 'opacity 200ms var(--mo-ease)',
+                }}
+              />
+            </div>
+            {/* 透明 range 提供原生拖拽与无障碍语义 */}
+            <input
+              type="range"
+              min={0}
+              max={duration || 0.01}
+              step={0.01}
+              value={Math.min(currentTime, duration || 0.01)}
+              disabled={!duration}
+              onChange={(e) => seek(Number(e.target.value))}
+              onMouseEnter={() => setProgressHover(true)}
+              onMouseLeave={() => setProgressHover(false)}
+              onPointerDown={() => setProgressHover(true)}
+              onPointerUp={() => setProgressHover(false)}
+              aria-label="播放进度"
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 16,
+                width: '100%',
+                opacity: 0,
+                cursor: duration ? 'pointer' : 'default',
+                margin: 0,
+              }}
+            />
           </div>
-          {/* 隐形 seek 面 */}
-          <input
-            type="range" min={0} max={duration || 0.01} step={0.01}
-            value={Math.min(currentTime, duration || 0.01)} disabled={!duration}
-            onChange={(e) => seek(Number(e.target.value))} aria-label="播放进度"
-            style={{
-              position: 'absolute', left: 0, right: 0, bottom: -4, height: 12,
-              width: '100%', opacity: 0, cursor: duration ? 'pointer' : 'default', margin: 0,
-            }}
-          />
         </div>
 
         {/* 瞬时消息 */}

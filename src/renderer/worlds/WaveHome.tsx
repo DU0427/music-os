@@ -950,6 +950,28 @@ export default function WaveHome({ onDetail, bootReady = true }: { onDetail?: ()
       setImmersive(true);
     }
   }, [isPlaying, forcedPlaying]);
+  /* 沉浸态标记：App 的全局 Esc 看到它就跳过「回首页」，让 Esc 先退出沉浸态 */
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).__moImmersive = immersive;
+    return () => {
+      (window as unknown as Record<string, unknown>).__moImmersive = false;
+    };
+  }, [immersive]);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName ?? '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) {
+        return;
+      }
+      setImmersive(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const collapseWhenImmersive = (): React.CSSProperties => ({
     opacity: immersive ? 0 : 1,
     maxHeight: immersive ? 0 : 6000,
@@ -1290,7 +1312,16 @@ export default function WaveHome({ onDetail, bootReady = true }: { onDetail?: ()
         <StageChips />
       </div>
 
-      {/* 沉浸态：只留一个「回到首页」入口（暂停不会自动退出） */}
+      {/* 沉浸态：点击画面中央查看详情；右上角回到首页 */}
+      {immersive ? (
+        <button
+          type="button"
+          aria-label="查看详情"
+          onClick={() => onDetail?.()}
+          className="absolute inset-0"
+          style={{ zIndex: 20, background: 'transparent', border: 'none', cursor: 'pointer', pointerEvents: 'auto' }}
+        />
+      ) : null}
       {immersive ? (
         <button
           type="button"
@@ -1308,6 +1339,7 @@ export default function WaveHome({ onDetail, bootReady = true }: { onDetail?: ()
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             cursor: 'pointer',
+            pointerEvents: 'auto',
           }}
         >
           <Home className="h-3.5 w-3.5" />

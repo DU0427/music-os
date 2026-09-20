@@ -123,6 +123,10 @@ export default function AppShell() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // 沉浸态由 WaveHome 自己处理 Esc（退出沉浸态），这里不再抢
+        if ((window as unknown as Record<string, unknown>).__moImmersive) {
+          return;
+        }
         if (isDetailOpen) setIsDetailOpen(false);
         else if (isSearching) setIsSearching(false);
         else requestSpace('home');
@@ -131,6 +135,41 @@ export default function AppShell() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [requestSpace, isDetailOpen, isSearching]);
+
+  /* 桌面快捷键：空格播放/暂停、←/→ ±5s（输入框/按钮聚焦时不抢键） */
+  useEffect(() => {
+    const onShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName ?? '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || target?.isContentEditable) {
+        return;
+      }
+      const audio = useAudioStore.getState();
+      if (event.code === 'Space') {
+        event.preventDefault();
+        if (!audio.track || !audio.canPlay) {
+          return;
+        }
+        if (audio.isPlaying) {
+          audio.pause();
+        } else {
+          void audio.play();
+        }
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        audio.seek(Math.max(0, audio.currentTime - 5));
+        return;
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        audio.seek(Math.min(audio.duration || audio.currentTime + 5, audio.currentTime + 5));
+      }
+    };
+    window.addEventListener('keydown', onShortcut);
+    return () => window.removeEventListener('keydown', onShortcut);
+  }, []);
 
   useEffect(() => {
     const handler = (e: ErrorEvent | PromiseRejectionEvent) => {
