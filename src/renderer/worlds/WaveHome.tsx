@@ -18,7 +18,9 @@ import type { ProviderHomeContent, ProviderPlaylistSummary, ProviderTrack } from
 import type { TrackRecord } from '../../shared/ipc/music';
 
 /* 底部固定预留：左下入口（曲库/记忆/情绪）区域高度，保证末行文字不压入口。 */
-const HOME_BOTTOM_RESERVE = 94;
+const HOME_BOTTOM_RESERVE = 24;
+/* 底部浮动 chrome（空间入口 + 播放条）占的带高：滚动区在它之上收边，内容永不进入该带 */
+const HOME_CHROME_BAND = 108;
 
 /* 卡面基准尺寸（900px 高窗口下的验收值）：渲染时乘以 useStageScale 的缩放系数。
    轨道内卡片为固定尺寸，右侧露出的半张卡就是「还有更多」的提示。 */
@@ -1076,8 +1078,8 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
 
   return (
     <div className="absolute inset-0 z-10">
-      <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden" onScroll={handleScroll}>
-        <div style={{ padding: `${Math.round(Math.max(52, 48 * stageScale))}px 0 ${HOME_BOTTOM_RESERVE}px` }}>
+      <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden" style={{ bottom: HOME_CHROME_BAND }} onScroll={handleScroll}>
+        <div style={{ padding: `${Math.round(Math.max(78, 64 * stageScale))}px 0 ${HOME_BOTTOM_RESERVE}px` }}>
           {/* Split 主视觉（沉浸态随内容一起收起）：左侧继续听 / 正在播放，右侧榜单前三快捷直达 */}
           <div style={collapseWhenImmersive()}>
           <div
