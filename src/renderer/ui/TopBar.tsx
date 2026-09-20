@@ -1,7 +1,6 @@
 import { motion } from 'motion/react';
 import { Search, UserRound } from 'lucide-react';
 import { useState } from 'react';
-import { useRuntimeStore } from '../store/runtime';
 import { useAccountStore } from '../store/account';
 
 
@@ -14,6 +13,7 @@ export default function TopBar({ onSearch, onAccount }: { onSearch?: () => void;
       className="fixed top-0 left-0 w-full px-8 py-6 flex items-start justify-between pointer-events-none z-20"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -14 }}
       transition={{ duration: 0.8 }}
     >
       {/* Brand */}

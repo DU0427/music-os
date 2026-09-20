@@ -17,6 +17,7 @@ import { useMoodStore } from './store/mood';
 import type { AppReadyPayload } from '../shared/ipc/channels';
 import { useAudioStore } from './audio/store';
 import { useDominantColor, withAlpha, contrastText, energyTargetFallback } from './hooks/useDominantColor';
+import { AnimatePresence } from 'motion/react';
 
 const reportStartupError = async (code: string, detail: string) => {
   if (typeof window.musicOS?.reportError === 'function') {
@@ -37,6 +38,8 @@ export default function AppShell() {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  /* 沉浸态：播放进入、暂停不退出；点「回到首页」或 Esc 才回到内容视图（App 持有，便于同时控制顶栏与播放条形态） */
+  const [immersive, setImmersive] = useState(false);
   /* ——— 启动 curtain：遮住 IPC ready 与播放恢复耗时，就绪后自动退场 ——— */
   const [bootPhase, setBootPhase] = useState<'loading' | 'exiting' | 'done'>('loading');
   /* 就绪信号与最短展示时长分离：就绪再快，也让品牌动画完整播完再揭幕 */
@@ -120,11 +123,24 @@ export default function AppShell() {
   const currentTime = useAudioStore((s) => s.currentTime);
   const duration = useAudioStore((s) => s.duration);
 
+  /* 沉浸态：播放开始进入；回到 home 且正在播放时补齐（例如从曲库返回） */
+  useEffect(() => {
+    if (currentSpace === 'home' && currentTrack && isPlaying) {
+      setImmersive(true);
+    }
+  }, [currentSpace, currentTrack, isPlaying]);
+  /* 测试缝隙：探针用 mo-force-playing 强制进入沉浸态（与 __moForcePainting 配套） */
+  useEffect(() => {
+    const onForce = () => setImmersive(true);
+    window.addEventListener('mo-force-playing', onForce);
+    return () => window.removeEventListener('mo-force-playing', onForce);
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        // 沉浸态由 WaveHome 自己处理 Esc（退出沉浸态），这里不再抢
-        if ((window as unknown as Record<string, unknown>).__moImmersive) {
+        // 沉浸态优先：Esc 交给 WaveHome 处理成「退出沉浸态」，这里不再抢
+        if (immersive) {
           return;
         }
         if (isDetailOpen) setIsDetailOpen(false);
@@ -134,7 +150,7 @@ export default function AppShell() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [requestSpace, isDetailOpen, isSearching]);
+  }, [requestSpace, isDetailOpen, isSearching, immersive]);
 
   /* 桌面快捷键：空格播放/暂停、←/→ ±5s（输入框/按钮聚焦时不抢键） */
   useEffect(() => {
@@ -314,10 +330,12 @@ export default function AppShell() {
       )}
 
       {/* Top navigation — prototype style */}
-      <TopBar onSearch={() => setIsSearching(true)} onAccount={() => setIsAccountOpen(true)} />
+      <AnimatePresence>
+        {!immersive && <TopBar onSearch={() => setIsSearching(true)} onAccount={() => setIsAccountOpen(true)} />}
+      </AnimatePresence>
 
       {/* Home：走廊（内容优先，滚动推进） */}
-      {currentSpace === 'home' && <WaveHome onDetail={() => setIsDetailOpen(true)} bootReady={bootPhase === 'done'} />}
+      {currentSpace === 'home' && <WaveHome onDetail={() => setIsDetailOpen(true)} bootReady={bootPhase === 'done'} immersive={immersive} onExitImmersive={() => setImmersive(false)} />}
 
       {/* Library / Memory DOM worlds */}
       {currentSpace === 'library' && <LibraryGalaxyWorld />}
@@ -329,7 +347,7 @@ export default function AppShell() {
       <DetailOrbital isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} />
 
       {/* Audio dock — 仅在存在曲目时出现（空态保持干净的黑场） */}
-      {currentTrack && <AudioDock mode={showDeveloperControls ? 'developer' : 'experience'} />}
+      {currentTrack && <AudioDock mode={showDeveloperControls ? 'developer' : 'experience'} immersive={immersive} />}
 
       {/* Diagnostics */}
       {showDiagnostics && (

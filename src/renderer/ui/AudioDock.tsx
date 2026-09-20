@@ -14,7 +14,7 @@ const VINYL_GRADIENT =
   'conic-gradient(from 210deg at 50% 50%, #2a2a2e, transparent 32%, #0a0a0c 56%, #3a3a3e 80%, #2a2a2e)';
 
 type AudioDockMode = 'developer' | 'experience';
-interface AudioDockProps { mode?: AudioDockMode; }
+interface AudioDockProps { mode?: AudioDockMode; immersive?: boolean; }
 
 /* ——— 频谱：30 条 hairline，由平滑 metrics 驱动（FFT 数据留在引擎内） ——— */
 function SpectrumBars({ bars = 30 }: { bars?: number }) {
@@ -56,7 +56,7 @@ function SpectrumBars({ bars = 30 }: { bars?: number }) {
   );
 }
 
-export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
+export default function AudioDock({ mode = 'experience', immersive = false }: AudioDockProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const isDeveloperMode = mode === 'developer';
   const track = useAudioStore((s) => s.track);
@@ -122,9 +122,9 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
       <div
         style={{
           position: 'absolute',
-          left: '50%', bottom: 22, zIndex: 24,
+          left: '50%', bottom: immersive ? 34 : 22, zIndex: 24,
           transform: 'translateX(-50%)',
-          width: 'min(var(--mo-dock-width), calc(100vw - 32px))',
+          width: immersive ? 'min(800px, calc(100vw - 48px))' : 'min(var(--mo-dock-width), calc(100vw - 32px))',
           pointerEvents: 'auto',
           animation: 'mo-dock-in var(--mo-duration) var(--mo-ease)',
         }}
@@ -138,21 +138,23 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
             border: '1px solid var(--mo-line)',
             backdropFilter: 'blur(22px) saturate(1.15)',
             WebkitBackdropFilter: 'blur(22px) saturate(1.15)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+            boxShadow: immersive
+              ? '0 18px 56px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 44px var(--mo-accent-ghost)'
+              : '0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
             color: 'var(--mo-text)',
-            padding: '8px 14px',
-            display: 'flex', alignItems: 'center', gap: 14,
+            padding: immersive ? '12px 18px' : '8px 14px',
+            display: 'flex', alignItems: 'center', gap: immersive ? 18 : 14,
           }}
         >
           {/* 封面 */}
           <div
             style={{
-              width: 42, height: 42, flexShrink: 0,
-              borderRadius: 10,
+              width: immersive ? 64 : 42, height: immersive ? 64 : 42, flexShrink: 0,
+              borderRadius: immersive ? 16 : 10,
               background: track?.artworkUrl
                 ? `url("${track.artworkUrl}") center / cover no-repeat`
                 : VINYL_GRADIENT,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 calc(4px + var(--mo-beat, 0) * 18px) var(--mo-accent-ghost)',
+              boxShadow: `0 4px 14px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 calc(${immersive ? 8 : 4}px + var(--mo-beat, 0) * ${immersive ? 28 : 18}px) var(--mo-accent-ghost)`,
               border: '1px solid rgba(255,255,255,0.06)',
               transition: 'background var(--mo-duration) var(--mo-ease)',
             }}
@@ -164,7 +166,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
             onClick={() => (isPlaying ? pause() : void play())}
             aria-label={isPlaying ? '暂停' : '播放'}
             style={{
-              width: 38, height: 38, flexShrink: 0,
+              width: immersive ? 50 : 38, height: immersive ? 50 : 38, flexShrink: 0,
               border: 0, borderRadius: '50%',
               background: isLoaded && canPlay ? 'var(--mo-accent)' : 'rgba(255,255,255,0.06)',
               color: isLoaded && canPlay ? 'var(--mo-accent-contrast)' : 'rgba(255,255,255,0.32)',
@@ -176,7 +178,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
             onMouseEnter={(e) => { if (isLoaded && canPlay) e.currentTarget.style.transform = 'scale(1.06)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            {isPlaying ? <Pause className="w-4 h-4" fill="currentColor" strokeWidth={0} /> : <Play className="w-4 h-4 ml-0.5" fill="currentColor" strokeWidth={0} />}
+            {isPlaying ? <Pause className={immersive ? 'w-5 h-5' : 'w-4 h-4'} fill="currentColor" strokeWidth={0} /> : <Play className={immersive ? 'w-5 h-5 ml-0.5' : 'w-4 h-4 ml-0.5'} fill="currentColor" strokeWidth={0} />}
           </button>
 
           {/* 曲目信息 */}
@@ -195,7 +197,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
             </div>
             <div
               style={{
-                fontSize: 13, fontWeight: 500, lineHeight: 1.3, marginTop: 3,
+                fontSize: immersive ? 15 : 13, fontWeight: 500, lineHeight: 1.3, marginTop: 3,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 color: 'var(--mo-ink)',
               }}
@@ -211,7 +213,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
           <div
             style={{
               textAlign: 'right', flexShrink: 0,
-              fontSize: 11, color: 'var(--mo-ink-muted)',
+              fontSize: immersive ? 12 : 11, color: 'var(--mo-ink-muted)',
               fontVariantNumeric: 'tabular-nums', lineHeight: 1.3,
             }}
           >
@@ -225,7 +227,7 @@ export default function AudioDock({ mode = 'experience' }: AudioDockProps) {
             aria-label="加载本地歌曲"
             title="加载本地歌曲"
             style={{
-              width: 28, height: 28, flexShrink: 0,
+              width: immersive ? 32 : 28, height: immersive ? 32 : 28, flexShrink: 0,
               border: 0, borderRadius: '50%',
               background: 'transparent',
               color: 'rgba(255,255,255,0.35)',

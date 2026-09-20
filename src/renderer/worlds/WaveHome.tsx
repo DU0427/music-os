@@ -828,7 +828,7 @@ function SectionHead({ title, count, hint }: { title: string; count: number; hin
  * 首页：问候语 + 现在播放 + 推荐歌单 + 排行榜（榜单语言）+ 最近播放。
  * 波场（3D 视差 + 起伏 + 音乐律动）保留；不同区块用不同排版语言区分层次。
  */
-export default function WaveHome({ onDetail, bootReady = true }: { onDetail?: () => void; bootReady?: boolean }) {
+export default function WaveHome({ onDetail, bootReady = true, immersive = false, onExitImmersive }: { onDetail?: () => void; bootReady?: boolean; immersive?: boolean; onExitImmersive?: () => void }) {
   const [content, setContent] = useState<ProviderHomeContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -943,23 +943,10 @@ export default function WaveHome({ onDetail, bootReady = true }: { onDetail?: ()
     window.addEventListener('mo-force-playing', onForce);
     return () => window.removeEventListener('mo-force-playing', onForce);
   }, []);
-  /* 沉浸态：播放开始即进入；暂停不自动退出，点「回到首页」才回到内容视图 */
-  const [immersive, setImmersive] = useState(false);
-  useEffect(() => {
-    if (isPlaying || forcedPlaying) {
-      setImmersive(true);
-    }
-  }, [isPlaying, forcedPlaying]);
-  /* 沉浸态标记：App 的全局 Esc 看到它就跳过「回首页」，让 Esc 先退出沉浸态 */
-  useEffect(() => {
-    (window as unknown as Record<string, unknown>).__moImmersive = immersive;
-    return () => {
-      (window as unknown as Record<string, unknown>).__moImmersive = false;
-    };
-  }, [immersive]);
+  /* 沉浸态由 App 持有（顶栏与播放条形态要一起变）；这里只负责 Esc 退出沉浸态 */
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') {
+      if (event.key !== 'Escape' || !immersive) {
         return;
       }
       const target = event.target as HTMLElement | null;
@@ -967,11 +954,11 @@ export default function WaveHome({ onDetail, bootReady = true }: { onDetail?: ()
       if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) {
         return;
       }
-      setImmersive(false);
+      onExitImmersive?.();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [immersive, onExitImmersive]);
   const collapseWhenImmersive = (): React.CSSProperties => ({
     opacity: immersive ? 0 : 1,
     maxHeight: immersive ? 0 : 6000,
@@ -1325,7 +1312,7 @@ export default function WaveHome({ onDetail, bootReady = true }: { onDetail?: ()
       {immersive ? (
         <button
           type="button"
-          onClick={() => setImmersive(false)}
+          onClick={() => onExitImmersive?.()}
           className="absolute z-30 flex items-center rounded-full"
           style={{
             top: 88,
