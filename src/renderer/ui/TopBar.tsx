@@ -1,6 +1,5 @@
 import { motion } from 'motion/react';
 import { Search, UserRound } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { useAccountStore } from '../store/account';
 
 /* ——— Chrome 悬停纪律（design-language-v2 v2.2）：亮度阶梯，不用 accent 发光 ——— */
@@ -23,17 +22,7 @@ function circleLeave(event: React.MouseEvent<HTMLButtonElement>, loggedIn = fals
 export default function TopBar({ onSearch, onAccount }: { onSearch?: () => void; onAccount?: () => void }) {
   const loggedIn = useAccountStore((s) => s.loggedIn);
   const account = useAccountStore((s) => s.account);
-  /* Chrome 滚动退场：WaveHome 滚动时广播，静止 650ms 后恢复（与左下入口同一节奏） */
-  const [chromeHidden, setChromeHidden] = useState(false);
-
-  useEffect(() => {
-    const onVisibility = (event: Event) => {
-      const detail = (event as CustomEvent<{ hidden?: boolean }>).detail;
-      setChromeHidden(Boolean(detail?.hidden));
-    };
-    window.addEventListener('mo-chrome-visibility', onVisibility);
-    return () => window.removeEventListener('mo-chrome-visibility', onVisibility);
-  }, []);
+  /* 顶栏常驻（v2.2 修订）：两颗小圆钮不遮挡内容，滚动不退场；仅沉浸态随 App 整体隐藏 */
 
   return (
     <motion.header
@@ -43,15 +32,8 @@ export default function TopBar({ onSearch, onAccount }: { onSearch?: () => void;
       exit={{ opacity: 0, y: -14 }}
       transition={{ duration: 0.8 }}
     >
-      {/* Right: search orb + account（同规格 34px 圆钮，组成控件组） */}
-      <div
-        className="flex items-center gap-2 relative"
-        style={{
-          opacity: chromeHidden ? 0 : 1,
-          transition: 'opacity 260ms var(--mo-ease)',
-          pointerEvents: chromeHidden ? 'none' : undefined,
-        }}
-      >
+      {/* Right: search orb + account（同规格 34px 圆钮，组成控件组，常驻） */}
+      <div className="flex items-center gap-2 relative">
         <button
           type="button"
           aria-label="搜索"

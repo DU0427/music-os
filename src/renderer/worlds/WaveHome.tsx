@@ -985,15 +985,10 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
   const chromeTimerRef = useRef<number | null>(null);
   const handleScroll = useCallback(() => {
     setChromeHidden(true);
-    /* 顶栏（App 层）与左下入口共享同一退场节奏 */
-    window.dispatchEvent(new CustomEvent('mo-chrome-visibility', { detail: { hidden: true } }));
     if (chromeTimerRef.current !== null) {
       window.clearTimeout(chromeTimerRef.current);
     }
-    chromeTimerRef.current = window.setTimeout(() => {
-      setChromeHidden(false);
-      window.dispatchEvent(new CustomEvent('mo-chrome-visibility', { detail: { hidden: false } }));
-    }, 650);
+    chromeTimerRef.current = window.setTimeout(() => setChromeHidden(false), 650);
   }, []);
 
   /* 登录后重新拉一次内容（解锁个性化推荐） */
