@@ -43,7 +43,7 @@ music-os/
 
 ## Product Overview
 
-- 定位：桌面空间化音乐体验——不是传统播放器，也不是管理后台。目标链路是「歌曲 → 情绪 → 环境 → 空间体验」。
+- 定位：桌面空间化音乐体验——不是传统播放器，也不是管理后台。当前核心链路是「内容入口 → 一首歌（点击即播）→ 播放接管 → 氛围空间」；两态接管（未播放安静黑场 / 播放这首歌接管舞台），情绪是全局滤镜，不占空间槽位。
 - 空间：`SpaceType = 'home' | 'library' | 'memory'`（`src/shared/types/world.ts`）。单 Canvas 常驻：`WorldManager` 提供背景、音频光照与封面粒子场氛围，`App.tsx` 负责三个空间的编排与切换。
 - 音频链路：本地文件 / Provider 流 → `HTMLAudioElement` → `AudioContext` → `AnalyserNode` → 平滑指标（bass / mid / treble / energy / beatPulse）→ 粒子弹跳、环境光与界面强调色。
 - 数据链路：Renderer → preload → IPC → `MusicRepository` → SQLite（`app.getPath('userData')/music-os.sqlite`，启用 WAL 与 foreign_keys）。
