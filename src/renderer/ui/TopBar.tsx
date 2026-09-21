@@ -1,12 +1,39 @@
 import { motion } from 'motion/react';
 import { Search, UserRound } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccountStore } from '../store/account';
 
+/* ——— Chrome 悬停纪律（design-language-v2 v2.2）：亮度阶梯，不用 accent 发光 ——— */
+function circleHover(event: React.MouseEvent<HTMLButtonElement>) {
+  const el = event.currentTarget;
+  el.style.borderColor = 'var(--mo-line-strong)';
+  el.style.background = 'rgba(255,255,255,0.07)';
+  el.style.color = 'var(--mo-ink)';
+  el.style.transform = 'translateY(-1px)';
+}
+
+function circleLeave(event: React.MouseEvent<HTMLButtonElement>, loggedIn = false) {
+  const el = event.currentTarget;
+  el.style.borderColor = loggedIn ? 'var(--mo-line-strong)' : 'var(--mo-line)';
+  el.style.background = loggedIn ? 'transparent' : 'rgba(255,255,255,0.04)';
+  el.style.color = 'var(--mo-ink-muted)';
+  el.style.transform = 'translateY(0)';
+}
 
 export default function TopBar({ onSearch, onAccount }: { onSearch?: () => void; onAccount?: () => void }) {
   const loggedIn = useAccountStore((s) => s.loggedIn);
   const account = useAccountStore((s) => s.account);
+  /* Chrome 滚动退场：WaveHome 滚动时广播，静止 650ms 后恢复（与左下入口同一节奏） */
+  const [chromeHidden, setChromeHidden] = useState(false);
+
+  useEffect(() => {
+    const onVisibility = (event: Event) => {
+      const detail = (event as CustomEvent<{ hidden?: boolean }>).detail;
+      setChromeHidden(Boolean(detail?.hidden));
+    };
+    window.addEventListener('mo-chrome-visibility', onVisibility);
+    return () => window.removeEventListener('mo-chrome-visibility', onVisibility);
+  }, []);
 
   return (
     <motion.header
@@ -16,55 +43,35 @@ export default function TopBar({ onSearch, onAccount }: { onSearch?: () => void;
       exit={{ opacity: 0, y: -14 }}
       transition={{ duration: 0.8 }}
     >
-      {/* Right: search pill + account */}
-      <div className="flex items-center gap-2 relative">
+      {/* Right: search orb + account（同规格 34px 圆钮，组成控件组） */}
+      <div
+        className="flex items-center gap-2 relative"
+        style={{
+          opacity: chromeHidden ? 0 : 1,
+          transition: 'opacity 260ms var(--mo-ease)',
+          pointerEvents: chromeHidden ? 'none' : undefined,
+        }}
+      >
         <button
           type="button"
           aria-label="搜索"
+          title="搜索 (⌘K)"
           onClick={onSearch}
-          className="pointer-events-auto flex items-center rounded-full"
+          className="pointer-events-auto grid place-items-center rounded-full"
           style={{
-            gap: 9,
-            padding: '7px 9px 7px 13px',
-            background: 'rgba(255,255,255,0.035)',
+            width: 34,
+            height: 34,
+            background: 'rgba(255,255,255,0.04)',
             border: '1px solid var(--mo-line)',
             color: 'var(--mo-ink-muted)',
             cursor: 'pointer',
             transition:
-              'color 260ms var(--mo-ease), border-color 260ms var(--mo-ease), background 260ms var(--mo-ease), box-shadow 260ms var(--mo-ease), transform 260ms var(--mo-ease)',
+              'color 240ms var(--mo-ease), border-color 240ms var(--mo-ease), background 240ms var(--mo-ease), transform 240ms var(--mo-ease)',
           }}
-          onMouseEnter={(event) => {
-            event.currentTarget.style.color = 'var(--mo-ink)';
-            event.currentTarget.style.borderColor = 'var(--mo-accent-ghost)';
-            event.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-            event.currentTarget.style.boxShadow = '0 8px 26px rgba(0,0,0,0.42), 0 0 24px var(--mo-accent-ghost)';
-            event.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(event) => {
-            event.currentTarget.style.color = 'var(--mo-ink-muted)';
-            event.currentTarget.style.borderColor = 'var(--mo-line)';
-            event.currentTarget.style.background = 'rgba(255,255,255,0.035)';
-            event.currentTarget.style.boxShadow = 'none';
-            event.currentTarget.style.transform = 'translateY(0)';
-          }}
+          onMouseEnter={circleHover}
+          onMouseLeave={(event) => circleLeave(event)}
         >
-          <Search className="h-3.5 w-3.5" />
-          <span style={{ fontSize: 12, letterSpacing: '0.01em' }}>搜索歌曲、歌手…</span>
-          <span
-            className="font-mono"
-            style={{
-              fontSize: 10,
-              padding: '2px 6px',
-              marginLeft: 2,
-              borderRadius: 7,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--mo-line)',
-              color: 'var(--mo-ink-faint)',
-              letterSpacing: '0.06em',
-            }}
-          >
-            ⌘K
-          </span>
+          <Search className="h-[15px] w-[15px]" strokeWidth={1.75} />
         </button>
         <button
           type="button"
@@ -78,24 +85,18 @@ export default function TopBar({ onSearch, onAccount }: { onSearch?: () => void;
             background: loggedIn ? 'transparent' : 'rgba(255,255,255,0.04)',
             border: `1px solid ${loggedIn ? 'var(--mo-line-strong)' : 'var(--mo-line)'}`,
             boxShadow: loggedIn ? '0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)' : 'none',
+            color: 'var(--mo-ink-muted)',
             cursor: 'pointer',
-            transition: 'border-color 240ms var(--mo-ease), box-shadow 240ms var(--mo-ease), transform 240ms var(--mo-ease)',
+            transition:
+              'border-color 240ms var(--mo-ease), background 240ms var(--mo-ease), transform 240ms var(--mo-ease)',
           }}
-          onMouseEnter={(event) => {
-            event.currentTarget.style.borderColor = 'var(--mo-accent-ghost)';
-            event.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.5), 0 0 20px var(--mo-accent-ghost)';
-            event.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(event) => {
-            event.currentTarget.style.borderColor = loggedIn ? 'var(--mo-line-strong)' : 'var(--mo-line)';
-            event.currentTarget.style.boxShadow = loggedIn ? '0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)' : 'none';
-            event.currentTarget.style.transform = 'translateY(0)';
-          }}
+          onMouseEnter={circleHover}
+          onMouseLeave={(event) => circleLeave(event, loggedIn)}
         >
           {loggedIn && account?.avatarUrl ? (
             <img src={account.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <UserRound className="h-3.5 w-3.5" style={{ color: 'var(--mo-ink-muted)' }} />
+            <UserRound className="h-[15px] w-[15px]" strokeWidth={1.75} />
           )}
         </button>
       </div>

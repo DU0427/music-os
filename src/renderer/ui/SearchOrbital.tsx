@@ -66,7 +66,7 @@ function ResultRow({
         <span
           style={{
             display: 'block',
-            fontSize: 13.5,
+            fontSize: 13,
             color: 'var(--mo-ink)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -213,7 +213,7 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
               style={{
                 gap: 10,
                 padding: '13px 14px 13px 16px',
-                borderRadius: 18,
+                borderRadius: 14,
                 background: 'var(--mo-bg-elevated-strong)',
                 border: `1px solid ${focused ? 'var(--mo-accent-ghost)' : 'var(--mo-line)'}`,
                 boxShadow: focused
@@ -292,7 +292,7 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
                   maxHeight: '46vh',
                   overflowY: 'auto',
                   padding: 6,
-                  borderRadius: 16,
+                  borderRadius: 14,
                   background: 'rgba(16,16,20,0.72)',
                   border: '1px solid var(--mo-line)',
                 }}

@@ -69,9 +69,9 @@ export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) 
   const statusLabel = isCurrent
     ? canPlay
       ? isPlaying
-        ? '正在播放'
+        ? '播放中'
         : '已就绪'
-      : '已恢复会话 · 点击重新载入'
+      : '仅元数据 · 点击重新载入'
     : lastHistoryTrack
       ? '继续听'
       : '';
@@ -212,9 +212,6 @@ export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) 
                 animation: isPlaying ? 'mo-cover-breathe 2.4s ease-in-out infinite' : 'none',
               }}
             />
-            <span className="font-mono tracking-[0.14em] uppercase" style={{ fontSize: 10, color: 'var(--mo-ink-faint)' }}>
-              {isPlaying ? 'playing' : 'paused'}
-            </span>
           </div>
         )}
       </div>

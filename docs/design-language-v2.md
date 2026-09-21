@@ -1,9 +1,10 @@
 # music-os 设计语言 v2 —— Design Language
 
-> 版本：2026-09-16（v2.1）
+> 版本：2026-09-21（v2.2）
 > 状态：已获用户批准的设计方向，作为重设计的唯一权威规格。
 > 参考来源：MineRadio（XxHuberrr/Mineradio, GPL-3.0，仅借鉴理念/手法，不复制代码素材）+ Apple HIG / apple.com 现代美学。
 > v2.1 变更：Home 从「单颗发光封面」升级为「问候语 + 内容卡体系」（见 3.1 / 3.6），补充文字清晰度纪律与响应式节奏规格。
+> v2.2 变更：Chrome 悬停禁 accent 发光（亮度阶梯规范）、Chrome 滚动退场规范、全局状态词汇表、kbd 键位徽章规范、顶栏收敛为双圆钮。
 
 ## 0. 设计哲学
 
@@ -26,6 +27,8 @@ music-os 不是"带 3D 背景的 2D 应用"，也不是"沉浸式播放器"的�
 4. **单一动态强调色，随歌曲流动**。从封面提取主色 → `--mo-accent` 全局流动（播放键/进度/焦点态）。强调色只出现在操作点，克制使用。
 5. **两态接管**。播放即进入，暂停即回暗。播放态环境被这首歌接管（封面粒子幕 + accent 染色），无需"进入世界"的操作。
 6. **材质只为内容服务**。玻璃面板只出现在承载内容处（曲库、搜索、记忆）。舞台本身永远干净。
+7. **Chrome 不发光（v2.2）**。光晕 / accent glow 只属于内容（封面光晕、名次徽章呼吸、播放键等 accent 操作点）。chrome（顶栏、空间入口、面板、头像）悬停一律用亮度阶梯：`bg 提亮 → rgba(255,255,255,0.07)`、`border 提亮 → --mo-line-strong`、图标 `--mo-ink-muted → --mo-ink`、可选 1px 微抬；禁止 accent-ghost 发光。
+8. **Chrome 滚动退场（v2.2）**。内容滚动时，顶栏圆钮与左下入口同步淡出（260ms）；停止滚动 650ms 后回归。避免 chrome 悬浮在滚动内容上造成干扰。
 
 ## 2. 视觉系统（Design Tokens）
 
@@ -136,6 +139,18 @@ border-radius: 14px;                          /* 面板；控件用胶囊 */
 - 结构：小封面(44px) + 播放/暂停(胶囊) + 曲名/歌手 + 进度 hairline（发光 thumb）+ 时间 + 频谱（实时走动）。
 - 频谱：`<canvas>` 或 30 条 hairline，用 `AudioEngine` metrics 实时绘制，仅播放态可见。
 
+### 3.7 顶栏（v2.2）
+
+- 右上角只保留**两颗同规格 34px 圆钮**：搜索（纯放大镜 icon）+ 账号（头像/登录 icon），组成一个控件组（gap 8px）。
+- 搜索钮不承载文案与假输入框观感；快捷键提示放 `title` tooltip（「搜索 (⌘K)」），搜索层内再展示 ESC。
+- 悬停遵循铁律 #7（亮度阶梯，不发光）。
+- 滚动退场遵循铁律 #8（与左下入口同一节奏，事件 `mo-chrome-visibility` 同步）。
+
+### 3.8 状态词汇表与 kbd 徽章（v2.2）
+
+- 全局状态语言唯一（中文）：`播放中 / 已就绪 / 仅元数据 / 继续听`。禁止英文状态词（PAUSED / playing 等）；播放态的视觉表达交给呼吸点 / 频谱 / 粒子，不重复文字。
+- kbd 键位徽章：`--mo-font-mono` 10px、`--mo-line` hairline 描边、radius 6、`--mo-ink-faint`，只用于快捷键提示（⌘K / ESC），不做装饰。
+
 ### 3.6 内容卡体系（Home 内容区统一语言）
 
 所有内容入口都遵循「封面 + 文字层级」结构（借鉴 MineRadio 的 label / title / sub 结构，视觉自研），**不出现裸封面阵列**：
@@ -191,6 +206,7 @@ border-radius: 14px;                          /* 面板；控件用胶囊 */
 | `worlds/WaveHome.tsx` | Home 全部内容：问候语 / NowPlayingCard / 推荐歌单卡 / 榜单卡 / 最近播放列表 + 波场 rAF + 入场编排 + 骨架 + 面板联动 |
 | `ui/NowPlayingCard.tsx` | hero：唱盘 + 封面 + 文案 + 播放键 + 本地文件 input（`useStageScale` 同步收缩） |
 | `ui/PlaylistPanel.tsx` | 歌单 / 榜单曲目玻璃侧栏（`loadProviderTrack` 播放） |
+| `ui/TopBar.tsx` | 顶栏：右上双 34px 圆钮（搜索 / 账号），chrome 亮度阶梯悬停，滚动退场（v2.2） |
 | `ui/StageChips.tsx` | 左下入口：曲库 / 记忆 / 情绪滤镜 |
 | `ui/BootSplash.tsx` | 启动动画（黑场 + 呼吸点 + wordmark + 扫光，最短 3.2s） |
 | `hooks/useStageScale.ts` | Home 纵向节奏缩放（视口高度 → `s`，实测标定） |
