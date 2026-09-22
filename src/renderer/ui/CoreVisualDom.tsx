@@ -1,19 +1,21 @@
 import { motion } from 'motion/react';
 import { useAudioStore } from '../audio/store';
+import { withAlpha } from '../hooks/useDominantColor';
 
 interface Props {
   onClick?: () => void;
   size?: number;
+  /** 封面主色（DetailOrbital 从当前曲目提取），替代旧原型的硬编码蓝色系。 */
+  accent?: string;
 }
 
-export default function CoreVisualDom({ onClick, size = 256 }: Props) {
+export default function CoreVisualDom({ onClick, size = 256, accent = '#f5f5f7' }: Props) {
   const isPlaying = useAudioStore((s) => s.isPlaying);
-  const track = useAudioStore((s) => s.track);
   const metrics = useAudioStore((s) => s.metrics);
 
-  // derive colors from track.worldContext or fallback to prototype defaults
-  const c1 = '#1A2980';
-  const c2 = '#26D0CE';
+  // 主色对：封面主色 + 冷白（设计语言：黑 + 白 + 单一动态 accent）
+  const c1 = accent;
+  const c2 = '#f5f5f7';
 
   const energyPulse = 0.08 + metrics.energy * 0.12 + metrics.beatPulse * 0.06;
 
@@ -87,7 +89,7 @@ export default function CoreVisualDom({ onClick, size = 256 }: Props) {
         <motion.div
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            boxShadow: `inset 0 0 ${18 + energyPulse * 30}px rgba(110,168,255,${0.12 + energyPulse * 0.18})`,
+            boxShadow: `inset 0 0 ${18 + energyPulse * 30}px ${withAlpha(accent, 0.12 + energyPulse * 0.18)}`,
           }}
           animate={{ opacity: [0.6, 1, 0.6] }}
           transition={{ duration: 1.2, repeat: Infinity }}
