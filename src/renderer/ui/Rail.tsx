@@ -18,7 +18,7 @@ export default function Rail({
   style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: false });
+  const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: false, captured: false });
   const [nav, setNav] = useState({ overflow: false, progress: 0, visibleRatio: 1 });
 
   const update = useCallback(() => {
@@ -96,8 +96,9 @@ export default function Rail({
           if (!el || event.button !== 0) {
             return;
           }
-          drag.current = { active: true, startX: event.clientX, startLeft: el.scrollLeft, moved: false };
-          el.setPointerCapture(event.pointerId);
+          // 不在 down 时捕获指针：捕获会把 click 重定向到 rail 层，卡片将永远点不到。
+          // 只有位移超过阈值（确认为拖拽）后才捕获。
+          drag.current = { active: true, startX: event.clientX, startLeft: el.scrollLeft, moved: false, captured: false };
         }}
         onPointerMove={(event) => {
           const el = ref.current;
@@ -106,15 +107,21 @@ export default function Rail({
             return;
           }
           const dx = event.clientX - state.startX;
-          if (Math.abs(dx) > 4) {
+          if (Math.abs(dx) > 4 && !state.captured) {
             state.moved = true;
+            state.captured = true;
+            el.setPointerCapture(event.pointerId);
           }
-          el.scrollLeft = state.startLeft - dx;
+          if (state.moved) {
+            el.scrollLeft = state.startLeft - dx;
+          }
         }}
         onPointerUp={(event) => {
           const el = ref.current;
+          if (drag.current.captured) {
+            el?.releasePointerCapture(event.pointerId);
+          }
           drag.current.active = false;
-          el?.releasePointerCapture(event.pointerId);
         }}
         onPointerCancel={() => {
           drag.current.active = false;
