@@ -1170,7 +1170,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
                     hint={accountLoggedIn ? '根据你的口味' : '登录后更懂你'}
                   />
                   <Rail gap={Math.round(12 * stageScale)}>
-                    {dailyTracks.slice(0, 6).map((track, index) => (
+                    {dailyTracks.slice(0, 8).map((track, index) => (
                       <div key={track.reference.platformTrackId} style={coverReveal(320 + index * 24)}>
                         <DailyCard
                           coverUrl={track.artworkUrl}
