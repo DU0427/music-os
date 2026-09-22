@@ -28,11 +28,11 @@ interface ToplistDetailResponse {
   }>;
 }
 
-/** 首页内容入口：推荐歌单 + 排行榜（均匿名可用）。 */
+/** 首页内容入口：推荐歌单 + 排行榜（均匿名可用）。IPC 永不 reject（失败返回空内容，renderer 有错误态分支）。 */
 export async function getNeteaseHomeContent(): Promise<ProviderHomeContent> {
   const [playlists, toplists] = await Promise.all([
-    fetchRecommendedPlaylists(),
-    fetchToplists(),
+    fetchRecommendedPlaylists().catch(() => [] as ProviderPlaylistSummary[]),
+    fetchToplists().catch(() => [] as ProviderPlaylistSummary[]),
   ]);
   return { playlists, toplists };
 }
