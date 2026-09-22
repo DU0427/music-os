@@ -670,7 +670,7 @@ function DailyCard({
   const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
   const s = useStageScale();
-  const size = Math.round(96 * s);
+  const size = Math.round(108 * s);
   return (
     <button
       type="button"
@@ -1123,7 +1123,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
           <div style={collapseWhenImmersive()}>
             <div ref={stageRef}>
               {/* 编辑精选：非对称马赛克（1 大 + 4 小） */}
-              <div style={{ ...sectionReveal(160), marginBottom: Math.round(20 * stageScale) }}>
+              <div style={{ ...sectionReveal(160), marginBottom: Math.round(16 * stageScale) }}>
                 <SectionHead title="编辑精选" hint="网易云编辑精选" />
                 {isLoading && playlists.length === 0 ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: Math.round(12 * stageScale), padding: '0 40px' }}>
@@ -1138,7 +1138,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
 
               {/* 排行榜：紧凑目录（名次 + 名称 + 曲目数，三列），避免与上方马赛克重复成封面墙 */}
               {isLoading || toplists.length > 0 ? (
-                <div style={{ ...sectionReveal(240), marginBottom: Math.round(20 * stageScale) }}>
+                <div style={{ ...sectionReveal(240), marginBottom: Math.round(16 * stageScale) }}>
                   <SectionHead title="排行榜" hint="此刻最热" />
                   <div
                     style={{
@@ -1172,7 +1172,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
 
               {/* 每日推荐（登录后个性化，未登录为通用推荐） */}
               {dailyTracks.length > 0 ? (
-                <div style={{ ...sectionReveal(300), marginBottom: Math.round(20 * stageScale) }}>
+                <div style={{ ...sectionReveal(300), marginBottom: Math.round(16 * stageScale) }}>
                   <SectionHead
                     title="每日推荐"
                     hint={accountLoggedIn ? '根据你的口味' : '登录后更懂你'}
