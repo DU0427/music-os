@@ -794,20 +794,15 @@ function DailyCard({
   );
 }
 
-/** 区块标题：左侧标题 + 计数，右侧说明右对齐（排版更收束）。 */
-function SectionHead({ title, count, hint }: { title: string; count: number; hint?: string }) {
+/** 区块标题：左侧标题，右侧说明右对齐（去 count，信息由 hint 承载）。 */
+function SectionHead({ title, hint }: { title: string; hint?: string }) {
   const s = useStageScale();
   return (
     <div
       style={{ padding: '0 40px', marginBottom: Math.round(14 * s) }}
     >
       <div className="flex items-baseline" style={{ justifyContent: 'space-between', gap: Math.round(12 * s) }}>
-        <span className="flex items-baseline" style={{ gap: Math.round(10 * s), minWidth: 0 }}>
-          <h2 style={{ fontSize: Math.max(12.5, Math.round(14.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
-          <span className="font-mono mo-tabular" style={{ fontSize: Math.max(10, Math.round(10.5 * s)), color: 'var(--mo-ink-faint)' }}>
-            {count}
-          </span>
-        </span>
+        <h2 style={{ fontSize: Math.max(12.5, Math.round(14.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
         {hint ? (
           <span
             className="shrink-0"
@@ -1129,7 +1124,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
             <div ref={stageRef}>
               {/* 编辑精选：非对称马赛克（1 大 + 4 小） */}
               <div style={{ ...sectionReveal(160), marginBottom: Math.round(20 * stageScale) }}>
-                <SectionHead title="编辑精选" count={playlists.length} hint="网易云编辑精选" />
+                <SectionHead title="编辑精选" hint="网易云编辑精选" />
                 {isLoading && playlists.length === 0 ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: Math.round(12 * stageScale), padding: '0 40px' }}>
                     <div style={{ gridColumn: 'span 12' }}>
@@ -1144,7 +1139,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
               {/* 排行榜：紧凑目录（名次 + 名称 + 曲目数，三列），避免与上方马赛克重复成封面墙 */}
               {isLoading || toplists.length > 0 ? (
                 <div style={{ ...sectionReveal(240), marginBottom: Math.round(20 * stageScale) }}>
-                  <SectionHead title="排行榜" count={toplists.length} hint="此刻最热" />
+                  <SectionHead title="排行榜" hint="此刻最热" />
                   <div
                     style={{
                       display: 'grid',
@@ -1180,7 +1175,6 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
                 <div style={{ ...sectionReveal(300), marginBottom: Math.round(20 * stageScale) }}>
                   <SectionHead
                     title="每日推荐"
-                    count={dailyTracks.length}
                     hint={accountLoggedIn ? '根据你的口味' : '登录后更懂你'}
                   />
                   <Rail gap={Math.round(12 * stageScale)}>
@@ -1206,7 +1200,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
               {/* 最近播放（你自己的曲目） */}
               {recentTracks.length > 0 ? (
                 <div style={sectionReveal(330)}>
-                  <SectionHead title="最近播放" count={recentTracks.length} hint="继续听" />
+                  <SectionHead title="最近播放" hint="继续听" />
                   <Rail gap={Math.round(12 * stageScale)}>
                     {recentTracks.slice(0, 6).map((track, index) => (
                       <div key={track.id} style={coverReveal(360 + index * 24)}>
@@ -1225,7 +1219,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
                 </div>
               ) : !isLoading && !loadError ? (
                 <div style={{ ...sectionReveal(330), padding: '0 40px' }}>
-                  <SectionHead title="最近播放" count={0} hint="继续听" />
+                  <SectionHead title="最近播放" hint="继续听" />
                   <div style={{ fontSize: 12, color: 'var(--mo-ink-faint)', padding: '2px 0 0' }}>
                     播放几首歌后，这里会出现你的最近播放。
                   </div>
