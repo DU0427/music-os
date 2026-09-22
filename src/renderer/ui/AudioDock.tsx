@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAudioStore } from '../audio/store';
+import { audioEngine } from '../audio/runtime';
 import type { ProviderTrack } from '../../shared/music/providers';
-import { Play, Pause, Upload, Repeat, Repeat1 } from 'lucide-react';
+import { Play, Pause, Upload, Repeat, Repeat1, Volume2, VolumeX } from 'lucide-react';
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0:00';
@@ -15,6 +16,60 @@ const VINYL_GRADIENT =
 
 type AudioDockMode = 'developer' | 'experience';
 interface AudioDockProps { mode?: AudioDockMode; immersive?: boolean; }
+
+/* ——— 音量控制：图标点击静音，悬停展开滑条（音量存引擎单例，Dock 重挂载不丢） ——— */
+function VolumeControl({ immersive }: { immersive: boolean }) {
+  const [volume, setVolume] = useState(() => audioEngine.getVolumeState().volume);
+  const [muted, setMuted] = useState(() => audioEngine.getVolumeState().muted);
+  const [hovered, setHovered] = useState(false);
+  const apply = (nextVolume: number, nextMuted: boolean) => {
+    setVolume(nextVolume);
+    setMuted(nextMuted);
+    audioEngine.setVolume(nextVolume);
+    audioEngine.setMuted(nextMuted);
+  };
+  const effective = muted ? 0 : volume;
+  const size = immersive ? 32 : 28;
+  return (
+    <div
+      className="flex items-center"
+      style={{ gap: 4, flexShrink: 0 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <button
+        type="button"
+        aria-label={muted || effective === 0 ? '取消静音' : '静音'}
+        title={muted || effective === 0 ? '取消静音' : '静音'}
+        onClick={() => apply(volume, !muted)}
+        style={{
+          width: size, height: size, flexShrink: 0,
+          border: 0, borderRadius: '50%', background: 'transparent',
+          color: muted || effective === 0 ? 'var(--mo-ink-muted)' : 'var(--mo-ink-soft)',
+          cursor: 'pointer', display: 'grid', placeItems: 'center',
+        }}
+      >
+        {muted || effective === 0 ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={effective}
+        aria-label="音量"
+        onChange={(e) => apply(Number(e.target.value), muted)}
+        style={{
+          width: hovered ? 64 : 0,
+          opacity: hovered ? 1 : 0,
+          transition: 'width 220ms var(--mo-ease), opacity 220ms var(--mo-ease)',
+          cursor: 'pointer',
+          accentColor: 'var(--mo-accent)',
+        }}
+      />
+    </div>
+  );
+}
 
 /* ——— 频谱：30 条 hairline，由平滑 metrics 驱动（FFT 数据留在引擎内） ——— */
 function SpectrumBars({ bars = 30 }: { bars?: number }) {
@@ -57,8 +112,7 @@ function SpectrumBars({ bars = 30 }: { bars?: number }) {
 }
 
 export default function AudioDock({ mode = 'experience', immersive = false }: AudioDockProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const isDeveloperMode = mode === 'developer';
+  const inputRef = useRef<HTMLInputElement>(null);  const isDeveloperMode = mode === 'developer';
   const track = useAudioStore((s) => s.track);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const currentTime = useAudioStore((s) => s.currentTime);
@@ -232,6 +286,9 @@ export default function AudioDock({ mode = 'experience', immersive = false }: Au
               {loopMode === 'single' ? <Repeat1 className="w-3.5 h-3.5" /> : <Repeat className="w-3.5 h-3.5" />}
             </button>
           ) : null}
+
+          {/* 音量：图标静音切换，悬停展开滑条 */}
+          <VolumeControl immersive={immersive} />
 
           {/* 时间 */}
           <div

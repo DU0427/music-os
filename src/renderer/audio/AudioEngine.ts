@@ -50,6 +50,8 @@ export class AudioEngine {
   private readonly metrics: AudioMetrics = { ...INITIAL_METRICS };
   private energyFloor = 0;
   private lastFrameTime = Number.NaN;
+  private volume = 1;
+  private muted = false;
   /** 曲目自然播完回调（队列自动连播挂接点；暂停/seek 不触发）。 */
   onEnded: (() => void) | null = null;
 
@@ -241,6 +243,28 @@ export class AudioEngine {
   pause() {
     this.logEngineCall('pause');
     this.audio?.pause();
+  }
+
+  /** 音量：0-1；静音独立开关（不改音量值）。 */
+  setVolume(value: number) {
+    this.volume = Math.min(1, Math.max(0, value));
+    this.applyVolume();
+  }
+
+  setMuted(muted: boolean) {
+    this.muted = muted;
+    this.applyVolume();
+  }
+
+  getVolumeState() {
+    return { volume: this.volume, muted: this.muted };
+  }
+
+  private applyVolume() {
+    if (!this.audio) {
+      return;
+    }
+    this.audio.volume = this.muted ? 0 : this.volume;
   }
 
   seek(seconds: number) {
