@@ -124,6 +124,8 @@ export class AudioEngine {
     audio.addEventListener('ended', this.handleEnded);
     audio.addEventListener('error', this.handleError);
     this.audio = audio;
+    // 创建即应用已保存的音量/静音（恢复元数据态时用户可能已先调音量）
+    this.applyVolume();
     return audio;
   }
 

@@ -58,7 +58,7 @@ function VolumeControl({ immersive }: { immersive: boolean }) {
         step={0.01}
         value={effective}
         aria-label="音量"
-        onChange={(e) => apply(Number(e.target.value), muted)}
+        onChange={(e) => apply(Number(e.target.value), false)}
         style={{
           width: hovered ? 64 : 0,
           opacity: hovered ? 1 : 0,

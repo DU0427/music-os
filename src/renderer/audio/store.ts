@@ -1,11 +1,6 @@
 import { create } from 'zustand';
-import type {
-  AudioPlaybackState,
-  ListeningHistoryRecord,
-  PlaybackStateRecord,
-  TrackRecord,
-  TrackWorldContext,
-} from '../../shared/ipc/music';
+import type { AudioPlaybackState } from './AudioEngine';
+import type { ListeningHistoryRecord, PlaybackStateRecord, TrackRecord, TrackWorldContext } from '../../shared/ipc/music';
 import type { ProviderTrack, ProviderTrackReference } from '../../shared/music/providers';
 import { audioEngine } from './runtime';
 import { ListeningSessionManager } from './listening-session';
@@ -94,7 +89,6 @@ const setProviderPlaybackSource = async (reference: ProviderTrackReference): Pro
     }
 
     const track = mapProviderTrackToRecord({
-      id: buildProviderTrackId(trackResult.reference),
       reference: trackResult.reference,
       title: trackResult.track.title,
       artist: trackResult.track.artist,
@@ -326,6 +320,10 @@ export const useAudioStore = create<AudioStore>()((set, get) => {
   let loopMode: LoopMode = 'list';
   const failedIds = new Set<string>();
   let advancing = false;
+  /** 世代令牌：用户并发操作（手动点击/换队列/清队）使进行中的 advance 链失效。 */
+  let queueEpoch = 0;
+  /** advance 互斥：skipNext 连按不产生并发链。 */
+  let advanceInFlight = false;
 
   const trace = (message: string) => {
     if (typeof window === 'undefined') return;
@@ -349,6 +347,7 @@ export const useAudioStore = create<AudioStore>()((set, get) => {
   const clearQueueState = () => {
     const stack = new Error().stack?.split('\n').slice(2, 5).join(' <- ') ?? '';
     trace(`clearQueueState <- ${stack.slice(0, 220)}`);
+    queueEpoch += 1;
     queue = null;
     queueIndex = -1;
     failedIds.clear();
@@ -372,30 +371,42 @@ export const useAudioStore = create<AudioStore>()((set, get) => {
 
   const advance = async (direction: 1 | -1): Promise<void> => {
     const q = queue;
-    if (!q || q.items.length === 0) {
+    if (!q || q.items.length === 0 || advanceInFlight) {
       return;
     }
-    const total = q.items.length;
-    let candidate = queueIndex;
-    for (let step = 0; step < total; step += 1) {
-      candidate = (candidate + direction + total) % total;
-      const item = q.items[candidate];
-      if (failedIds.has(item.id)) {
-        continue;
+    advanceInFlight = true;
+    try {
+      const epoch = queueEpoch;
+      const total = q.items.length;
+      let candidate = queueIndex;
+      for (let step = 0; step < total; step += 1) {
+        candidate = (candidate + direction + total) % total;
+        const item = q.items[candidate];
+        if (failedIds.has(item.id)) {
+          continue;
+        }
+        const ok = await playTrackItem(item);
+        if (epoch !== queueEpoch) {
+          return; // 用户并发操作已接管：本链作废
+        }
+        if (ok) {
+          queueIndex = candidate;
+          setQueueState();
+          return;
+        }
+        failedIds.add(item.id);
+        // 失败项之间的短间隔：避免连环请求触发平台限流（连播链最坏情况会连续打 N 次）
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        if (epoch !== queueEpoch) {
+          return;
+        }
       }
-      const ok = await playTrackItem(item);
-      if (ok) {
-        queueIndex = candidate;
-        setQueueState();
-        return;
-      }
-      failedIds.add(item.id);
-      // 失败项之间的短间隔：避免连环请求触发平台限流（连播链最坏情况会连续打 N 次）
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      // 队列内全部不可播放：停止并清队列
+      audioEngine.pause();
+      clearQueueState();
+    } finally {
+      advanceInFlight = false;
     }
-    // 队列内全部不可播放：停止并清队列
-    audioEngine.pause();
-    clearQueueState();
   };
 
   audioEngine.onEnded = () => {
@@ -464,15 +475,18 @@ export const useAudioStore = create<AudioStore>()((set, get) => {
 
     queuePlaybackPersist(state);
 
-    /* 系统媒体键（Windows SMTC）：元数据跟随当前曲目 */
-    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator && state.track) {
+    /* 系统媒体键（Windows SMTC）：元数据仅跟随曲目切换（避免 4Hz 重建与平台层抖动），播放态每次同步 */
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
       try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: state.track.title,
-          artist: state.track.artist,
-          album: state.track.album ?? undefined,
-          artwork: state.track.artworkUrl ? [{ src: state.track.artworkUrl }] : undefined,
-        });
+        navigator.mediaSession.playbackState = state.isPlaying ? 'playing' : 'paused';
+        if (state.track && state.track.id !== previousTrackId) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: state.track.title,
+            artist: state.track.artist,
+            album: state.track.album ?? undefined,
+            artwork: state.track.artworkUrl ? [{ src: state.track.artworkUrl }] : undefined,
+          });
+        }
       } catch {
         // 平台不可用时静默（媒体键为增强能力）
       }
@@ -594,6 +608,7 @@ export const useAudioStore = create<AudioStore>()((set, get) => {
       return loadedTrack !== null;
     },
     playProviderTrack: async (reference) => {
+      queueEpoch += 1;
       failedIds.clear();
       const loadedTrack = await setProviderPlaybackSource(reference);
       if (!loadedTrack || !audioEngine.getState().canPlay) {
@@ -610,6 +625,7 @@ export const useAudioStore = create<AudioStore>()((set, get) => {
           return false;
         }
         queue = { kind, title, items: list };
+        queueEpoch += 1;
         failedIds.clear();
         const target = Math.max(0, Math.min(index, list.length - 1));
         queueIndex = target;
@@ -649,6 +665,7 @@ export const useAudioStore = create<AudioStore>()((set, get) => {
     playTrack: async (track) => {
       trace(`playTrack enter id=${track.id} provider=${track.providerId} pTrackId=${track.providerTrackId} advancing=${advancing}`);
       if (!advancing) {
+        queueEpoch += 1;
         clearQueueState();
       }
       const current = audioEngine.getState();

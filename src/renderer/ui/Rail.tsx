@@ -125,6 +125,7 @@ export default function Rail({
         }}
         onPointerCancel={() => {
           drag.current.active = false;
+          drag.current.moved = false;
         }}
         onClickCapture={(event) => {
           // 拖拽后抑制这一次点击，避免误触发卡片
