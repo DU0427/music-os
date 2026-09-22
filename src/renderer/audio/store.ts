@@ -17,6 +17,8 @@ interface AudioStore extends AudioPlaybackState {
   loadProviderTrack: (reference: ProviderTrackReference) => Promise<boolean>;
   /** 统一播放入口：本地文件（filePath 回读）或 provider 曲目，成功后自动播放。 */
   playTrack: (track: TrackRecord) => Promise<boolean>;
+  /** Provider 曲目统一播放入口：解析详情与播放源后自动播放（点击即播）。 */
+  playProviderTrack: (reference: ProviderTrackReference) => Promise<boolean>;
   prepareToClose: () => Promise<void>;
   sampleMetrics: (frameTime: number) => void;
   play: () => Promise<void>;
@@ -450,6 +452,14 @@ export const useAudioStore = create<AudioStore>()((set) => {
     loadProviderTrack: async (reference) => {
       const loadedTrack = await setProviderPlaybackSource(reference);
       return loadedTrack !== null;
+    },
+    playProviderTrack: async (reference) => {
+      const loadedTrack = await setProviderPlaybackSource(reference);
+      if (!loadedTrack || !audioEngine.getState().canPlay) {
+        return false;
+      }
+      await audioEngine.play();
+      return true;
     },
     playTrack: async (track) => {
       const current = audioEngine.getState();

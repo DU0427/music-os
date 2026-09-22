@@ -1178,7 +1178,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
                           artist={track.artist.name}
                           rank={index + 1}
                           requiresVip={Boolean(track.requiresVip)}
-                          onOpen={() => void useAudioStore.getState().loadProviderTrack(track.reference)}
+                          onOpen={() => void useAudioStore.getState().playProviderTrack(track.reference)}
                           waveRef={waveRefFor('daily', index)}
                           isCurrent={currentProviderTrackId === track.reference.platformTrackId}
                           isPlaying={isPlaying}

@@ -173,7 +173,7 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
   const handleProviderPlay = async (track: ProviderTrack) => {
     setLoadingRef(track.reference.platformTrackId);
     try {
-      await useAudioStore.getState().loadProviderTrack(track.reference as ProviderTrackReference);
+      await useAudioStore.getState().playProviderTrack(track.reference as ProviderTrackReference);
       onClose();
     } finally {
       setLoadingRef(null);

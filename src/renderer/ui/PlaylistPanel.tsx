@@ -80,7 +80,7 @@ export default function PlaylistPanel({ target, onClose }: PlaylistPanelProps) {
     }
     setLoadingTrackId(platformTrackId);
     try {
-      await useAudioStore.getState().loadProviderTrack(track.reference);
+      await useAudioStore.getState().playProviderTrack(track.reference);
     } finally {
       setLoadingTrackId(null);
     }
