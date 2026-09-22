@@ -27,6 +27,8 @@ Music OS 是一款面向桌面的空间化音乐体验应用。
 - CameraRig 空间转场与单 Canvas 编排。
 - 首页一屏自适应：`useStageScale` 按视口高度缩放节奏；入场分级编排；播放态 `--mo-beat` 驱动封面光晕与名次徽章。
 - 本地音频文件选择、播放、暂停和进度控制。
+- 播放队列与自动连播：歌单/榜单/每日推荐/最近播放/搜索点击即建队，曲目结束自动进入下一首（列表循环 / 单曲循环 / 不循环），不可播曲目自动跳过。
+- 音量控制（播放条悬停滑条 + 静音）与系统媒体键（Windows SMTC：元数据 + 封面 + 播放/暂停/上下曲）。
 - 本地音频内嵌封面提取（music-metadata → `artworkUrl`）。
 - Web Audio API 音频分析。
 - Bass、Mid、Treble、Energy、BeatPulse 音频指标。
