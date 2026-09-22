@@ -232,9 +232,14 @@ export default function LibraryGalaxyWorld() {
             <button
               type="button"
               onClick={() => {
+                const audio = useAudioStore.getState();
                 if (selected.id === currentTrackId) {
-                  if (isPlaying) {
-                    useAudioStore.getState().pause();
+                  if (audio.isPlaying) {
+                    audio.pause();
+                    return;
+                  }
+                  if (audio.canPlay) {
+                    void audio.play();
                     return;
                   }
                 }

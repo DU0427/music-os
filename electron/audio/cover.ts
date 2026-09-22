@@ -43,6 +43,10 @@ async function readEmbeddedCover(filePath: string): Promise<string | null> {
     if (!picture?.data) {
       return null;
     }
+    // 与目录封面同一 8MB 上限：异常大的内嵌图不进 SQLite data URL
+    if (picture.data.byteLength > MAX_COVER_BYTES) {
+      return null;
+    }
     return toDataUrl(picture.format || 'image/jpeg', picture.data);
   } catch {
     return null;

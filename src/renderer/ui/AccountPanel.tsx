@@ -221,7 +221,7 @@ export default function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onC
                   退出登录
                 </button>
                 <div style={{ fontSize: 11, color: 'var(--mo-ink-faint)', textAlign: 'center', lineHeight: 1.6 }}>
-                  登录后可播放会员曲目，并解锁每日推荐等个性化内容。
+                  登录后解锁每日推荐等个性化内容与完整播放能力。
                 </div>
               </div>
             ) : (

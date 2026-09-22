@@ -1123,19 +1123,21 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
               沉浸态（播放中）整块淡出并收起，舞台让给封面点阵与播放条 */}
           <div style={collapseWhenImmersive()}>
             <div ref={stageRef}>
-              {/* 编辑精选：非对称马赛克（1 大 + 4 小） */}
-              <div style={{ ...sectionReveal(160), marginBottom: Math.round(9 * stageScale) }}>
-                <SectionHead title="编辑精选" hint="网易云编辑精选" />
-                {isLoading && playlists.length === 0 ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: Math.round(12 * stageScale), padding: '0 40px' }}>
-                    <div style={{ gridColumn: 'span 12' }}>
-                      <SkeletonBlock width="100%" height={Math.round(150 * stageScale)} radius={18} />
+              {/* 编辑精选：非对称马赛克（1 大 + 4 小）；无内容且不在载入时整块隐藏（避免孤立区块头） */}
+              {isLoading || playlists.length > 0 ? (
+                <div style={{ ...sectionReveal(160), marginBottom: Math.round(9 * stageScale) }}>
+                  <SectionHead title="编辑精选" hint="网易云编辑精选" />
+                  {isLoading && playlists.length === 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: Math.round(12 * stageScale), padding: '0 40px' }}>
+                      <div style={{ gridColumn: 'span 12' }}>
+                        <SkeletonBlock width="100%" height={Math.round(150 * stageScale)} radius={18} />
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <MosaicGrid items={playlists.slice(0, 5)} onOpen={openPlaylist} openId={panelTarget?.id ?? null} />
-                )}
-              </div>
+                  ) : (
+                    <MosaicGrid items={playlists.slice(0, 5)} onOpen={openPlaylist} openId={panelTarget?.id ?? null} />
+                  )}
+                </div>
+              ) : null}
 
               {/* 排行榜：紧凑目录（名次 + 名称 + 曲目数，三列），避免与上方马赛克重复成封面墙 */}
               {isLoading || toplists.length > 0 ? (
