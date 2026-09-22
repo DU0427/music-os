@@ -463,7 +463,33 @@ export const useAudioStore = create<AudioStore>()((set, get) => {
     });
 
     queuePlaybackPersist(state);
+
+    /* 系统媒体键（Windows SMTC）：元数据跟随当前曲目 */
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator && state.track) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: state.track.title,
+          artist: state.track.artist,
+          album: state.track.album ?? undefined,
+          artwork: state.track.artworkUrl ? [{ src: state.track.artworkUrl }] : undefined,
+        });
+      } catch {
+        // 平台不可用时静默（媒体键为增强能力）
+      }
+    }
   });
+
+  /* 媒体键动作：播放/暂停/上下曲（上下曲走队列） */
+  if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+    try {
+      navigator.mediaSession.setActionHandler('play', () => void audioEngine.play());
+      navigator.mediaSession.setActionHandler('pause', () => audioEngine.pause());
+      navigator.mediaSession.setActionHandler('nexttrack', () => get().skipNext());
+      navigator.mediaSession.setActionHandler('previoustrack', () => get().skipPrev());
+    } catch {
+      // 部分平台不支持个别动作
+    }
+  }
 
   return {
     ...audioEngine.getState(),
