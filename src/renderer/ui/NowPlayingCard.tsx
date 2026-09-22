@@ -61,8 +61,8 @@ export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) 
 
   // 唱盘随首页纵向节奏一起收缩（useStageScale），矮窗口下三带仍能一屏放下
   const stageScale = useStageScale();
-  const discSize = Math.round(130 * stageScale);
-  const coverSize = Math.round(112 * stageScale);
+  const discSize = Math.round(138 * stageScale);
+  const coverSize = Math.round(124 * stageScale);
   const playSize = Math.round(46 * stageScale);
   const isEmpty = !heroTrack;
 
@@ -91,8 +91,8 @@ export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) 
             position: 'absolute',
             inset: '-30%',
             borderRadius: '50%',
-            background: `radial-gradient(circle, ${withAlpha(accent, isPlaying ? 0.38 : 0.2)}, transparent 66%)`,
-            filter: 'blur(48px)',
+            background: `radial-gradient(circle, ${withAlpha(accent, isPlaying ? 0.46 : 0.26)}, transparent 66%)`,
+            filter: 'blur(52px)',
           }}
           animate={isPlaying ? { opacity: [0.6, 0.95, 0.6] } : { opacity: 1 }}
           transition={{ duration: 3.4, repeat: isPlaying ? Infinity : 0, ease: 'easeInOut' }}

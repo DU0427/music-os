@@ -1090,7 +1090,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
             style={{
               ...sectionReveal(80),
               display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.6fr)',
+              gridTemplateColumns: 'minmax(0, 1.12fr) minmax(0, 1.5fr)',
               gap: Math.round(20 * stageScale),
               padding: '0 40px',
               marginBottom: Math.round(18 * stageScale),
