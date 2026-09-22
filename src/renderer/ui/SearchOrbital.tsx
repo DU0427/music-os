@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search as SearchIcon, X, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useLibraryStore } from '../store/library';
-import { useAudioStore } from '../audio/store';
+import { useAudioStore, mapProviderTrackToRecord } from '../audio/store';
 import { useDominantColor, withAlpha } from '../hooks/useDominantColor';
 import type { ProviderTrack, ProviderTrackReference } from '../../shared/music/providers';
 
@@ -173,7 +173,14 @@ export default function SearchOrbital({ isOpen, onClose }: { isOpen: boolean; on
   const handleProviderPlay = async (track: ProviderTrack) => {
     setLoadingRef(track.reference.platformTrackId);
     try {
-      await useAudioStore.getState().playProviderTrack(track.reference as ProviderTrackReference);
+      const records = providerResults.map(mapProviderTrackToRecord);
+      const index = providerResults.findIndex((t) => t.reference.platformTrackId === track.reference.platformTrackId);
+      const audio = useAudioStore.getState();
+      if (index >= 0) {
+        await audio.playQueue(records, index, 'search', `搜索：${query.trim()}`);
+      } else {
+        await audio.playProviderTrack(track.reference as ProviderTrackReference);
+      }
       onClose();
     } finally {
       setLoadingRef(null);

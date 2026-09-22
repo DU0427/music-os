@@ -122,6 +122,10 @@ export default function AppShell() {
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const currentTime = useAudioStore((s) => s.currentTime);
   const duration = useAudioStore((s) => s.duration);
+  const queueKind = useAudioStore((s) => s.queueKind);
+  const queueIndex = useAudioStore((s) => s.queueIndex);
+  const queueLength = useAudioStore((s) => s.queueLength);
+  const loopMode = useAudioStore((s) => s.loopMode);
 
   /* 沉浸态：播放开始进入；回到 home 且正在播放时补齐（例如从曲库返回） */
   useEffect(() => {
@@ -394,6 +398,10 @@ export default function AppShell() {
         data-is-playing={isPlaying ? '1' : '0'}
         data-current-time={currentTime.toFixed ? currentTime.toFixed(3) : String(currentTime)}
         data-duration={duration.toFixed ? duration.toFixed(3) : String(duration)}
+        data-loop-mode={loopMode}
+        data-queue-kind={queueKind ?? ''}
+        data-queue-index={queueIndex}
+        data-queue-length={queueLength}
         style={{ display: 'none' }}
       />
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAudioStore } from '../audio/store';
 import type { ProviderTrack } from '../../shared/music/providers';
-import { Play, Pause, Upload } from 'lucide-react';
+import { Play, Pause, Upload, Repeat, Repeat1 } from 'lucide-react';
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0:00';
@@ -70,6 +70,12 @@ export default function AudioDock({ mode = 'experience', immersive = false }: Au
   const play = useAudioStore((s) => s.play);
   const pause = useAudioStore((s) => s.pause);
   const seek = useAudioStore((s) => s.seek);
+  const loopMode = useAudioStore((s) => s.loopMode);
+  const queueKind = useAudioStore((s) => s.queueKind);
+  const queueTitle = useAudioStore((s) => s.queueTitle);
+  const queueIndex = useAudioStore((s) => s.queueIndex);
+  const queueLength = useAudioStore((s) => s.queueLength);
+  const setLoopMode = useAudioStore((s) => s.setLoopMode);
   const trackLabel = track ? `${track.title} — ${track.artist}${track.album ? ` · ${track.album}` : ''}` : null;
 
   const [providerQuery, setProviderQuery] = useState('midnight');
@@ -208,6 +214,24 @@ export default function AudioDock({ mode = 'experience', immersive = false }: Au
 
           {/* 频谱（仅播放态） */}
           {isPlaying && canPlay && <SpectrumBars />}
+
+          {/* 循环模式（队列存在时可用）：列表循环 → 单曲循环 → 不循环 */}
+          {queueKind ? (
+            <button
+              type="button"
+              aria-label="循环模式"
+              title={`循环：${loopMode === 'list' ? '列表循环' : loopMode === 'single' ? '单曲循环' : '不循环'}（${queueTitle ?? ''} ${queueIndex + 1}/${queueLength}）`}
+              onClick={() => setLoopMode(loopMode === 'list' ? 'single' : loopMode === 'single' ? 'off' : 'list')}
+              style={{
+                width: immersive ? 32 : 28, height: immersive ? 32 : 28, flexShrink: 0,
+                border: 0, borderRadius: '50%', background: 'transparent',
+                color: loopMode === 'off' ? 'rgba(255,255,255,0.32)' : 'var(--mo-ink-muted)',
+                cursor: 'pointer', display: 'grid', placeItems: 'center',
+              }}
+            >
+              {loopMode === 'single' ? <Repeat1 className="w-3.5 h-3.5" /> : <Repeat className="w-3.5 h-3.5" />}
+            </button>
+          ) : null}
 
           {/* 时间 */}
           <div

@@ -8,7 +8,7 @@ import NowPlayingCard from '../ui/NowPlayingCard';
 import StageChips from '../ui/StageChips';
 import PlaylistPanel, { type PlaylistPanelTarget } from '../ui/PlaylistPanel';
 import Rail from '../ui/Rail';
-import { useAudioStore } from '../audio/store';
+import { useAudioStore, mapProviderTrackToRecord } from '../audio/store';
 import { useLibraryStore } from '../store/library';
 import { useRuntimeStore } from '../store/runtime';
 import { useAccountStore } from '../store/account';
@@ -1009,6 +1009,15 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
     return result;
   }, [history, tracks]);
 
+  /* 每日推荐队列播放（rail 张数即队列） */
+  const dailyRecords = useMemo(() => dailyTracks.map(mapProviderTrackToRecord), [dailyTracks]);
+  const playDailyAt = (index: number) => {
+    void useAudioStore.getState().playQueue(dailyRecords, index, 'daily', '每日推荐');
+  };
+  const playRecentAt = (index: number) => {
+    void useAudioStore.getState().playQueue(recentTracks, index, 'recent', '最近播放');
+  };
+
   /* 律动推进：只由音频指标驱动（无鼠标跟随、无持续位移） */
   useEffect(() => {
     let raf = 0;
@@ -1178,7 +1187,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
                           artist={track.artist.name}
                           rank={index + 1}
                           requiresVip={Boolean(track.requiresVip)}
-                          onOpen={() => void useAudioStore.getState().playProviderTrack(track.reference)}
+                          onOpen={() => playDailyAt(index)}
                           waveRef={waveRefFor('daily', index)}
                           isCurrent={currentProviderTrackId === track.reference.platformTrackId}
                           isPlaying={isPlaying}
@@ -1200,7 +1209,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
                           coverUrl={track.artworkUrl}
                           title={track.title}
                           artist={track.artist}
-                          onOpen={() => void useAudioStore.getState().playTrack(track)}
+                          onOpen={() => playRecentAt(index)}
                           waveRef={waveRefFor('recent', index)}
                           isCurrent={currentTrackId === track.id}
                           isPlaying={isPlaying}

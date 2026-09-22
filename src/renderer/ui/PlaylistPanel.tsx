@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, Pause, Play, RefreshCw, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAudioStore } from '../audio/store';
+import { useAudioStore, mapProviderTrackToRecord } from '../audio/store';
 import { contrastText, useDominantColor, withAlpha } from '../hooks/useDominantColor';
 import type { ProviderTrack } from '../../shared/music/providers';
 
@@ -80,7 +80,13 @@ export default function PlaylistPanel({ target, onClose }: PlaylistPanelProps) {
     }
     setLoadingTrackId(platformTrackId);
     try {
-      await useAudioStore.getState().playProviderTrack(track.reference);
+      const records = tracks.map(mapProviderTrackToRecord);
+      const index = tracks.findIndex((t) => t.reference.platformTrackId === platformTrackId);
+      if (index >= 0) {
+        await useAudioStore.getState().playQueue(records, index, target?.kind ?? 'playlist', target?.title ?? '歌单');
+      } else {
+        await useAudioStore.getState().playProviderTrack(track.reference);
+      }
     } finally {
       setLoadingTrackId(null);
     }

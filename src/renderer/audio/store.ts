@@ -6,7 +6,7 @@ import type {
   TrackRecord,
   TrackWorldContext,
 } from '../../shared/ipc/music';
-import type { ProviderTrackReference } from '../../shared/music/providers';
+import type { ProviderTrack, ProviderTrackReference } from '../../shared/music/providers';
 import { audioEngine } from './runtime';
 import { ListeningSessionManager } from './listening-session';
 
@@ -19,6 +19,16 @@ interface AudioStore extends AudioPlaybackState {
   playTrack: (track: TrackRecord) => Promise<boolean>;
   /** Provider 曲目统一播放入口：解析详情与播放源后自动播放（点击即播）。 */
   playProviderTrack: (reference: ProviderTrackReference) => Promise<boolean>;
+  /** 以队列语义播放：ended 自动连播（loopMode 控制），失败项自动跳过。 */
+  playQueue: (items: TrackRecord[], index: number, kind: string, title: string) => Promise<boolean>;
+  skipNext: () => void;
+  skipPrev: () => void;
+  setLoopMode: (mode: LoopMode) => void;
+  loopMode: LoopMode;
+  queueKind: string | null;
+  queueTitle: string | null;
+  queueIndex: number;
+  queueLength: number;
   prepareToClose: () => Promise<void>;
   sampleMetrics: (frameTime: number) => void;
   play: () => Promise<void>;
@@ -38,6 +48,8 @@ const DEFAULT_WORLD_CONTEXT: TrackWorldContext = {
   worldLabel: '午夜城市',
 };
 
+export type LoopMode = 'list' | 'single' | 'off';
+
 const toIso = () => new Date().toISOString();
 const buildProviderTrackId = (reference: ProviderTrackReference) =>
   `${reference.providerId}::${reference.platformTrackId}`;
@@ -46,18 +58,10 @@ const makeTrackId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-const mapProviderTrackToRecord = (
-  providerTrack: {
-    id: string;
-    reference: ProviderTrackReference;
-    title: string;
-    artist: { name: string };
-    album: { title: string } | null;
-    durationSeconds: number;
-    artworkUrl: string | null;
-  },
+export const mapProviderTrackToRecord = (
+  providerTrack: Pick<ProviderTrack, 'reference' | 'title' | 'artist' | 'album' | 'durationSeconds' | 'artworkUrl'>,
 ) => ({
-  id: providerTrack.id,
+  id: buildProviderTrackId(providerTrack.reference),
   title: providerTrack.title,
   artist: providerTrack.artist.name,
   album: providerTrack.album?.title ?? null,
@@ -309,11 +313,119 @@ const ensureTrackDurationPersisted = (track: TrackRecord) => {
   }
 };
 
-export const useAudioStore = create<AudioStore>()((set) => {
+export const useAudioStore = create<AudioStore>()((set, get) => {
   let previousIsPlaying = false;
   let previousTrackId: string | null = null;
   let previousSyncTrackId: string | null = null;
   let closeInFlight: Promise<void> | null = null;
+
+  /* ——— 播放队列（会话内状态，不持久化） ——— */
+  type QueueState = { kind: string; title: string; items: TrackRecord[] };
+  let queue: QueueState | null = null;
+  let queueIndex = -1;
+  let loopMode: LoopMode = 'list';
+  const failedIds = new Set<string>();
+  let advancing = false;
+
+  const trace = (message: string) => {
+    if (typeof window === 'undefined') return;
+    const w = window as unknown as { __moEngineLog?: string[] };
+    const log = w.__moEngineLog ?? [];
+    log.push(`Q ${message}`);
+    w.__moEngineLog = log.slice(-40);
+  };
+
+  const setQueueState = () => {
+    trace(`setQueueState kind=${queue?.kind ?? 'null'} index=${queueIndex}`);
+    set({
+      queueKind: queue?.kind ?? null,
+      queueTitle: queue?.title ?? null,
+      queueIndex,
+      queueLength: queue?.items.length ?? 0,
+      loopMode,
+    });
+  };
+
+  const clearQueueState = () => {
+    const stack = new Error().stack?.split('\n').slice(2, 5).join(' <- ') ?? '';
+    trace(`clearQueueState <- ${stack.slice(0, 220)}`);
+    queue = null;
+    queueIndex = -1;
+    failedIds.clear();
+    setQueueState();
+  };
+
+  const playTrackItem = async (item: TrackRecord): Promise<boolean> => {
+    advancing = true;
+    trace(`v enter id=${item?.id ?? 'undefined'}`);
+    try {
+      const result = await get().playTrack(item);
+      trace(`v done ok=${result}`);
+      return result;
+    } catch (error) {
+      trace(`v threw ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`);
+      return false;
+    } finally {
+      advancing = false;
+    }
+  };
+
+  const advance = async (direction: 1 | -1): Promise<void> => {
+    const q = queue;
+    if (!q || q.items.length === 0) {
+      return;
+    }
+    const total = q.items.length;
+    let candidate = queueIndex;
+    for (let step = 0; step < total; step += 1) {
+      candidate = (candidate + direction + total) % total;
+      const item = q.items[candidate];
+      if (failedIds.has(item.id)) {
+        continue;
+      }
+      const ok = await playTrackItem(item);
+      if (ok) {
+        queueIndex = candidate;
+        setQueueState();
+        return;
+      }
+      failedIds.add(item.id);
+      // 失败项之间的短间隔：避免连环请求触发平台限流（连播链最坏情况会连续打 N 次）
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+    // 队列内全部不可播放：停止并清队列
+    audioEngine.pause();
+    clearQueueState();
+  };
+
+  audioEngine.onEnded = () => {
+    if (!queue || loopMode === 'off') {
+      return;
+    }
+    if (loopMode === 'single') {
+      void playTrackItem(queue.items[queueIndex]);
+      return;
+    }
+    void advance(1);
+  };
+
+  /* 测试缝隙（与 mo-force-playing 同模式）：驱动队列推进 / 模拟自然播完 */
+  if (typeof window !== 'undefined') {
+    window.addEventListener('mo-queue-advance', (event) => {
+      const detail = (event as CustomEvent<string | undefined>).detail;
+      void advance(detail === 'prev' ? -1 : 1);
+    });
+    window.addEventListener('mo-queue-seek-end', () => {
+      const engine = audioEngine.getState();
+      if (!engine.canPlay || engine.duration <= 0) {
+        return;
+      }
+      audioEngine.seek(Math.max(0, engine.duration - 0.35));
+      void audioEngine.play();
+    });
+    (window as unknown as { __moAudioDebug: () => unknown }).__moAudioDebug = () => audioEngine.debugSnapshot();
+    (window as unknown as { __moMapProviderTrackToRecord: typeof mapProviderTrackToRecord }).__moMapProviderTrackToRecord = mapProviderTrackToRecord;
+  }
 
   audioEngine.subscribe((state) => {
     const currentTrack = state.track;
@@ -371,6 +483,7 @@ export const useAudioStore = create<AudioStore>()((set) => {
     },
     loadFile: async (file) => {
       // 主进程读取音频内嵌封面，填充 artworkUrl；持久化文件路径用于重启恢复
+      clearQueueState();
       const cover = await extractFileCover(file);
       const track = buildLocalTrack(file, cover, readElectronFilePath(file));
       if (previousSyncTrackId) {
@@ -418,6 +531,7 @@ export const useAudioStore = create<AudioStore>()((set) => {
       if (typeof window.musicOS?.getPlaybackState !== 'function' || typeof window.musicOS?.listTracks !== 'function') {
         return;
       }
+      clearQueueState();
 
       const [playbackState, tracks] = await Promise.all([
         window.musicOS.getPlaybackState(),
@@ -454,6 +568,7 @@ export const useAudioStore = create<AudioStore>()((set) => {
       return loadedTrack !== null;
     },
     playProviderTrack: async (reference) => {
+      failedIds.clear();
       const loadedTrack = await setProviderPlaybackSource(reference);
       if (!loadedTrack || !audioEngine.getState().canPlay) {
         return false;
@@ -461,7 +576,55 @@ export const useAudioStore = create<AudioStore>()((set) => {
       await audioEngine.play();
       return true;
     },
+    playQueue: async (items, index, kind, title) => {
+      try {
+        trace(`playQueue enter n=${items.length} index=${index} kind=${kind}`);
+        const list = items.filter((item) => item && item.id);
+        if (list.length === 0) {
+          return false;
+        }
+        queue = { kind, title, items: list };
+        failedIds.clear();
+        const target = Math.max(0, Math.min(index, list.length - 1));
+        queueIndex = target;
+        setQueueState();
+        const ok = await playTrackItem(list[target]);
+        trace(`playQueue first-play ok=${ok} id=${list[target].id}`);
+        if (!ok) {
+          failedIds.add(list[target].id);
+          await advance(1);
+          return true;
+        }
+        return true;
+      } catch (error) {
+        trace(`playQueue threw ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`);
+        return false;
+      }
+    },
+    skipNext: () => {
+      void advance(1);
+    },
+    skipPrev: () => {
+      if (audioEngine.getState().currentTime > 3) {
+        audioEngine.seek(0);
+        return;
+      }
+      void advance(-1);
+    },
+    setLoopMode: (mode) => {
+      loopMode = mode;
+      setQueueState();
+    },
+    loopMode: 'list',
+    queueKind: null,
+    queueTitle: null,
+    queueIndex: -1,
+    queueLength: 0,
     playTrack: async (track) => {
+      trace(`playTrack enter id=${track.id} provider=${track.providerId} pTrackId=${track.providerTrackId} advancing=${advancing}`);
+      if (!advancing) {
+        clearQueueState();
+      }
       const current = audioEngine.getState();
 
       // 已是当前曲目且可播放：直接播放/继续
@@ -490,4 +653,9 @@ export const useAudioStore = create<AudioStore>()((set) => {
     },
   };
 });
+
+/* 调试缝隙：store 引用需在 create 返回后再暴露（creator 体内引用会触发 TDZ） */
+if (typeof window !== 'undefined') {
+  (window as unknown as { __moStore: typeof useAudioStore }).__moStore = useAudioStore;
+}
 

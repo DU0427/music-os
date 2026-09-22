@@ -50,6 +50,8 @@ export class AudioEngine {
   private readonly metrics: AudioMetrics = { ...INITIAL_METRICS };
   private energyFloor = 0;
   private lastFrameTime = Number.NaN;
+  /** 曲目自然播完回调（队列自动连播挂接点；暂停/seek 不触发）。 */
+  onEnded: (() => void) | null = null;
 
   private readonly handleTimeUpdate = () => {
     if (!this.audio) {
@@ -88,6 +90,7 @@ export class AudioEngine {
     this.state.isPlaying = false;
     this.state.currentTime = this.state.duration;
     this.emitState();
+    this.onEnded?.();
   };
 
   private readonly handleError = () => {
@@ -162,6 +165,7 @@ export class AudioEngine {
   }
 
   loadTrackFromUrl(sourceUrl: string, track: TrackIdentity) {
+    this.logEngineCall(`loadTrackFromUrl ${sourceUrl.slice(0, 40)}`);
     if (!sourceUrl || typeof sourceUrl !== 'string') {
       this.state.error = '无效的播放源地址。';
       this.state.isPlaying = false;
@@ -211,6 +215,7 @@ export class AudioEngine {
   }
 
   async play() {
+    this.logEngineCall(`play enter canPlay=${this.state.canPlay} src=${this.audio?.src ? 'set' : 'none'} ctx=${this.context?.state ?? 'none'}`);
     if (!this.state.canPlay || !this.audio?.src) {
       this.state.error = '当前曲目未加载可播放源。';
       this.state.isPlaying = false;
@@ -221,16 +226,20 @@ export class AudioEngine {
     this.ensureGraph();
     this.state.error = null;
     await this.context?.resume();
+    this.logEngineCall('play resume-done');
 
     try {
       await this.audio.play();
-    } catch {
+      this.logEngineCall('play promise-resolved');
+    } catch (e) {
+      this.logEngineCall(`play rejected ${e instanceof Error ? e.name : 'unknown'}`);
       this.state.error = '请先加载有效的本地音频源后再播放。';
       this.emitState();
     }
   }
 
   pause() {
+    this.logEngineCall('pause');
     this.audio?.pause();
   }
 
@@ -249,6 +258,30 @@ export class AudioEngine {
       track: this.state.track ? { ...this.state.track } : null,
       metrics: { ...this.state.metrics },
     };
+  }
+
+  /** 诊断快照（调试缝隙用）：引擎内部 audio/context 的真实状态。 */
+  debugSnapshot() {
+    return {
+      hasAudio: Boolean(this.audio),
+      srcPrefix: this.audio?.src ? this.audio.src.slice(0, 48) : null,
+      paused: this.audio?.paused ?? null,
+      ended: this.audio?.ended ?? null,
+      audioError: this.audio?.error ? { code: this.audio.error.code, message: this.audio.error.message } : null,
+      networkState: this.audio?.networkState ?? null,
+      readyState: this.audio?.readyState ?? null,
+      contextState: this.context?.state ?? 'no-context',
+      canPlay: this.state.canPlay,
+      isPlaying: this.state.isPlaying,
+      error: this.state.error,
+    };
+  }
+
+  private logEngineCall(call: string) {
+    if (typeof window === 'undefined') return;
+    const log = (window as unknown as { __moEngineLog?: string[] }).__moEngineLog ?? [];
+    log.push(`${new Date().toISOString().slice(11, 23)} ${call}`);
+    (window as unknown as { __moEngineLog?: string[] }).__moEngineLog = log.slice(-30);
   }
 
   getMetrics(frameTime?: number): AudioMetrics {
