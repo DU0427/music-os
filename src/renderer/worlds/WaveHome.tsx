@@ -17,17 +17,9 @@ import { useStageScale } from '../hooks/useStageScale';
 import type { ProviderHomeContent, ProviderPlaylistSummary, ProviderTrack } from '../../shared/music/providers';
 import type { TrackRecord } from '../../shared/ipc/music';
 
-/* 底部固定预留：左下入口（曲库/记忆/情绪）区域高度，保证末行文字不压入口。 */
-const HOME_BOTTOM_RESERVE = 24;
-/* 底部浮动 chrome（空间入口 + 播放条）占的带高：滚动区在它之上收边，内容永不进入该带 */
+/* 底部浮动 chrome（空间入口 + 播放条）占的带高：滚动区在它之上收边，内容永不进入该带；
+   底部固定预留已并入滚动容器 16px 底 padding（一屏预算，Task 6）。 */
 const HOME_CHROME_BAND = 108;
-
-/* 卡面基准尺寸（900px 高窗口下的验收值）：渲染时乘以 useStageScale 的缩放系数。
-   轨道内卡片为固定尺寸，右侧露出的半张卡就是「还有更多」的提示。 */
-
-
-
-
 const TRACK_CARD_WIDTH = 186;
 const TRACK_COVER_BASE = 48;
 
@@ -490,7 +482,7 @@ function MosaicGrid({
         gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
         gap: Math.round(12 * s),
         padding: '0 40px',
-        height: Math.round(134 * s),
+        height: Math.round(118 * s),
       }}
     >
       <div
@@ -670,7 +662,7 @@ function DailyCard({
   const accent = useDominantColor(coverUrl, '#f5f5f7');
   const [hovered, setHovered] = useState(false);
   const s = useStageScale();
-  const size = Math.round(108 * s);
+  const size = Math.round(98 * s);
   return (
     <button
       type="button"
@@ -799,10 +791,10 @@ function SectionHead({ title, hint }: { title: string; hint?: string }) {
   const s = useStageScale();
   return (
     <div
-      style={{ padding: '0 40px', marginBottom: Math.round(14 * s) }}
+      style={{ padding: '0 40px', marginBottom: Math.round(8 * s) }}
     >
       <div className="flex items-baseline" style={{ justifyContent: 'space-between', gap: Math.round(12 * s) }}>
-        <h2 style={{ fontSize: Math.max(12.5, Math.round(14.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
+        <h2 style={{ fontSize: Math.max(12, Math.round(13.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
         {hint ? (
           <span
             className="shrink-0"
@@ -821,7 +813,7 @@ function SectionHead({ title, hint }: { title: string; hint?: string }) {
       <div
         aria-hidden
         style={{
-          marginTop: Math.round(9 * s),
+          marginTop: Math.round(6 * s),
           height: 1,
           background: 'linear-gradient(90deg, var(--mo-line-strong), transparent 72%)',
         }}
@@ -1083,7 +1075,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
   return (
     <div className="absolute inset-0 z-10">
       <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden" style={{ bottom: HOME_CHROME_BAND }} onScroll={handleScroll}>
-        <div style={{ padding: `${Math.round(Math.max(78, 64 * stageScale))}px 0 ${HOME_BOTTOM_RESERVE}px` }}>
+        <div style={{ padding: `${Math.round(Math.max(64, 56 * stageScale))}px 0 16px` }}>
           {/* Split 主视觉（沉浸态随内容一起收起）：左侧继续听 / 正在播放，右侧榜单前三快捷直达 */}
           <div style={collapseWhenImmersive()}>
           <div
@@ -1093,7 +1085,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
               gridTemplateColumns: 'minmax(0, 1.12fr) minmax(0, 1.5fr)',
               gap: Math.round(20 * stageScale),
               padding: '0 40px',
-              marginBottom: Math.round(18 * stageScale),
+              marginBottom: Math.round(12 * stageScale),
             }}
           >
             <div
@@ -1103,8 +1095,8 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
                 borderRadius: 20,
                 border: '1px solid rgba(255,255,255,0.07)',
                 background: 'linear-gradient(140deg, rgba(20,22,28,0.55), rgba(9,9,12,0.68))',
-                padding: `${Math.round(16 * stageScale)}px ${Math.round(22 * stageScale)}px`,
-                minHeight: Math.round(130 * stageScale),
+                padding: `${Math.round(14 * stageScale)}px ${Math.round(20 * stageScale)}px`,
+                minHeight: Math.round(118 * stageScale),
               }}
             >
               <NowPlayingCard onDetail={onDetail} />
@@ -1123,7 +1115,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
           <div style={collapseWhenImmersive()}>
             <div ref={stageRef}>
               {/* 编辑精选：非对称马赛克（1 大 + 4 小） */}
-              <div style={{ ...sectionReveal(160), marginBottom: Math.round(16 * stageScale) }}>
+              <div style={{ ...sectionReveal(160), marginBottom: Math.round(10 * stageScale) }}>
                 <SectionHead title="编辑精选" hint="网易云编辑精选" />
                 {isLoading && playlists.length === 0 ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: Math.round(12 * stageScale), padding: '0 40px' }}>
@@ -1138,7 +1130,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
 
               {/* 排行榜：紧凑目录（名次 + 名称 + 曲目数，三列），避免与上方马赛克重复成封面墙 */}
               {isLoading || toplists.length > 0 ? (
-                <div style={{ ...sectionReveal(240), marginBottom: Math.round(16 * stageScale) }}>
+                <div style={{ ...sectionReveal(240), marginBottom: Math.round(10 * stageScale) }}>
                   <SectionHead title="排行榜" hint="此刻最热" />
                   <div
                     style={{
@@ -1172,13 +1164,13 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
 
               {/* 每日推荐（登录后个性化，未登录为通用推荐） */}
               {dailyTracks.length > 0 ? (
-                <div style={{ ...sectionReveal(300), marginBottom: Math.round(16 * stageScale) }}>
+                <div style={{ ...sectionReveal(300), marginBottom: Math.round(10 * stageScale) }}>
                   <SectionHead
                     title="每日推荐"
                     hint={accountLoggedIn ? '根据你的口味' : '登录后更懂你'}
                   />
                   <Rail gap={Math.round(12 * stageScale)}>
-                    {dailyTracks.map((track, index) => (
+                    {dailyTracks.slice(0, 6).map((track, index) => (
                       <div key={track.reference.platformTrackId} style={coverReveal(320 + index * 24)}>
                         <DailyCard
                           coverUrl={track.artworkUrl}

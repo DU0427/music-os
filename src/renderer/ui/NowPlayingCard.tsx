@@ -61,8 +61,8 @@ export default function NowPlayingCard({ onDetail }: { onDetail?: () => void }) 
 
   // 唱盘随首页纵向节奏一起收缩（useStageScale），矮窗口下三带仍能一屏放下
   const stageScale = useStageScale();
-  const discSize = Math.round(138 * stageScale);
-  const coverSize = Math.round(124 * stageScale);
+  const discSize = Math.round(128 * stageScale);
+  const coverSize = Math.round(118 * stageScale);
   const playSize = Math.round(46 * stageScale);
   const isEmpty = !heroTrack;
 
