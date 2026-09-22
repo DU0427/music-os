@@ -23,7 +23,7 @@ Music OS 是一款面向桌面的空间化音乐体验应用。
 - Electron Main、Preload、Renderer 三层边界。
 - 基于 typed IPC 的跨进程通信。
 - 单一、持续存在的 React Three Fiber Canvas。
-- v2 三空间：Home 黑场舞台（WaveHome：问候语 + 唱盘 hero + 推荐歌单内容卡 / 榜单卡 / 最近播放列表）、曲库封面场、记忆轨迹。
+- v2 三空间：Home 黑场舞台（一屏编排：Hero 分栏「继续听 + 榜单焦点」/ 编辑精选马赛克 / 排行榜紧凑目录 / 每日推荐与最近播放横轨，1320×900 无滚动条）、曲库封面场、记忆轨迹。
 - CameraRig 空间转场与单 Canvas 编排。
 - 首页一屏自适应：`useStageScale` 按视口高度缩放节奏；入场分级编排；播放态 `--mo-beat` 驱动封面光晕与名次徽章。
 - 本地音频文件选择、播放、暂停和进度控制。
