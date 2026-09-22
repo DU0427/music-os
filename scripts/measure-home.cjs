@@ -47,6 +47,9 @@ async function main() {
   const cdp = await connect(target.webSocketDebuggerUrl);
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
+  // 重载以确保测量的是当前构建（BootSplash 最短 3.2s + 内容载入）
+  await cdp.send('Page.reload');
+  await new Promise((r) => setTimeout(r, 6000));
   // 确保在 home 且非沉浸态（沉浸态会整块收起内容，测出来的是空页）
   await cdp.send('Runtime.evaluate', {
     expression: `(() => {
