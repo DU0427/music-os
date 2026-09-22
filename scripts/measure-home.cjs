@@ -64,21 +64,35 @@ async function main() {
     expression: `(() => {
       const sc = document.querySelector('.mo-no-scrollbar.overflow-y-auto');
       const first = sc?.firstElementChild?.firstElementChild;
-      return JSON.stringify({ heroHeight: first ? Math.round(first.getBoundingClientRect().height) : -1 });
+      const heads = [...document.querySelectorAll('h2')].map((h) => h.textContent ?? '');
+      const hasContentState = heads.some((t) => t === '排行榜' || t === '每日推荐');
+      const hasErrorCard = Boolean([...document.querySelectorAll('div')].find((d) => d.textContent === '内容暂时不可用'));
+      return JSON.stringify({
+        heroHeight: first ? Math.round(first.getBoundingClientRect().height) : -1,
+        contentReady: hasContentState || hasErrorCard,
+        heads,
+      });
     })()`,
     returnByValue: true,
   });
-  const heroHeight = JSON.parse(guard.result.value).heroHeight;
-  if (!(heroHeight > 60)) {
-    console.error(`GUARD FAILED: hero collapsed (height=${heroHeight})，测量对象是空页`);
+  const guardData = JSON.parse(guard.result.value);
+  if (!(guardData.heroHeight > 60)) {
+    console.error(`GUARD FAILED: hero collapsed (height=${guardData.heroHeight})，测量对象是空页`);
     await cdp.send('Emulation.clearDeviceMetricsOverride');
     cdp.close();
     process.exit(3);
   }
-  console.log(`guard ok: hero=${heroHeight}px`);
+  if (!guardData.contentReady) {
+    console.error(`GUARD FAILED: 内容态未就绪（heads=${JSON.stringify(guardData.heads)}），空态下测不出真实一屏表现`);
+    await cdp.send('Emulation.clearDeviceMetricsOverride');
+    cdp.close();
+    process.exit(3);
+  }
+  console.log(`guard ok: hero=${guardData.heroHeight}px contentReady=${guardData.contentReady}`);
   const sizes = [
     { label: '1320x900', width: 1320, height: 900 },
     { label: '1100x700', width: 1100, height: 700 },
+    { label: '1024x680', width: 1024, height: 680 },
   ];
   const results = [];
   for (const size of sizes) {

@@ -791,7 +791,7 @@ function SectionHead({ title, hint }: { title: string; hint?: string }) {
   const s = useStageScale();
   return (
     <div
-      style={{ padding: '0 40px', marginBottom: Math.round(8 * s) }}
+      style={{ padding: '0 40px', marginBottom: Math.round(7 * s) }}
     >
       <div className="flex items-baseline" style={{ justifyContent: 'space-between', gap: Math.round(12 * s) }}>
         <h2 style={{ fontSize: Math.max(12, Math.round(13.5 * s)), fontWeight: 500, color: 'var(--mo-ink)', letterSpacing: '0.02em' }}>{title}</h2>
@@ -1075,7 +1075,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
   return (
     <div className="absolute inset-0 z-10">
       <div className="absolute inset-0 mo-no-scrollbar overflow-y-auto overflow-x-hidden" style={{ bottom: HOME_CHROME_BAND }} onScroll={handleScroll}>
-        <div style={{ padding: `${Math.round(Math.max(64, 56 * stageScale))}px 0 16px` }}>
+        <div style={{ padding: `${Math.round(Math.max(60, 54 * stageScale))}px 0 10px` }}>
           {/* Split 主视觉（沉浸态随内容一起收起）：左侧继续听 / 正在播放，右侧榜单前三快捷直达 */}
           <div style={collapseWhenImmersive()}>
           <div
@@ -1085,7 +1085,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
               gridTemplateColumns: 'minmax(0, 1.12fr) minmax(0, 1.5fr)',
               gap: Math.round(20 * stageScale),
               padding: '0 40px',
-              marginBottom: Math.round(12 * stageScale),
+              marginBottom: Math.round(10 * stageScale),
             }}
           >
             <div
@@ -1115,7 +1115,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
           <div style={collapseWhenImmersive()}>
             <div ref={stageRef}>
               {/* 编辑精选：非对称马赛克（1 大 + 4 小） */}
-              <div style={{ ...sectionReveal(160), marginBottom: Math.round(10 * stageScale) }}>
+              <div style={{ ...sectionReveal(160), marginBottom: Math.round(9 * stageScale) }}>
                 <SectionHead title="编辑精选" hint="网易云编辑精选" />
                 {isLoading && playlists.length === 0 ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: Math.round(12 * stageScale), padding: '0 40px' }}>
@@ -1130,7 +1130,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
 
               {/* 排行榜：紧凑目录（名次 + 名称 + 曲目数，三列），避免与上方马赛克重复成封面墙 */}
               {isLoading || toplists.length > 0 ? (
-                <div style={{ ...sectionReveal(240), marginBottom: Math.round(10 * stageScale) }}>
+                <div style={{ ...sectionReveal(240), marginBottom: Math.round(9 * stageScale) }}>
                   <SectionHead title="排行榜" hint="此刻最热" />
                   <div
                     style={{
@@ -1164,7 +1164,7 @@ export default function WaveHome({ onDetail, bootReady = true, immersive = false
 
               {/* 每日推荐（登录后个性化，未登录为通用推荐） */}
               {dailyTracks.length > 0 ? (
-                <div style={{ ...sectionReveal(300), marginBottom: Math.round(10 * stageScale) }}>
+                <div style={{ ...sectionReveal(300), marginBottom: Math.round(9 * stageScale) }}>
                   <SectionHead
                     title="每日推荐"
                     hint={accountLoggedIn ? '根据你的口味' : '登录后更懂你'}
